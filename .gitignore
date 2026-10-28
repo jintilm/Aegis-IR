@@ -1,0 +1,16 @@
+build/
+CMakeUserPresets.json
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# logs and scratch
+*.log

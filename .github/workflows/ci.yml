@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Keep in sync with docker/dev.Dockerfile. TODO before release: pin
+      # llvm.sh by checksum to close the supply-chain gap.
+      - name: Install LLVM 23
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh 23
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build clang-23 llvm-23 llvm-23-dev llvm-23-tools clang-format-23
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DLLVM_DIR="$(llvm-config-23 --cmakedir)" \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Smoke test (aegis-audit)
+        run: |
+          clang++-23 -O0 -S -emit-llvm examples/demo.cpp -o build/demo.ll
+          opt-23 -load-pass-plugin=build/lib/AegisPass.so -passes=aegis-audit \
+            -disable-output build/demo.ll 2> build/audit.log
+          cat build/audit.log
+          grep -q "\[aegis-audit\] module:" build/audit.log
+          grep -q "function=.*_Z15transform_valuei" build/audit.log
+          grep -q "\[aegis-audit\] total:" build/audit.log
+
+      - name: Format check
+        run: clang-format-23 --dry-run -Werror lib/*.cpp include/aegis/*.h
