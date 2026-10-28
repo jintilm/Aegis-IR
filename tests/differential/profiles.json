@@ -1,0 +1,36 @@
+{
+  "profiles": {
+    "baseline": {
+      "optflags": ["-O2"],
+      "protect": false,
+      "strip": false
+    },
+    "release": {
+      "optflags": ["-O2"],
+      "protect": false,
+      "strip": true
+    },
+    "aegis-standard": {
+      "optflags": ["-O2"],
+      "protect": true,
+      "policy": "policies/standard.json",
+      "strip": true
+    },
+    "aegis-research": {
+      "optflags": ["-O2"],
+      "protect": true,
+      "policy": "policies/research.json",
+      "strip": true
+    },
+    "aegis-debug": {
+      "optflags": ["-O0", "-g"],
+      "protect": false,
+      "strip": false
+    },
+    "baseline-asan": {
+      "optflags": ["-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer"],
+      "protect": false,
+      "strip": false
+    }
+  }
+}

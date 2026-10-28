@@ -20,6 +20,7 @@ RUN wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh \
     && /tmp/llvm.sh 23 \
     && apt-get update && apt-get install -y --no-install-recommends \
       clang-23 llvm-23 llvm-23-dev llvm-23-tools clang-format-23 \
+      libclang-rt-23-dev \
     && rm -rf /var/lib/apt/lists/* \
     && rm /tmp/llvm.sh
 

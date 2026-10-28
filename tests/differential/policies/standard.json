@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261028,
+  "functions": [
+    { "name": "_Z12rolling_hashPKhm", "level": 1, "reason": "fixture: hash" },
+    { "name": "_Z10checksum32PKhm", "level": 1, "reason": "fixture: checksum" },
+    { "name": "_Z12verify_tokenPKhm", "level": 1, "reason": "fixture: token check" }
+  ],
+  "limits": {
+    "max_binary_growth_percent": 10,
+    "max_p95_slowdown_percent": 5
+  }
+}

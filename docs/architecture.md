@@ -41,7 +41,8 @@ entries fail the build. Details: [`policy.md`](policy.md).
 
 ## Build profiles
 
-Five artifacts enter the differential test matrix:
+Six artifacts enter the differential test matrix (see
+[`build-profiles.md`](build-profiles.md) for flags and the runner):
 
 | Profile | Transforms | Symbols | Purpose |
 |---|---|---|---|
@@ -50,6 +51,7 @@ Five artifacts enter the differential test matrix:
 | `aegis-standard` | Tier 1 (default) | stripped | shipped protection |
 | `aegis-research` | experimental; off by default | stripped | research features |
 | `aegis-debug` | none | full | supported debugging of protected programs |
+| `baseline-asan` | none, ASan+UBSan | full | safety net over the corpus |
 
 The `aegis-debug` profile is the official answer to "obfuscation broke my
 production debugging": rebuild the same commit with it, reproduce, fix.

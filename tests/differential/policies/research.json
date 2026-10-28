@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 777,
+  "functions": [
+    { "name": "_Z12rolling_hashPKhm", "level": 2, "reason": "fixture: research tier" },
+    { "name": "_Z10checksum32PKhm", "level": 2, "reason": "fixture: research tier" },
+    { "name": "_Z12verify_tokenPKhm", "level": 3, "reason": "fixture: research tier" }
+  ]
+}

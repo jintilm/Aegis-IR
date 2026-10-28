@@ -19,7 +19,8 @@ jobs:
           sudo /tmp/llvm.sh 23
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build clang-23 llvm-23 llvm-23-dev llvm-23-tools clang-format-23
+            cmake ninja-build clang-23 llvm-23 llvm-23-dev llvm-23-tools \
+            clang-format-23 libclang-rt-23-dev
 
       - name: Configure
         run: |
@@ -41,7 +42,10 @@ jobs:
           grep -q "\[aegis-audit\] total:" build/audit.log
 
       - name: Format check
-        run: clang-format-23 --dry-run -Werror lib/*.cpp lib/*.h include/aegis/*.h
+        run: |
+          clang-format-23 --dry-run -Werror \
+            lib/*.cpp lib/*.h include/aegis/*.h \
+            tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
