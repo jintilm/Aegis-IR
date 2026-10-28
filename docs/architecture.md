@@ -6,17 +6,27 @@ exists in code today.
 ## Components
 
 ```text
-                     policy (aegis-policy.json / function attributes)
+                     policy (aegis-policy.json)
                                    │
-   source ──► clang ──► LLVM IR ──►│──► [aegis passes] ──► verifier ──► object
-                                   │
-                                   └──► function selection report
+                                   ▼
+   source ──► clang ──► LLVM IR ──► aegis-policy ──► [aegis transforms] ──► verifier ──► object
+                          │        (attrs: aegis.level)
+                          │        (flags: aegis.profile, aegis.seed)
+                          └──► selection report (matched / skipped / errors)
 
    aegis-bench (main product)
    ├── harness   — agent adapters (C1–C3 red teams), runner, budget control
    ├── tasks     — self-authored fixtures + ground truth + property tests
    └── protocol  — scoring rules, private-set custody, drift reports
 ```
+
+## Policy flow
+
+`aegis-policy` runs first on freshly emitted IR and resolves entries against
+symbol names exactly once; the decision is pinned onto functions as
+`aegis.level` attributes and module flags. Every later transform reads only
+the attributes, so selection survives inlining, renaming and LTO. Unresolved
+entries fail the build. Details: [`policy.md`](policy.md).
 
 ## Pass plugin
 

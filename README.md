@@ -51,8 +51,22 @@ Verify the plugin end to end:
 
 ```bash
 clang++-23 -O0 -S -emit-llvm examples/demo.cpp -o build/demo.ll
-opt-23 -load-pass-plugin=build/lib/AegisPass.so "aegis-audit" -disable-output build/demo.ll
-# or: opt-23 -load-pass-plugin=build/lib/AegisPass.so -passes=aegis-audit -disable-output build/demo.ll
+opt-23 -load-pass-plugin=build/lib/AegisPass.so -passes=aegis-audit -disable-output build/demo.ll
+```
+
+Apply a policy (lowered to `aegis.level` attributes; see
+[`docs/policy.md`](docs/policy.md)):
+
+```bash
+opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+  -passes='aegis-policy<policy=examples/aegis-policy.json>' \
+  -S build/demo.ll -o build/demo.policied.ll
+```
+
+Run the test suite (inside the container):
+
+```bash
+cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
 On non-Linux platforms the plugin artifact has a different extension

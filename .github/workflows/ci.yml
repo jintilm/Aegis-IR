@@ -41,4 +41,7 @@ jobs:
           grep -q "\[aegis-audit\] total:" build/audit.log
 
       - name: Format check
-        run: clang-format-23 --dry-run -Werror lib/*.cpp include/aegis/*.h
+        run: clang-format-23 --dry-run -Werror lib/*.cpp lib/*.h include/aegis/*.h
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure

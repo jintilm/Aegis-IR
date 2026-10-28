@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "functions": [
+    { "name": "printf", "level": 2, "reason": "declaration-only on purpose" }
+  ]
+}

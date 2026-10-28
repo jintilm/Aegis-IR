@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "profile": "dev",
+  "functions": [
+    {
+      "name": "_Z15transform_valuei",
+      "level": 1,
+      "reason": "demo: protect transform_value"
+    }
+  ],
+  "limits": {
+    "max_binary_growth_percent": 10,
+    "max_p95_slowdown_percent": 5
+  }
+}

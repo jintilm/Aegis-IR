@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "functions": [
+    { "name": "transform_value", "level": 2, "reason": "bare demangled name" }
+  ]
+}

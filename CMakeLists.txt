@@ -15,4 +15,7 @@ include(AddLLVM)
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+enable_testing()
+
 add_subdirectory(lib)
+add_subdirectory(tests)

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "functions": [
+    {
+      "name": "_Z23no_such_function_existsv",
+      "level": 1,
+      "reason": "typo on purpose"
+    }
+  ]
+}

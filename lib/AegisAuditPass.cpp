@@ -6,74 +6,49 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "AegisAuditPass.h"
 #include "aegis/AegisVersion.h"
+
 #include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/Passes/PassBuilder.h"
-// LLVM 20+ moved PassPlugin.h from llvm/Passes/ to llvm/Plugins/.
-#if __has_include("llvm/Plugins/PassPlugin.h")
-#include "llvm/Plugins/PassPlugin.h"
-#else
-#include "llvm/Passes/PassPlugin.h"
-#endif
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 
-namespace {
+namespace aegis {
 
-class AegisAuditPass : public PassInfoMixin<AegisAuditPass> {
-public:
-  PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
-    uint64_t TotalFunctions = 0;
-    uint64_t TotalBlocks = 0;
-    uint64_t TotalInstructions = 0;
+PreservedAnalyses AegisAuditPass::run(Module &M, ModuleAnalysisManager &) {
+  uint64_t TotalFunctions = 0;
+  uint64_t TotalBlocks = 0;
+  uint64_t TotalInstructions = 0;
 
-    errs() << "[aegis-audit] module: " << M.getSourceFileName() << " ("
-           << M.getName() << ")\n";
+  errs() << "[aegis-audit] module: " << M.getSourceFileName() << " ("
+         << M.getName() << ")\n";
 
-    for (Function &F : M) {
-      if (F.isDeclaration())
-        continue;
+  for (Function &F : M) {
+    if (F.isDeclaration())
+      continue;
 
-      size_t Blocks = 0;
-      size_t Instructions = 0;
-      for (BasicBlock &BB : F) {
-        ++Blocks;
-        Instructions += BB.size();
-      }
-
-      errs() << "[aegis-audit]   function=" << F.getName()
-             << " blocks=" << Blocks << " instructions=" << Instructions
-             << "\n";
-
-      ++TotalFunctions;
-      TotalBlocks += Blocks;
-      TotalInstructions += Instructions;
+    size_t Blocks = 0;
+    size_t Instructions = 0;
+    for (BasicBlock &BB : F) {
+      ++Blocks;
+      Instructions += BB.size();
     }
 
-    errs() << "[aegis-audit] total: functions=" << TotalFunctions
-           << " blocks=" << TotalBlocks << " instructions=" << TotalInstructions
-           << "\n";
+    errs() << "[aegis-audit]   function=" << F.getName() << " blocks=" << Blocks
+           << " instructions=" << Instructions << "\n";
 
-    // Read-only pass: all analyses remain valid.
-    return PreservedAnalyses::all();
+    ++TotalFunctions;
+    TotalBlocks += Blocks;
+    TotalInstructions += Instructions;
   }
-};
 
-} // namespace
+  errs() << "[aegis-audit] total: functions=" << TotalFunctions
+         << " blocks=" << TotalBlocks << " instructions=" << TotalInstructions
+         << "\n";
 
-extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
-  return {LLVM_PLUGIN_API_VERSION, "AegisPass", AEGIS_VERSION_STRING,
-          [](PassBuilder &PB) {
-            PB.registerPipelineParsingCallback(
-                [](StringRef Name, ModulePassManager &MPM,
-                   ArrayRef<PassBuilder::PipelineElement>) {
-                  if (Name != "aegis-audit")
-                    return false;
-                  MPM.addPass(AegisAuditPass());
-                  return true;
-                });
-          }};
+  // Read-only pass: all analyses remain valid.
+  return PreservedAnalyses::all();
 }
+
+} // namespace aegis

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 1234,
+  "functions": [
+    {
+      "name": "_Z15transform_valuei",
+      "level": 1,
+      "reason": "benchmark fixture"
+    }
+  ],
+  "limits": {
+    "max_binary_growth_percent": 10,
+    "max_p95_slowdown_percent": 5
+  }
+}

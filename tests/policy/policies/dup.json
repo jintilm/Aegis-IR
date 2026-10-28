@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "functions": [
+    { "name": "_Z15transform_valuei", "level": 1 },
+    { "name": "_Z15transform_valuei", "level": 2 }
+  ]
+}
