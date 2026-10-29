@@ -7,12 +7,20 @@ Current coverage:
   selection by mangled name, attribute/module-flag lowering, exactly-one
   annotation, unknown function, out-of-range level, malformed JSON, duplicate
   entries, declaration-only match, demangled-name fallback.
+- `decoys/` — end-to-end tests for `aegis-decoys` + `aegis-verify` (`bash
+  tests/decoys/run.sh <plugin>`; CTest name `aegis-decoys`). Cases: artifacts
+  survive `-O2`, guard load survives, the verify gate passes and fails in the
+  right situations, level-0 functions untouched, determinism, seed
+  sensitivity, inlining behaviour. See [`docs/decoys.md`](../docs/decoys.md).
 - `differential/` — build-profile matrix over an offline-library fixture
   (`python3 tests/differential/run.py --plugin <plugin>`; CTest name
-  `differential`). Six profiles, deterministic corpus (fixed + boundary +
+  `differential`). Seven profiles, deterministic corpus (fixed + boundary +
   seeded fuzz), stdout/exit-code comparison against baseline, property and
-  sanitizer scanning, size/time baseline report. See
-  [`docs/build-profiles.md`](../docs/build-profiles.md).
+  sanitizer scanning, size (`bytes`, `.text`, `.data`) and p95-time baseline
+  report. Protected profiles run the full pipeline
+  `aegis-policy<...>,aegis-decoys,default<O2>,aegis-verify` on frontend IR.
+  See [`docs/build-profiles.md`](../docs/build-profiles.md) and
+  [`docs/decoys.md`](../docs/decoys.md).
 
 Planned layout (populated as transforms land):
 

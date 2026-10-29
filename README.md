@@ -9,9 +9,13 @@ Aegis-IR is an open-source project with two deliverables:
 
 ## Status
 
-`v0.1.0-alpha` development. The current tree contains only the read-only
-`aegis-audit` pass, which exists to prove the plugin/CI pipeline. **No
-protection transform is enabled yet.** Nothing here has been benchmarked.
+`v0.1.0-alpha` development. The tree contains the read-only `aegis-audit`
+pass, the policy pass (`aegis-policy`), and the first protection transform
+(`aegis-decoys`) together with its post-optimization build gate
+(`aegis-verify`). Tier-1 decoys are the only transform today, and they are
+deliberately weak: they slow down naive triage and give the benchmark ground
+truth, but they are ineffective against an analyst with the source. **Nothing
+here has been benchmarked yet.**
 
 ## Honest expectations
 
@@ -61,6 +65,18 @@ Apply a policy (lowered to `aegis.level` attributes; see
 opt-23 -load-pass-plugin=build/lib/AegisPass.so \
   -passes='aegis-policy<policy=examples/aegis-policy.json>' \
   -S build/demo.ll -o build/demo.policied.ll
+```
+
+Apply policy + decoys and gate the result (see
+[`docs/decoys.md`](docs/decoys.md)):
+
+```bash
+# compile to frontend IR: the transform must run before inlining
+clang++-23 -O2 -Xclang -disable-llvm-passes -S -emit-llvm \
+  examples/demo.cpp -o build/demo.ll
+opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+  -passes='aegis-policy<policy=examples/aegis-policy.json>,aegis-decoys,default<O2>,aegis-verify' \
+  build/demo.ll -S -o build/demo.protected.ll
 ```
 
 Run the test suite (inside the container):

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 4242,
+  "functions": [
+    {
+      "name": "leaf_check",
+      "level": 1,
+      "reason": "inlining interaction fixture"
+    }
+  ]
+}

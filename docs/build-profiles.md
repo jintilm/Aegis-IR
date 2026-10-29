@@ -3,7 +3,7 @@
 Status: implemented for fixtures; transforms land into these profiles as they
 are admitted.
 
-## The six profiles
+## The seven profiles
 
 Defined in `tests/differential/profiles.json`:
 
@@ -11,16 +11,25 @@ Defined in `tests/differential/profiles.json`:
 |---|---|---|---|---|
 | `baseline` | `-O2` | none | no | reference behaviour; every comparison target |
 | `release` | `-O2` | none | yes | fair "what the world sees" baseline |
-| `aegis-standard` | `-O2` | policy `standard.json` (Tier 1) | yes | shipped protection |
-| `aegis-research` | `-O2` | policy `research.json` (Tiers 2–3) | yes | research features; placeholder until transforms exist |
+| `release-opt` | `-O2` | `default<O2>` via `opt` | yes | isolates driver overhead / IR round-trip from protection |
+| `aegis-standard` | `-O2` | policy `standard.json`, decoys, verify | yes | shipped protection |
+| `aegis-research` | `-O2` | policy `research.json`, decoys, verify | yes | research features; placeholder until more transforms exist |
 | `aegis-debug` | `-O0 -g` | none | no | official debugging artifact for protected programs |
 | `baseline-asan` | `-O1 -fsanitize=address,undefined` | none | no | memory/UB safety net for the corpus |
 
+`release-opt` exists because protected profiles have their IR round-tripped
+through `opt`; without it, a difference between `release` and
+`aegis-standard` could be attributed to protection when it is really pipeline
+overhead.
+
+Protected profiles use the full pipeline
+`aegis-policy<policy=...>,aegis-decoys,default<O2>,aegis-verify`.
+
 `aegis-debug` is the supported answer to "protection broke production
 debugging": rebuild the same commit with it, reproduce, fix. `aegis-research`
-currently runs the same empty transform pipeline as `aegis-standard` with a
-different policy — it exists so experimental transforms have a wired target
-that is off by default.
+currently runs the same transform set as `aegis-standard` with a different
+policy — it exists so experimental transforms have a wired target that is off
+by default.
 
 ## Fixture
 
@@ -34,9 +43,11 @@ through the protection pipeline.
 
 `tests/differential/run.py`:
 
-1. **Builds every profile** — compiles the library to IR, runs
-   `aegis-policy<policy=...>` for protected profiles (a policy failure is a
-   test failure), compiles the protected IR, links with the driver.
+1. **Builds every profile** — compiles the library to IR, runs the profile
+   pipeline through `opt` (a failure is a test failure), compiles the
+   protected IR, links with the driver. Profiles with a `pipeline` entry
+   compile to *frontend* IR (`-Xclang -disable-llvm-passes`) so the transform
+   sees the module before inlining; see [`decoys.md`](decoys.md).
 2. **Generates the corpus deterministically** — fixed cases, boundary
    lengths (0–1025 around 8/17/64/256/1024), and `--fuzz-cases` seeded random
    byte strings (default 200, seed 1234).
@@ -44,15 +55,17 @@ through the protection pipeline.
    exit code against `baseline`.
 4. **Fails on**: output/exit mismatches, timeouts, `PROPERTY FAIL` lines from
    the driver's contract assertions, and any ASan/UBSan report in stderr.
-5. **Records the size/time baseline** — binary bytes, total corpus time per
-   profile — into `build/differential-report.json`. These numbers are the
-   denominator for the cost ledger when transforms arrive.
+5. **Records the size/time baseline** — binary bytes, `.text`/`.data` section
+   totals, and per-profile p95 wall time into
+   `build/differential-report.json`. Section totals matter because file size
+   is page-quantised: small transforms change `.text` without changing the
+   file size. These numbers are the denominator for the cost ledger.
 
 Run it directly:
 
 ```bash
 python3 tests/differential/run.py --plugin build/lib/AegisPass.so
-ctest --test-dir build --output-on-failure      # both suites
+ctest --test-dir build --output-on-failure      # all suites
 ```
 
 ## Failure policy (from the plan)
@@ -71,4 +84,7 @@ When a profile breaks:
   real large software.
 - stderr is not compared across profiles (diagnostic noise); only property and
   sanitizer signatures are scanned.
-- `aegis-research` is a placeholder target until research transforms exist.
+- `aegis-research` is a placeholder target until more research transforms
+  exist; today it differs from `aegis-standard` only in policy levels and seed.
+- Wall-clock numbers are process-startup dominated for this small fixture; use
+  them as a regression tripwire, not as a performance claim.

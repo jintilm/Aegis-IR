@@ -1,7 +1,7 @@
 # Architecture
 
-Status: working draft. Describes the intended shape; only the audit pass
-exists in code today.
+Status: working draft. The audit, policy, decoy and verify passes exist in
+code; later transforms are still sketches.
 
 ## Components
 
@@ -36,20 +36,25 @@ entries fail the build. Details: [`policy.md`](policy.md).
   name matching alone is not LTO-safe.
 - Every transform ships with a verifier. A failed verification fails the
   build; decoys that were optimised away are build errors, not warnings.
-- Insertion happens after inlining decisions; behaviour under `-O0`, `-O2`
-  and LTO is defined in the compatibility matrix (to be written).
+- The passes run on **frontend IR**, before `default<O2>`: a `-O2 -emit-llvm`
+  module is already inlined, and guarding there decorates dead IR (the
+  verifier rejects it). Defined compatibility with `-O0`, `-O2` and LTO is
+  the job of the compatibility matrix (to be written).
+- The current transform set is policy selection plus Tier-1 decoys; see
+  [`decoys.md`](decoys.md) for mechanism, guarantees and limitations.
 
 ## Build profiles
 
-Six artifacts enter the differential test matrix (see
+Seven artifacts enter the differential test matrix (see
 [`build-profiles.md`](build-profiles.md) for flags and the runner):
 
 | Profile | Transforms | Symbols | Purpose |
 |---|---|---|---|
 | `baseline` | none | full | reference behaviour |
 | `release` | none | stripped | fair comparison baseline |
-| `aegis-standard` | Tier 1 (default) | stripped | shipped protection |
-| `aegis-research` | experimental; off by default | stripped | research features |
+| `release-opt` | bare `default<O2>` via `opt` | stripped | isolates `opt` round-trip from protection |
+| `aegis-standard` | policy + decoys + verify | stripped | shipped protection |
+| `aegis-research` | policy + decoys + verify, higher levels | stripped | research features |
 | `aegis-debug` | none | full | supported debugging of protected programs |
 | `baseline-asan` | none, ASan+UBSan | full | safety net over the corpus |
 

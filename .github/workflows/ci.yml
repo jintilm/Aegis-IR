@@ -41,11 +41,24 @@ jobs:
           grep -q "function=.*_Z15transform_valuei" build/audit.log
           grep -q "\[aegis-audit\] total:" build/audit.log
 
+      - name: Smoke test (decoy pipeline)
+        run: |
+          # Frontend IR: the transform must see the module before inlining.
+          clang++-23 -O2 -Xclang -disable-llvm-passes -S -emit-llvm \
+            examples/demo.cpp -o build/demo.frontend.ll
+          opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+            -passes='aegis-policy<policy=examples/aegis-policy.json>,aegis-decoys,default<O2>,aegis-verify' \
+            build/demo.frontend.ll -S -o build/demo.protected.ll 2> build/decoy.log
+          cat build/decoy.log
+          grep -q "\[aegis-verify\] OK" build/decoy.log
+          grep -q "load volatile i32, ptr @__aegis.guard" build/demo.protected.ll
+
       - name: Format check
         run: |
           clang-format-23 --dry-run -Werror \
             lib/*.cpp lib/*.h include/aegis/*.h \
-            tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h
+            tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h \
+            tests/decoys/fixtures/*.cpp
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure

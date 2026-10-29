@@ -2,7 +2,10 @@ add_llvm_pass_plugin(AegisPass
   Plugin.cpp
   AegisAuditPass.cpp
   AegisPolicyPass.cpp
+  AegisDecoysPass.cpp
+  AegisVerifyPass.cpp
   Policy.cpp
+  DecoyCorpus.cpp
 )
 
 target_compile_features(AegisPass PRIVATE cxx_std_17)

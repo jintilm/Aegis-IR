@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Differential test runner for Aegis-IR build profiles (stage 3).
+"""Differential test runner for Aegis-IR build profiles (stage 3, extended in
+stage 4).
 
 Builds the fixture algorithm library under every profile defined in
 profiles.json, runs the same input corpus through each binary, and compares
 stdout and exit codes against the baseline profile. Property-check and
 sanitizer failures in stderr fail the run. A JSON report with binary sizes
 and wall-clock times is written for the size/performance baseline.
+
+Protected profiles run the full Aegis pipeline in one opt invocation:
+  aegis-policy<policy=...>,aegis-decoys,default<O2>,aegis-verify
+so a build whose decoys the optimizer erased fails here, not in production.
 
 Usage:
   run.py --plugin build/lib/AegisPass.so [--report build/differential.json]
@@ -45,20 +50,31 @@ def build_profile(name, spec, outdir, clang, opt, plugin):
     flags = spec.get("optflags", ["-O2"])
 
     lib_ll = outdir / "lib.ll"
-    r = run_cmd([clang, *flags, "-S", "-emit-llvm",
+    src_flags = list(flags)
+    pipeline = spec.get("pipeline")
+    if pipeline:
+        # The Aegis passes must see frontend IR: a -O2 -emit-llvm module has
+        # already been inlined, so guarding a function there protects a dead
+        # copy. default<O2> runs inside the opt pipeline instead.
+        src_flags += ["-Xclang", "-disable-llvm-passes"]
+    r = run_cmd([clang, *src_flags, "-S", "-emit-llvm",
                  str(FIXTURES / "algorithm_lib.cpp"),
                  "-I", str(FIXTURES), "-o", str(lib_ll)])
     if r.returncode != 0:
         return None, f"compile library failed:\n{r.stderr.decode(errors='replace')}"
 
-    if spec.get("protect"):
-        policy = HERE / spec["policy"]
+    pipeline = spec.get("pipeline")
+    if pipeline:
+        # Relative policy paths are resolved against this directory so the
+        # profile file stays location-independent.
+        policy = HERE / spec["policy"] if spec.get("policy") else None
+        passes = pipeline.format(policy=policy) if policy else pipeline
         protected_ll = outdir / "lib.protected.ll"
         r = run_cmd([opt, f"-load-pass-plugin={plugin}",
-                     f"-passes=aegis-policy<policy={policy}>",
+                     f"-passes={passes}",
                      str(lib_ll), "-S", "-o", str(protected_ll)])
         if r.returncode != 0:
-            return None, (f"policy pass failed:\n"
+            return None, (f"aegis pipeline failed ({passes}):\n"
                           f"{r.stderr.decode(errors='replace')}")
         lib_ll = protected_ll
 
@@ -82,6 +98,42 @@ def build_profile(name, spec, outdir, clang, opt, plugin):
     if r.returncode != 0:
         return None, f"link failed:\n{r.stderr.decode(errors='replace')}"
     return exe, None
+
+
+def percentile(samples, pct):
+    """Nearest-rank percentile. Empty input yields 0.0."""
+    if not samples:
+        return 0.0
+    ordered = sorted(samples)
+    rank = max(0, min(len(ordered) - 1,
+                      int(round(pct / 100.0 * len(ordered))) - 1))
+    return ordered[rank]
+
+
+def section_sizes(exe):
+    """Return {text, data, bss} in bytes, or {} when `size` is unavailable.
+
+    File size alone is page-quantised and hides small deltas, so the report
+    records the ELF section totals the linker actually produced.
+    """
+    try:
+        r = subprocess.run(["size", str(exe)], capture_output=True,
+                           timeout=TIMEOUT_SECONDS)
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    if r.returncode != 0:
+        return {}
+    lines = r.stdout.decode(errors="replace").strip().splitlines()
+    if len(lines) < 2:
+        return {}
+    fields = lines[1].split()
+    if len(fields) < 3:
+        return {}
+    try:
+        text, data, bss = (int(f) for f in fields[:3])
+    except ValueError:
+        return {}
+    return {"text": text, "data": data, "bss": bss}
 
 
 def build_corpus(fuzz_cases, seed):
@@ -148,10 +200,14 @@ def main():
                 failures.append(f"[{name}] {err}")
                 continue
             exes[name] = exe
+            sections = section_sizes(exe)
             report["profiles"][name] = {
                 "binary_bytes": exe.stat().st_size,
+                "sections": sections,
+                "pipeline": spec.get("pipeline"),
                 "cases": 0,
                 "total_ms": 0.0,
+                "timings_ms": [],
                 "mismatches": 0,
                 "sanitizer_or_property_errors": 0,
             }
@@ -172,6 +228,7 @@ def main():
             baseline_outputs.append((out, code))
             report["profiles"]["baseline"]["cases"] += 1
             report["profiles"]["baseline"]["total_ms"] += ms
+            report["profiles"]["baseline"]["timings_ms"].append(ms)
 
         for name, exe in exes.items():
             if name == "baseline":
@@ -189,6 +246,7 @@ def main():
                     continue
                 entry["cases"] += 1
                 entry["total_ms"] += ms
+                entry["timings_ms"].append(ms)
                 if (out, code) != expected:
                     entry["mismatches"] += 1
                     failures.append(
@@ -204,11 +262,18 @@ def main():
                         f"{stderr_text[:1000]}")
 
         print()
-        print(f"{'profile':<16} {'bytes':>8} {'cases':>6} {'ms':>10} "
-              f"{'mismatch':>8} {'san-err':>7}")
+        # p95 rather than the mean: process startup dominates the corpus and a
+        # few outliers would otherwise hide a per-case slowdown.
+        for entry in report["profiles"].values():
+            entry["p95_ms"] = percentile(entry.pop("timings_ms"), 95)
+        print(f"{'profile':<16} {'bytes':>8} {'text':>7} {'data':>6} {'p95ms':>9} "
+              f"{'cases':>6} {'mismatch':>8} {'san-err':>7}")
         for name, entry in report["profiles"].items():
+            sec = entry.get("sections") or {}
+            p95 = entry["p95_ms"]
             print(f"{name:<16} {entry['binary_bytes']:>8} "
-                  f"{entry['cases']:>6} {entry['total_ms']:>10.1f} "
+                  f"{sec.get('text', 0):>7} {sec.get('data', 0):>6} "
+                  f"{p95:>9.2f} {entry['cases']:>6} "
                   f"{entry['mismatches']:>8} "
                   f"{entry['sanitizer_or_property_errors']:>7}")
 
