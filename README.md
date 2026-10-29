@@ -4,18 +4,19 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product, in development)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated".
+- **Aegis-Bench** *(main product, in development)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". The harness (task schema, independent grader, runner, report generator) exists and is tested; no benchmark run has been published yet.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (first transform under development: decoy injection). It is the subject under test for the benchmark, not the project's headline.
 
 ## Status
 
 `v0.1.0-alpha` development. The tree contains the read-only `aegis-audit`
-pass, the policy pass (`aegis-policy`), and the first protection transform
-(`aegis-decoys`) together with its post-optimization build gate
-(`aegis-verify`). Tier-1 decoys are the only transform today, and they are
-deliberately weak: they slow down naive triage and give the benchmark ground
-truth, but they are ineffective against an analyst with the source. **Nothing
-here has been benchmarked yet.**
+pass, the policy pass (`aegis-policy`), the first protection transform
+(`aegis-decoys`) with its post-optimization build gate (`aegis-verify`), and
+the Aegis-Bench harness with one public task. Tier-1 decoys are the only
+transform today, and they are deliberately weak: they slow down naive triage
+and give the benchmark ground truth, but they are ineffective against an
+analyst with the source. **No protection effectiveness has been benchmarked
+yet.**
 
 ## Honest expectations
 

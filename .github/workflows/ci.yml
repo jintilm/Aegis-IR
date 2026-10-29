@@ -53,12 +53,21 @@ jobs:
           grep -q "\[aegis-verify\] OK" build/decoy.log
           grep -q "load volatile i32, ptr @__aegis.guard" build/demo.protected.ll
 
+      - name: Bench task integrity
+        run: |
+          # Manifests pin a content hash; a task edited without re-hashing
+          # must fail here rather than produce an unattributable result.
+          cd tools/aegis-bench
+          python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
+
       - name: Format check
         run: |
           clang-format-23 --dry-run -Werror \
             lib/*.cpp lib/*.h include/aegis/*.h \
             tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h \
-            tests/decoys/fixtures/*.cpp
+            tests/decoys/fixtures/*.cpp \
+            benchmarks/tasks-public/*/ground_truth/*.cpp \
+            benchmarks/tasks-public/*/grader/*.cpp
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure

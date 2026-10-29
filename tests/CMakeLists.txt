@@ -14,3 +14,10 @@ add_test(
           --plugin "$<TARGET_FILE:AegisPass>"
           --report "${CMAKE_BINARY_DIR}/differential-report.json"
 )
+
+# Offline harness tests: deterministic adapters only, no model, no network.
+add_test(
+  NAME aegis-bench
+  COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/bench/run.sh"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/aegis-bench"
+)

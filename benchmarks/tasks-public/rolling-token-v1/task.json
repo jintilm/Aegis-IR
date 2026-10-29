@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "rolling-token-v1",
+  "title": "Recover a rolling hash, adler checksum and token predicate",
+  "description": "task.md",
+  "interface": "include/target.h",
+  "candidate_sources": [
+    "target.cpp"
+  ],
+  "visible": [
+    "task.md",
+    "include/",
+    "examples/"
+  ],
+  "ground_truth": "ground_truth/target.cpp",
+  "properties": "grader/properties.cpp",
+  "driver": "grader/driver.cpp",
+  "hidden_cases": [
+    "grader/hidden/cases.json"
+  ],
+  "fuzz": {
+    "cases": 64,
+    "seed": 1234,
+    "max_len": 4096
+  },
+  "budgets": {
+    "max_tool_calls": 200,
+    "timeout_seconds": 600,
+    "max_output_tokens": 200000
+  },
+  "protectability": {
+    "domain_size": "small",
+    "rating": "high"
+  },
+  "content_hash": "sha256:ce72ce07e5c6c966eddbbca46eb5eaad340e181395a911225cade2d95f62046f"
+}

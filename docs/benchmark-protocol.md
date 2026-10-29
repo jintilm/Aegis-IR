@@ -1,7 +1,8 @@
-# Benchmark protocol (DRAFT)
+# Benchmark protocol
 
-Status: skeleton. No benchmark has been run yet; every number in future
-reports must be traceable to a commit, a model version, and a date.
+Status: harness implemented (`tools/aegis-bench`), one public task, no run
+published yet. Every number in future reports must be traceable to a commit,
+a model version, and a date.
 
 ## Unit of analysis
 
@@ -28,11 +29,28 @@ semantic answer). Scoring:
 2. differential fuzz agreement with ground truth,
 3. double-blind human rubric sampling for descriptive tasks.
 
+Implementation status: (1) and (2) are implemented and tested; (3) is not,
+and descriptive tasks are therefore not accepted yet.
+
+### Integrity rules the harness enforces
+
+- The agent workspace contains only the manifest's `visible` entries; ground
+  truth, hidden cases and the grader are never copied in (asserted by test).
+- A task whose files changed after `content_hash` was recorded fails to load.
+- Candidate source names are whitelisted and sanitised; a name with a path
+  separator or traversal segment is rejected, not written.
+- Candidate text is compiled and executed as untrusted input; the grader never
+  reads adapter notes or cost claims when deciding a score.
+
 ## Budgets and controls
 
 Per run, fixed and recorded: model id + version, system prompt, tool set,
 timeouts, max tool calls, token budget, machine profile. Deviations are
 reported, never silently absorbed.
+
+The harness records the budget config and environment stamp in every row.
+Token and tool-call figures are adapter self-reports and are labelled as such
+in the reports; the harness currently cannot corroborate them.
 
 ## Matrix
 
@@ -53,6 +71,9 @@ regardless of obfuscation — an honest result we commit to publishing.
 A hidden task subset is stored outside the public repo, rotated by 20% per
 quarter, and shared among maintainers under multi-custody. Reference sources,
 oracles, and graders never enter the agent's working directory.
+
+`benchmarks/tasks-private/` in this repository documents the layout only; the
+actual contents live in external storage.
 
 ## Reporting
 

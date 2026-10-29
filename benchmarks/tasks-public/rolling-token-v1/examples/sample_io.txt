@@ -1,0 +1,15 @@
+# Sample observations
+
+Inputs and outputs of the protected library, provided to the agent as the
+only concrete evidence. Long inputs are shown as hex.
+
+```
+input=""                        -> hash=14695981039346656037 checksum=1 verify=0
+input="a"                       -> hash=12638187200555641996 checksum=6422626 verify=0
+input="aegis-ir"                -> hash=10781158686979218516 checksum=232850194 verify=0
+input=hex:0001020304050607      -> hash=11879451155103665021 checksum=6029341 verify=0
+input="AAAAAAAA"                -> hash=3064734786292905933 checksum=153879049 verify=0
+```
+
+Note: `verify=1` is rare because it requires `hash % 97 == 0`. The examples
+above are all `verify=0`; finding a valid token is part of the task.

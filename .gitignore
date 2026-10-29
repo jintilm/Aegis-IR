@@ -14,3 +14,6 @@ __pycache__/
 
 # logs and scratch
 *.log
+
+# benchmark output
+bench-out/
