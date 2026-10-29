@@ -30,6 +30,27 @@ class ReplayAgent(Agent):
                     "note": "replayed answer; cost is not meaningful"})
 
 
+class GroundTruthAgent(Agent):
+    """Replay the task's own ground truth through the full runner path.
+
+    This exists to validate the *harness*, not to model an attacker: it reads
+    a file no real adapter is ever given. It answers "does a known-correct
+    solution score 100% end to end, with a report attached?", which is the
+    reproducibility check a release needs. It is **not** evidence of anything
+    about protection effectiveness, and reports built from it must say so.
+    """
+
+    name = "ground-truth-replay"
+    adversary = "n/a (harness self-check, not a solver)"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        truth = task.path(task.ground_truth).read_text(encoding="utf-8")
+        return AgentResult(
+            sources={task.candidate_sources[0]: truth},
+            ledger={"tokens": None, "tool_calls": 0,
+                    "note": "ground truth replayed; cost is not meaningful"})
+
+
 class StubAgent(Agent):
     """Return a candidate built from the interface it can see, but wrong.
 

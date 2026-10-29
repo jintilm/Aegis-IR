@@ -17,3 +17,7 @@ __pycache__/
 
 # benchmark output
 bench-out/
+
+# release artifacts (built by scripts/package.sh; checksums are published
+# with the GitHub release, not committed)
+dist/

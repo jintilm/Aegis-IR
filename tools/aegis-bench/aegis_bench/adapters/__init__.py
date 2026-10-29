@@ -12,6 +12,6 @@ credentials and network access never enter the build, CI, or test paths.
   crash the run).
 """
 
-from .fake import BrokenAgent, ReplayAgent, StubAgent
+from .fake import BrokenAgent, GroundTruthAgent, ReplayAgent, StubAgent
 
-__all__ = ["BrokenAgent", "ReplayAgent", "StubAgent"]
+__all__ = ["BrokenAgent", "GroundTruthAgent", "ReplayAgent", "StubAgent"]

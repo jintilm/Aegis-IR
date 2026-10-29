@@ -34,6 +34,7 @@ def _adapter(spec: str) -> Agent:
     builtins = {
         "stub": "aegis_bench.adapters.fake:StubAgent",
         "broken": "aegis_bench.adapters.fake:BrokenAgent",
+        "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     }
     spec = builtins.get(spec, spec)
     if ":" not in spec:
