@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 5150,
+  "functions": [
+    { "name": "computed_goto", "level": 3, "reason": "indirectbr rejection fixture" }
+  ]
+}

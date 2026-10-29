@@ -5,7 +5,49 @@ versions follow SemVer once past alpha.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **`aegis-cff`** — level 2/3 control-flow transforms.
+  - Level 2: an input-driven live split at the decoy guard plus 1–2
+    opaque-predicate bogus edges backed by `@__aegis.cff.salt` (internal, zero,
+    read only through volatile loads).
+  - Level 3: level 2 plus control-flow flattening into a volatile state
+    machine. PHIs and cross-block SSA values are demoted to stack slots before
+    the CFG rewrite; the dispatcher state is stored/loaded through `volatile`
+    so `mem2reg`/SROA cannot recover the original CFG at `-O2`.
+  - Registered as `aegis-cff`; pipeline order is
+    `aegis-policy,aegis-decoys,aegis-cff,default<O2>,aegis-verify`.
+- **`aegis-verify` level 2/3 coverage** — salt integrity, per-function volatile
+  salt loads, per-function volatile state slots, module-wide counts, and a
+  build error for any level>=2 function the transform never recorded.
+- **`tests/controlflow`** (CTest `aegis-controlflow`) — semantics, structural
+  survival, determinism, PHI demotion, and fail-closed negative controls.
+- **Two differential profiles** — `aegis-research` (level 2) and
+  `aegis-flattened` (level 3); the matrix is now eight profiles.
+- **Docs** — [`docs/controlflow.md`](docs/controlflow.md), updated policy,
+  compatibility, threat-model (policy levels vs tier numbers), architecture,
+  build profiles and claims ledger (C-003–C-005).
+
+### Changed
+
+- `kMaxImplementedLevel` is now 3. Levels 1–3 are implemented; the shipped
+  `aegis-standard` profile remains level 1.
+- A level-3 selection of `indirectbr`, `callbr`, an EH terminator or a
+  coroutine **fails the build** with the reason instead of skipping.
+
+### Behaviour worth knowing
+
+- Level 2/3 are still semantics-preserving and compile-time; they are **not**
+  the threat model's Tier 2 or Tier 3. The live split makes the executed path
+  input-dependent, but the flattening dispatcher is visible to dynamic
+  tracing, and the state key derives from the shipped seed.
+- The research profiles use seeds 777/778; their `.text` deltas are each
+  relative to the shared baseline, not a monotonic ladder.
+
+### Not claimed
+
+No adversarial effectiveness claim for levels 2/3. The only numbers are `.text`
+growth and output equality on the synthetic fixture (C-003/C-004).
 
 ## [0.1.0-alpha] — 2026-10-29
 

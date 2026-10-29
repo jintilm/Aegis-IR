@@ -1,12 +1,16 @@
 # Decoy transform (`aegis-decoys`)
 
-Stage 4 adds the first transform that changes the emitted binary, plus a
+Stage 4 added the first transform that changes the emitted binary, plus a
 verification gate that turns silent optimizer degradation into a build
 failure.
 
 ```
 aegis-policy<policy=...>,aegis-decoys,default<O2>,aegis-verify
 ```
+
+Levels 2/3 insert `aegis-cff` between the decoys and the optimizer; the decoy
+pass runs first at every level and provides the guard branch the control-flow
+transform builds on. See [`controlflow.md`](controlflow.md).
 
 ## What it does
 
@@ -92,7 +96,9 @@ Tier-1 honesty, stated plainly (see [`threat-model.md`](threat-model.md)):
   truth; they are **not** effective against a competent analyst with the source.
 - It does not change control flow in a way that survives a determined dynamic
   trace: the branch is never taken, so coverage-guided tooling prunes it
-  immediately.
+  immediately. Levels 2/3 (`aegis-cff`) add control-flow cost; they still do
+  not hide the dispatcher from a dynamic trace — see
+  [`controlflow.md`](controlflow.md).
 - It does not obscure the policy. `aegis.level` attributes and module flags are
   visible in the binary's metadata-free form only after stripping; a
   white-box adversary has the policy file.
@@ -122,7 +128,9 @@ function is a decoy can be scored against the recorded set without guessing.
 the guard load surviving, the module still passing LLVM's verifier, level-0
 functions untouched, the gate failing when `aegis-decoys` is skipped, the gate
 failing on seed drift, byte-identical reproduction, seed sensitivity, guard
-survival through inlining, and a non-volatile-guard negative control.
+survival through inlining, a non-volatile-guard negative control, and
+level-2/3 selections still receiving the entry guard.
 
-`tests/differential/` runs both protected profiles through the full pipeline
-and reports `.text`/`.data` growth next to the size and p95-time baseline.
+`tests/controlflow/` covers the levels above and `/tests/differential/` runs
+the level-1, level-2 and level-3 profiles through the full pipeline, reporting
+`.text`/`.data` growth next to the size and p95-time baseline.

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 5150,
+  "functions": [
+    { "name": "branchy", "level": 2, "reason": "control-flow fixture" },
+    { "name": "loop_sum", "level": 2, "reason": "control-flow fixture" },
+    { "name": "switchy", "level": 2, "reason": "control-flow fixture" },
+    { "name": "early", "level": 2, "reason": "control-flow fixture" },
+    { "name": "no_args", "level": 2, "reason": "live-split fallback fixture" },
+    { "name": "pointer_only", "level": 2, "reason": "pointer predicate fixture" }
+  ]
+}

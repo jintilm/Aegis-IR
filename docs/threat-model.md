@@ -40,6 +40,25 @@ one or more LLM/agent instances plus tooling.
 We publish this table in every benchmark report. A transform that only moves
 the cost for C1 must say so.
 
+### Policy levels are not tier numbers
+
+The policy file's `level` field is a transform-strength knob, not a claim that
+a module implements the threat-model tier of the same number:
+
+| Policy level | What ships | Tier family |
+|---|---|---|
+| 1 | decoys, dead paths, symbol/string bait | Tier 1 |
+| 2 | level 1 + input-driven live split + bogus edges | local static cost; the live split makes the executed path input-dependent, but the observable contract is unchanged |
+| 3 | level 2 + volatile-state-machine flattening | local static cost; no loader, no timing dependence |
+
+None of these implements the Tier-2 mechanism family in the table above (cold-
+path mounting with a loader, timing dependence, runtime-conditioned
+observability), and none performs Tier-3 semantics removal. Levels 2/3 remain
+compile-time, semantics-preserving transforms; expect the same coverage-guided
+pruning against C2+ that Tier 1 suffers, with a higher static reconstruction
+cost. The distinction is deliberate: it prevents "level 3" from being read as
+"Tier 3" in a sales conversation. See [`controlflow.md`](controlflow.md).
+
 ## 4. Assumptions and hard bounds
 
 - **White-box assumption (Kerckhoffs).** The adversary has this source code,

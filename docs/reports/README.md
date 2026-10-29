@@ -19,7 +19,8 @@ Rules:
 
 | Report | What it establishes | Claim ID |
 |---|---|---|
-| [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches; the grader scores a known-correct solution 100% and a wrong one 0% | C-001, C-002 (supporting artifacts) |
+| [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches across levels 0–3; the grader scores a known-correct solution 100% and a wrong one 0% | C-001–C-005 (supporting artifacts) |
 
 Still missing, and therefore unclaimed: any measurement involving a real
-model, any cost-delta number, any statement about attacker difficulty.
+model, any adversarial cost-delta number, any statement about attacker
+difficulty.

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 778,
+  "functions": [
+    { "name": "_Z12rolling_hashPKhm", "level": 3, "reason": "fixture: flattening" },
+    { "name": "_Z10checksum32PKhm", "level": 3, "reason": "fixture: flattening" },
+    { "name": "_Z12verify_tokenPKhm", "level": 3, "reason": "fixture: flattening" }
+  ]
+}

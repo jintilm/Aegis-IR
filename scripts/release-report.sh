@@ -66,8 +66,8 @@ scripts/release-report.sh $NAME
 ## What this shows
 
 - the CTest suite passes in the pinned container (\`ctest.log\`);
-- the differential matrix runs seven build profiles over the same corpus with
-  zero output mismatches and zero sanitizer reports
+- the differential matrix runs eight build profiles (levels 0/1/2/3) over the
+  same corpus with zero output mismatches and zero sanitizer reports
   (\`differential-report.json\`, including \`.text\`/\`.data\` totals and p95
   wall time per profile);
 - Aegis-Bench scores a known-correct solution at 100% and a

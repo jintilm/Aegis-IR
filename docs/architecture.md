@@ -1,7 +1,7 @@
 # Architecture
 
-Status: working draft. The audit, policy, decoy and verify passes exist in
-code; later transforms are still sketches.
+Status: working draft. The audit, policy, decoy, control-flow and verify
+passes exist in code; further transforms are sketches.
 
 ## Components
 
@@ -40,12 +40,14 @@ entries fail the build. Details: [`policy.md`](policy.md).
   module is already inlined, and guarding there decorates dead IR (the
   verifier rejects it). Defined compatibility with `-O0`, `-O2` and LTO is
   the job of the compatibility matrix (to be written).
-- The current transform set is policy selection plus Tier-1 decoys; see
-  [`decoys.md`](decoys.md) for mechanism, guarantees and limitations.
+- The current transform set is policy selection, Tier-1 decoys (`aegis-decoys`)
+  and the level 2/3 control-flow transforms (`aegis-cff`: bogus flow, live
+  split, flattening), all gated by `aegis-verify`. See
+  [`decoys.md`](decoys.md) and [`controlflow.md`](controlflow.md).
 
 ## Build profiles
 
-Seven artifacts enter the differential test matrix (see
+Eight artifacts enter the differential test matrix (see
 [`build-profiles.md`](build-profiles.md) for flags and the runner):
 
 | Profile | Transforms | Symbols | Purpose |
@@ -53,8 +55,9 @@ Seven artifacts enter the differential test matrix (see
 | `baseline` | none | full | reference behaviour |
 | `release` | none | stripped | fair comparison baseline |
 | `release-opt` | bare `default<O2>` via `opt` | stripped | isolates `opt` round-trip from protection |
-| `aegis-standard` | policy + decoys + verify | stripped | shipped protection |
-| `aegis-research` | policy + decoys + verify, higher levels | stripped | research features |
+| `aegis-standard` | policy level 1 + decoys + verify | stripped | shipped protection |
+| `aegis-research` | policy level 2 + decoys + cff + verify | stripped | live split + bogus edges |
+| `aegis-flattened` | policy level 3 + decoys + cff + verify | stripped | control-flow flattening |
 | `aegis-debug` | none | full | supported debugging of protected programs |
 | `baseline-asan` | none, ASan+UBSan | full | safety net over the corpus |
 

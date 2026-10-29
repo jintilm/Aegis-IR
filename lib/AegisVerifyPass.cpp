@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "AegisVerifyPass.h"
+#include "ControlFlow.h"
 #include "DecoyCorpus.h"
 
 #include "llvm/ADT/StringSet.h"
@@ -42,6 +43,71 @@ bool nameMatchesExpected(StringRef Actual, StringRef Expected) {
     return true;
   // Dedupe suffix used at injection time when a name collided.
   return Actual.starts_with((Expected + "_v").str());
+}
+
+bool isVolatileLoadOf(const Instruction &I, const GlobalVariable *GV) {
+  const auto *LI = dyn_cast<LoadInst>(&I);
+  return LI && LI->isVolatile() && LI->getPointerOperand() == GV;
+}
+
+// The optimizer may fold two volatile loads of different zero globals into a
+// select of pointers plus one load. That keeps the unreachability argument
+// intact, so the use check follows select/GEP/bitcast chains and rejects only
+// paths that end in a store or a non-volatile read.
+bool onlyVolatileReads(const Value *V, unsigned Depth = 0) {
+  if (Depth > 8)
+    return false;
+  for (const User *U : V->users()) {
+    if (const auto *LI = dyn_cast<LoadInst>(U)) {
+      if (!LI->isVolatile())
+        return false;
+      continue;
+    }
+    if (isa<SelectInst>(U) || isa<GetElementPtrInst>(U) ||
+        isa<BitCastInst>(U) || isa<ConstantExpr>(U)) {
+      if (!onlyVolatileReads(U, Depth + 1))
+        return false;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+bool hasSaltLoad(const Function &F, const GlobalVariable *Salt) {
+  if (!Salt)
+    return false;
+  for (const Instruction &I : instructions(F))
+    if (isVolatileLoadOf(I, Salt))
+      return true;
+  return false;
+}
+
+// A flattened function owns one i32 state slot accessed through volatile
+// load/store pairs. Volatile access is what stops mem2reg/SROA from turning
+// the dispatcher back into the original CFG.
+unsigned countFlattenedStates(const Function &F) {
+  unsigned States = 0;
+  for (const Instruction &I : instructions(F)) {
+    const auto *AI = dyn_cast<AllocaInst>(&I);
+    if (!AI || !AI->getAllocatedType()->isIntegerTy(32))
+      continue;
+    // The name survives inlining (with a suffix); requiring it avoids
+    // counting an unrelated user-level `volatile int` local as a state slot.
+    if (!AI->getName().starts_with("aegis.state"))
+      continue;
+    bool HasVolatileLoad = false;
+    bool HasVolatileStore = false;
+    for (const User *U : AI->users()) {
+      if (const auto *LI = dyn_cast<LoadInst>(U))
+        HasVolatileLoad |= LI->isVolatile();
+      if (const auto *SI = dyn_cast<StoreInst>(U))
+        HasVolatileStore |= SI->isVolatile() && SI->getPointerOperand() == AI;
+    }
+    if (HasVolatileLoad && HasVolatileStore)
+      ++States;
+  }
+  return States;
 }
 
 } // namespace
@@ -124,13 +190,10 @@ PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
     const auto *CI = dyn_cast_or_null<ConstantInt>(Init);
     if (!CI || !CI->isZero())
       Problems.push_back("guard global must be zero-initialised");
-    for (const User *U : Guard->users()) {
-      const auto *LI = dyn_cast<LoadInst>(U);
-      if (!LI || !LI->isVolatile())
-        Problems.push_back(
-            "guard global used by something other than a volatile load "
-            "(stores would break the unreachability argument)");
-    }
+    if (!onlyVolatileReads(Guard))
+      Problems.push_back(
+          "guard global used by something other than a volatile load "
+          "(stores would break the unreachability argument)");
   }
 
   // 4. Every function the transform guarded still carries the guard load and a
@@ -211,6 +274,110 @@ PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
                        "aegis-policy and before aegis-verify)");
   }
 
+  // 5. Level 2/3 control-flow artifacts. The transform records what it
+  //    applied; the optimizer must not have removed any of it.
+  StringSet<> ExpectedBogus;
+  StringSet<> ExpectedFlattened;
+  if (const Metadata *Flag = M.getModuleFlag(kBogusFlagName))
+    collectStrings(Flag, ExpectedBogus);
+  if (const Metadata *Flag = M.getModuleFlag(kFlattenedFlagName))
+    collectStrings(Flag, ExpectedFlattened);
+
+  GlobalVariable *Salt = M.getNamedGlobal(kCffSaltName);
+  unsigned SaltLoads = 0;
+  if (!ExpectedBogus.empty() || !ExpectedFlattened.empty()) {
+    if (!Salt) {
+      Problems.push_back(std::string("control-flow salt missing: ") +
+                         kCffSaltName);
+    } else {
+      if (!Salt->hasInternalLinkage())
+        Problems.push_back("control-flow salt must have internal linkage");
+      const Constant *Init =
+          Salt->hasInitializer() ? Salt->getInitializer() : nullptr;
+      const auto *CI = dyn_cast_or_null<ConstantInt>(Init);
+      if (!CI || !CI->isZero())
+        Problems.push_back("control-flow salt must be zero-initialised");
+      if (!onlyVolatileReads(Salt))
+        Problems.push_back(
+            "control-flow salt used by something other than a volatile load "
+            "(stores would make the opaque predicates live)");
+      for (const Function &F : M)
+        if (!F.isDeclaration())
+          for (const Instruction &I : instructions(F))
+            if (isVolatileLoadOf(I, Salt))
+              ++SaltLoads;
+    }
+  }
+
+  unsigned BogusOk = 0;
+  unsigned BogusInlined = 0;
+  if (!ExpectedBogus.empty()) {
+    for (const auto &Entry : ExpectedBogus) {
+      Function *F = M.getFunction(Entry.getKey());
+      if (!F || F->isDeclaration()) {
+        ++BogusInlined;
+        continue;
+      }
+      if (hasSaltLoad(*F, Salt))
+        ++BogusOk;
+      else
+        Problems.push_back("level-2 function '" + Entry.getKey().str() +
+                           "' lost its opaque-predicate edge (no volatile "
+                           "salt load)");
+    }
+    if (SaltLoads < ExpectedBogus.size())
+      Problems.push_back(
+          "only " + std::to_string(SaltLoads) + " volatile salt load(s) for " +
+          std::to_string(ExpectedBogus.size()) +
+          " level-2 function(s): at least one opaque edge was erased");
+  }
+
+  unsigned FlattenedOk = 0;
+  unsigned FlattenedInlined = 0;
+  unsigned FlattenedStates = 0;
+  if (!ExpectedFlattened.empty()) {
+    for (const Function &F : M)
+      if (!F.isDeclaration())
+        FlattenedStates += countFlattenedStates(F);
+    for (const auto &Entry : ExpectedFlattened) {
+      Function *F = M.getFunction(Entry.getKey());
+      if (!F || F->isDeclaration()) {
+        ++FlattenedInlined;
+        continue;
+      }
+      if (countFlattenedStates(*F) > 0)
+        ++FlattenedOk;
+      else
+        Problems.push_back("level-3 function '" + Entry.getKey().str() +
+                           "' lost its volatile dispatch state (the "
+                           "optimizer recovered the original CFG)");
+    }
+    if (FlattenedStates < ExpectedFlattened.size())
+      Problems.push_back(
+          "only " + std::to_string(FlattenedStates) +
+          " volatile dispatch state slot(s) for " +
+          std::to_string(ExpectedFlattened.size()) +
+          " flattened function(s): at least one state machine was erased");
+  }
+
+  // A level>=2 function that carries the attribute but was never recorded is
+  // the same class of lie as an unguarded level-1 function.
+  for (const Function &F : M) {
+    const int Level = functionLevel(F);
+    if (Level < 2 || !eligibleForDecoys(F))
+      continue;
+    if (Level >= 3) {
+      if (!ExpectedFlattened.contains(F.getName()))
+        Problems.push_back("level-3 function '" + F.getName().str() +
+                           "' was never flattened (run aegis-cff after "
+                           "aegis-decoys and before aegis-verify)");
+    } else if (!ExpectedBogus.contains(F.getName())) {
+      Problems.push_back("level-2 function '" + F.getName().str() +
+                         "' was never transformed (run aegis-cff after "
+                         "aegis-decoys and before aegis-verify)");
+    }
+  }
+
   errs() << "[aegis-verify] decoy functions present: " << FoundFns << "/"
          << Plan.FunctionNames.size() << " | decoy strings: " << FoundStrs
          << "/" << Plan.Strings.size() << " | guard loads: " << GuardLoads
@@ -218,6 +385,18 @@ PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
   if (RemovedByInlining)
     errs() << " (" << RemovedByInlining << " inlined away)";
   errs() << "\n";
+  if (!ExpectedBogus.empty() || !ExpectedFlattened.empty()) {
+    errs() << "[aegis-verify] salt loads: " << SaltLoads
+           << " | level-2 functions: " << BogusOk << "/"
+           << ExpectedBogus.size();
+    if (BogusInlined)
+      errs() << " (" << BogusInlined << " inlined away)";
+    errs() << " | flattened: " << FlattenedOk << "/" << ExpectedFlattened.size()
+           << " (" << FlattenedStates << " state slots";
+    if (FlattenedInlined)
+      errs() << ", " << FlattenedInlined << " inlined away";
+    errs() << ")\n";
+  }
 
   if (!Problems.empty()) {
     for (const std::string &P : Problems)

@@ -8,28 +8,30 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for `v0.1.0-alpha` by `scripts/release-report.sh` (`ctest.log`).
-- [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`, `differential`,
-      `aegis-bench`.
+- [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
+      `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Differential matrix: zero output mismatches, zero sanitizer reports on
-      all seven profiles (`differential-report.json`).
+      all eight profiles (`differential-report.json`).
 - [x] `clang-format --dry-run -Werror` clean (CI).
-- [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) on the
-      fixture, p95 per-profile in `differential-report.json`. The +10% /
-      +5% figures in `docs/build-profiles.md` are engineering targets, not
-      gates — this release exceeds the size target and says so in the claims
-      ledger (C-001) rather than hiding it.
+- [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) for
+      level 1, 5672 (+12.9%) for level 2 and 6642 (+32.2%) for level 3 on the
+      fixture; p95 per-profile in `differential-report.json`. The +10% / +5%
+      figures in `docs/build-profiles.md` are engineering targets, not gates —
+      the protected profiles exceed the size target and say so in the claims
+      ledger (C-001/C-003/C-004) rather than hiding it.
 - [x] At least one reproducible report linked from release notes:
       `docs/reports/harness-validation/`.
 
 ## Claims and honesty
 
-- [x] README claims each link to a claims-ledger entry (C-001, C-002).
+- [x] README claims each link to a claims-ledger entry (C-001–C-005).
 - [x] No claim implies protection against C2+ attackers beyond measured data —
       in fact no effectiveness claim of any kind is made.
-- [x] Known limitations in `docs/threat-model.md` and `docs/decoys.md` are
-      current.
-- [x] Unsupported selections fail the build (levels above 1, `optnone`,
-      `naked`, EH personality, `musttail`) and are tested.
+- [x] Known limitations in `docs/threat-model.md`, `docs/decoys.md` and
+      `docs/controlflow.md` are current.
+- [x] Unsupported selections fail the build (levels outside `0..3`, `optnone`,
+      `naked`, EH personality, `musttail`, and level-3 `indirectbr`/`callbr`/
+      coroutine/EH terminators) and are tested.
 
 ## Legal and identity
 

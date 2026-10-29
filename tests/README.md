@@ -12,15 +12,23 @@ Current coverage:
   survive `-O2`, guard load survives, the verify gate passes and fails in the
   right situations, level-0 functions untouched, determinism, seed
   sensitivity, inlining behaviour. See [`docs/decoys.md`](../docs/decoys.md).
+- `controlflow/` — end-to-end tests for `aegis-cff` at levels 2/3 (`bash
+  tests/controlflow/run.sh <plugin>`; CTest name `aegis-controlflow`). Cases:
+  pipelines build and verify, salt loads and volatile state slots survive
+  `-O2`, output matches baseline, determinism, PHI demotion, the gate failing
+  when cff is skipped / state or salt loses `volatile` / decoys are skipped,
+  and level 3 rejecting `indirectbr`. See
+  [`docs/controlflow.md`](../docs/controlflow.md).
 - `differential/` — build-profile matrix over an offline-library fixture
   (`python3 tests/differential/run.py --plugin <plugin>`; CTest name
-  `differential`). Seven profiles, deterministic corpus (fixed + boundary +
+  `differential`). Eight profiles, deterministic corpus (fixed + boundary +
   seeded fuzz), stdout/exit-code comparison against baseline, property and
   sanitizer scanning, size (`bytes`, `.text`, `.data`) and p95-time baseline
   report. Protected profiles run the full pipeline
-  `aegis-policy<...>,aegis-decoys,default<O2>,aegis-verify` on frontend IR.
-  See [`docs/build-profiles.md`](../docs/build-profiles.md) and
-  [`docs/decoys.md`](../docs/decoys.md).
+  `aegis-policy<...>,aegis-decoys,aegis-cff,default<O2>,aegis-verify` on
+  frontend IR. See [`docs/build-profiles.md`](../docs/build-profiles.md),
+  [`docs/decoys.md`](../docs/decoys.md) and
+  [`docs/controlflow.md`](../docs/controlflow.md).
 
 - `bench/` — Aegis-Bench harness tests (`bash tests/bench/run.sh
   tools/aegis-bench`; CTest name `aegis-bench`). Offline only: deterministic

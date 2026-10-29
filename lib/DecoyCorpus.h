@@ -37,7 +37,7 @@ extern const char *const kGuardedFlagName;
 /// Highest policy level any shipped transform implements. A policy entry above
 /// this must fail the build: accepting it would ship a module that claims a
 /// protection tier nothing applied.
-constexpr int kMaxImplementedLevel = 1;
+constexpr int kMaxImplementedLevel = 3;
 
 /// Deterministic description of the decoys a module must contain.
 struct DecoyPlan {

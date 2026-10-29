@@ -174,14 +174,15 @@ else
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
 fi
 
-echo "== aegis-decoys: unsupported selections fail loudly =="
-# Level 2 asks for a transform tier this release does not implement.
-sed 's/"level": 1/"level": 2/' "$POLICY" > "$TMP/level2.json"
-run_opt /dev/null "aegis-policy<policy=$TMP/level2.json>,aegis-decoys" "$TMP/input.ll"
-if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'unsupported'; then
-  pass_case "unimplemented level fails the build"
+echo "== aegis-decoys: higher levels are still guarded here =="
+# Level 2/3 add their own transforms; the entry guard is still this pass's job.
+sed 's/"level": 1/"level": 3/' "$POLICY" > "$TMP/level3.json"
+run_opt "$TMP/level3.ll" \
+  "aegis-policy<policy=$TMP/level3.json>,aegis-decoys" "$TMP/input.ll"
+if [ "$CODE" -eq 0 ] && printf '%s\n' "$OUT" | grep -q 'guarded=1'; then
+  pass_case "level-3 selection is guarded by aegis-decoys"
 else
-  fail_case "unimplemented level fails the build (exit=$CODE)"
+  fail_case "level-3 selection is guarded by aegis-decoys (exit=$CODE)"
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
 fi
 

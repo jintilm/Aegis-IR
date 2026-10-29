@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 5150,
+  "functions": [
+    { "name": "phi_loop", "level": 3, "reason": "PHI demotion fixture" }
+  ]
+}

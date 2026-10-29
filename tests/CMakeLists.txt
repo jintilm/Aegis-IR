@@ -9,6 +9,11 @@ add_test(
 )
 
 add_test(
+  NAME aegis-controlflow
+  COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/controlflow/run.sh" "$<TARGET_FILE:AegisPass>"
+)
+
+add_test(
   NAME differential
   COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/differential/run.py"
           --plugin "$<TARGET_FILE:AegisPass>"

@@ -71,6 +71,18 @@ jobs:
           grep -q "\[aegis-verify\] OK" build/decoy.log
           grep -q "load volatile i32, ptr @__aegis.guard" build/demo.protected.ll
 
+      - name: Smoke test (control-flow pipeline)
+        run: |
+          # Level 3 must survive the optimizer and the gate, not just build.
+          sed 's/"level": 1/"level": 3/' examples/aegis-policy.json > build/level3.json
+          opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+            -passes='aegis-policy<policy=build/level3.json>,aegis-decoys,aegis-cff,default<O2>,aegis-verify' \
+            build/demo.frontend.ll -S -o build/demo.cff.ll 2> build/cff.log
+          cat build/cff.log
+          grep -q "\[aegis-verify\] OK" build/cff.log
+          grep -q "switch i32 %aegis.keyed" build/demo.cff.ll
+          grep -q "load volatile i32, ptr %aegis.state" build/demo.cff.ll
+
       # Fail-closed behaviour must be tested, not assumed: a protected build
       # whose decoys were skipped has to break, not warn.
       - name: Smoke test (verify gate fails closed)
@@ -101,6 +113,7 @@ jobs:
             lib/*.cpp lib/*.h include/aegis/*.h \
             tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h \
             tests/decoys/fixtures/*.cpp \
+            tests/controlflow/fixtures/*.cpp \
             benchmarks/tasks-public/*/ground_truth/*.cpp \
             benchmarks/tasks-public/*/grader/*.cpp
 

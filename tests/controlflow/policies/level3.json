@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 5150,
+  "functions": [
+    { "name": "branchy", "level": 3, "reason": "flattening fixture" },
+    { "name": "loop_sum", "level": 3, "reason": "flattening fixture" },
+    { "name": "switchy", "level": 3, "reason": "switch flattening fixture" },
+    { "name": "early", "level": 3, "reason": "flattening fixture" },
+    { "name": "no_args", "level": 3, "reason": "live-split fallback fixture" },
+    { "name": "pointer_only", "level": 3, "reason": "pointer predicate fixture" }
+  ]
+}

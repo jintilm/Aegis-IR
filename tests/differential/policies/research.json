@@ -3,8 +3,8 @@
   "profile": "research",
   "seed": 777,
   "functions": [
-    { "name": "_Z12rolling_hashPKhm", "level": 1, "reason": "fixture: research profile (tier 2/3 transforms not implemented yet)" },
-    { "name": "_Z10checksum32PKhm", "level": 1, "reason": "fixture: research profile" },
-    { "name": "_Z12verify_tokenPKhm", "level": 1, "reason": "fixture: research profile" }
+    { "name": "_Z12rolling_hashPKhm", "level": 2, "reason": "fixture: level-2 control flow" },
+    { "name": "_Z10checksum32PKhm", "level": 2, "reason": "fixture: level-2 control flow" },
+    { "name": "_Z12verify_tokenPKhm", "level": 2, "reason": "fixture: level-2 control flow" }
   ]
 }

@@ -8,10 +8,20 @@ ledger, it must not appear in README, release notes, or talks.
 |---|---|---|---|---|
 | C-001 | "Tier-1 decoys change the protected fixture's `.text` from 5023 to 6132 bytes (+22.1%) while producing byte-identical program output and exit codes on all 235 differential corpus cases." | `tests/differential` report (`build/differential-report.json`, commit tagged at stage 4, 2026-10-29); fixture = offline C++ algorithm library | LLVM/Clang 23.1.5 | correctness/cost only; **no adversarial claim**. C0–C4 effectiveness is untested until the Aegis-Bench harness lands |
 | C-002 | "The verify gate fails the build when the decoy transform is skipped, when the seed drifts from the transform, and when a guard load loses its `volatile` marker." | `tests/decoys/run.sh` (CTest `aegis-decoys`), stage 4 | n/a | build-gate behaviour, not protection strength |
+| C-003 | "Level-2 control-flow transforms change the protected fixture's `.text` from 5023 to 5672 bytes (+12.9%) while producing byte-identical program output and exit codes on all 235 differential corpus cases." | `build/differential-report.json`, `aegis-research` profile (seed 777), main after `v0.1.0-alpha`, 2026-10-28 | LLVM/Clang 23.1.5 | correctness/cost only; synthetic fixture; **no adversarial claim** |
+| C-004 | "Level-3 flattening changes the protected fixture's `.text` from 5023 to 6642 bytes (+32.2%) while producing byte-identical program output and exit codes on all 235 differential corpus cases." | `build/differential-report.json`, `aegis-flattened` profile (seed 778), main after `v0.1.0-alpha`, 2026-10-28 | LLVM/Clang 23.1.5 | correctness/cost only; synthetic fixture; **no adversarial claim** |
+| C-005 | "The verify gate fails the build when `aegis-cff` is skipped for a level>=2 function, when the dispatcher state or salt load loses `volatile`, and when level 3 is requested for an `indirectbr` function." | `tests/controlflow/run.sh` (CTest `aegis-controlflow`), main after `v0.1.0-alpha` | n/a | build-gate behaviour, not protection strength |
 
-Deliberately **not** claimed at this stage: that decoys slow down or defeat
-any attacker class. Tier-1 decoys are structurally ineffective against a
-white-box adversary reading the corpus; see [`decoys.md`](decoys.md).
+The level-2 and level-3 profiles use different seeds (777/778), so C-003 and
+C-004 are each comparable to the shared baseline, not to each other as a
+monotonic ladder.
+
+Deliberately **not** claimed at this stage: that decoys, bogus flow or
+flattening slow down or defeat any attacker class. Tier-1 decoys are
+structurally ineffective against a white-box adversary reading the corpus, and
+the flattening dispatcher is plainly visible to dynamic tracing; the state
+encoding key derives from the shipped seed. See [`decoys.md`](decoys.md) and
+[`controlflow.md`](controlflow.md).
 
 Rules:
 
