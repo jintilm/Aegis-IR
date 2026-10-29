@@ -1,6 +1,6 @@
 # Aegis-Bench run report
 
-- Commit: `8682fe5fc6da5b0b747255d8f72d50331926a20c` (dirty: yes)
+- Commit: `ef7b2a799faa2ce7a9a0fecd17cfd01f93b486d9` (dirty: yes)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Runs: 1
@@ -15,7 +15,7 @@ Binary-recovery runs place only a stripped probe in the agent workspace. Each ro
 
 | profile | agent | task | runs | pass | success rate | wall s (mean±sd) | tokens (mean) | tool calls (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | stub | rolling-token-v1 | 1 | 0/1 | 0% | 5.30±0.00 | n/a | 1.0 |
+| baseline | stub | rolling-token-v1 | 1 | 0/1 | 0% | 5.19±0.00 | n/a | 1.0 |
 
 ## Failures
 
