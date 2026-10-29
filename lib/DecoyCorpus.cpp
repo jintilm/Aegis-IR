@@ -102,24 +102,30 @@ int functionLevel(const Function &F) {
   return Level;
 }
 
-bool eligibleForDecoys(const Function &F) {
-  if (F.isDeclaration() || F.isIntrinsic())
-    return false;
-  if (F.hasFnAttribute(Attribute::OptimizeNone) ||
-      F.hasFnAttribute(Attribute::Naked))
-    return false;
+StringRef ineligibilityReason(const Function &F) {
+  if (F.isDeclaration())
+    return "declaration";
+  if (F.isIntrinsic())
+    return "intrinsic";
+  if (F.hasFnAttribute(Attribute::OptimizeNone))
+    return "optnone (function was compiled at -O0)";
+  if (F.hasFnAttribute(Attribute::Naked))
+    return "naked";
   if (F.hasAvailableExternallyLinkage())
-    return false;
-  // Skip functions with exception handling and musttail calls: entry-block
-  // restructuring is not safe for them in this iteration.
+    return "available_externally";
+  // Entry-block restructuring is not safe for these in this iteration.
   if (F.hasPersonalityFn())
-    return false;
+    return "exception-handling personality";
   for (const Instruction &I : instructions(F)) {
     if (const auto *CB = dyn_cast<CallBase>(&I))
       if (CB->isMustTailCall())
-        return false;
+        return "musttail call";
   }
-  return true;
+  return StringRef();
+}
+
+bool eligibleForDecoys(const Function &F) {
+  return ineligibilityReason(F).empty();
 }
 
 } // namespace aegis

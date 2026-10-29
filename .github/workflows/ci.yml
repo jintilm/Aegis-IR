@@ -2,30 +2,48 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Least privilege: this workflow only reads the repository. Anything that
+# needs more (releases, pages) lives in its own workflow.
+permissions:
+  contents: read
+
+# A push to a PR branch cancels its own superseded run; runs on main are not
+# cancelled so the commit that landed always has a completed result.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  LLVM_VERSION: 23
 
 jobs:
   build-and-test:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       # Keep in sync with docker/dev.Dockerfile. TODO before release: pin
       # llvm.sh by checksum to close the supply-chain gap.
-      - name: Install LLVM 23
+      - name: Install LLVM
         run: |
           wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
           chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh 23
+          sudo /tmp/llvm.sh "$LLVM_VERSION"
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build clang-23 llvm-23 llvm-23-dev llvm-23-tools \
-            clang-format-23 libclang-rt-23-dev
+            cmake ninja-build "clang-$LLVM_VERSION" "llvm-$LLVM_VERSION" \
+            "llvm-$LLVM_VERSION-dev" "llvm-$LLVM_VERSION-tools" \
+            "clang-format-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
 
       - name: Configure
         run: |
           cmake -S . -B build -G Ninja \
-            -DLLVM_DIR="$(llvm-config-23 --cmakedir)" \
+            -DLLVM_DIR="$(llvm-config-$LLVM_VERSION --cmakedir)" \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
@@ -53,12 +71,29 @@ jobs:
           grep -q "\[aegis-verify\] OK" build/decoy.log
           grep -q "load volatile i32, ptr @__aegis.guard" build/demo.protected.ll
 
+      # Fail-closed behaviour must be tested, not assumed: a protected build
+      # whose decoys were skipped has to break, not warn.
+      - name: Smoke test (verify gate fails closed)
+        run: |
+          if opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+              -passes='aegis-policy<policy=examples/aegis-policy.json>,default<O2>,aegis-verify' \
+              build/demo.frontend.ll -disable-output 2> build/gate.log; then
+            echo "verify gate passed a build it should have rejected" >&2
+            exit 1
+          fi
+          grep -q "protection degraded" build/gate.log
+
       - name: Bench task integrity
         run: |
           # Manifests pin a content hash; a task edited without re-hashing
           # must fail here rather than produce an unattributable result.
           cd tools/aegis-bench
           python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
+
+      - name: Python sanity
+        run: |
+          python3 -m compileall -q tools/aegis-bench/aegis_bench \
+            tools/aegis-bench/tests tests/differential/run.py
 
       - name: Format check
         run: |
@@ -69,5 +104,38 @@ jobs:
             benchmarks/tasks-public/*/ground_truth/*.cpp \
             benchmarks/tasks-public/*/grader/*.cpp
 
+      # Repository hygiene: no private material, no large binaries, no
+      # credentials. A benchmark repo that accidentally ships hidden answers
+      # or a key is worse than one that fails a build.
+      - name: Repository hygiene
+        run: |
+          fail=0
+          if git ls-files | grep -Eq '(^|/)(tasks-private|\.env|id_rsa|id_ed25519)(/|$)'; then
+            echo "private material is tracked" >&2; fail=1
+          fi
+          if git ls-files -z | xargs -0 -r ls -l 2>/dev/null \
+              | awk '$5 > 1048576 { print "large file:", $9; bad=1 } END { exit bad }'; then
+            :
+          else
+            echo "large tracked files found (limit 1 MiB; release artifacts belong elsewhere)" >&2
+            fail=1
+          fi
+          if git grep -nIE "(AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" \
+              -- . ':!docs/threat-model.md'; then
+            echo "possible credential committed" >&2; fail=1
+          fi
+          exit $fail
+
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-report-${{ github.sha }}
+          path: |
+            build/differential-report.json
+            build/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+          retention-days: 30

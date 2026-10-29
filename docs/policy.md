@@ -28,11 +28,25 @@ IR attributes; downstream transforms never look at names again.
 | `seed` | integer | no | `[0, 2^32-1]`; recorded as module flag for transforms |
 | `functions` | array | yes | entries below; may be empty (protect nothing) |
 | `functions[].name` | string | yes | symbol name, or demangled name (see matching) |
-| `functions[].level` | integer | yes | `0` = explicitly unprotected, `1..3` = Tier 1..3 |
+| `functions[].level` | integer | yes | `0` = explicitly unprotected, `1..3` = Tier 1..3; only tier 1 is implemented (see below) |
 | `functions[].reason` | string | no | shown in selection reports; strongly recommended |
 | `limits.*` | integer | no | engineering budget targets, currently reported only |
 
 Unknown top-level keys are ignored for forward compatibility.
+
+## Levels and what is implemented
+
+Levels `1..3` are the policy's vocabulary; the shipped transform set implements
+**level 1 only** (`kMaxImplementedLevel` in `lib/DecoyCorpus.h`). An entry
+above the implemented level **fails the build** with the function name and
+level, because accepting it would produce a binary the policy claims is
+protected more strongly than it is. When tiers 2/3 land, that constant moves
+and the tests change with it.
+
+A selected function the transform cannot safely modify is the same class of
+lie and also fails the build, naming the reason (`optnone`, `naked`,
+exception-handling personality, `musttail` call). See
+[`compatibility.md`](compatibility.md) for the full list.
 
 ## Semantics
 

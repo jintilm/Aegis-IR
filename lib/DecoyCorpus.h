@@ -34,6 +34,11 @@ extern const char *const kGuardGlobalName;
 /// erased".
 extern const char *const kGuardedFlagName;
 
+/// Highest policy level any shipped transform implements. A policy entry above
+/// this must fail the build: accepting it would ship a module that claims a
+/// protection tier nothing applied.
+constexpr int kMaxImplementedLevel = 1;
+
 /// Deterministic description of the decoys a module must contain.
 struct DecoyPlan {
   uint32_t Seed = 0;
@@ -54,6 +59,11 @@ int functionLevel(const llvm::Function &F);
 /// The verifier applies the same predicate so both agree on which functions
 /// must carry a decoy branch.
 bool eligibleForDecoys(const llvm::Function &F);
+
+/// Why the transform cannot protect this function ("" when it can). Used to
+/// turn "policy asked for this, nothing applied" into a build error that names
+/// the reason instead of a silent no-op.
+llvm::StringRef ineligibilityReason(const llvm::Function &F);
 
 } // namespace aegis
 

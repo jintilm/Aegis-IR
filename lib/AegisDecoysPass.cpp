@@ -23,8 +23,11 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
+#include <string>
 
 using namespace llvm;
 
@@ -147,11 +150,48 @@ PreservedAnalyses AegisDecoysPass::run(Module &M, ModuleAnalysisManager &) {
   // Nothing selected by the policy: leave the module untouched rather than
   // decorating it with decoys that guard nothing.
   bool AnySelected = false;
-  for (const Function &F : M)
-    if (functionLevel(F) >= 1 && eligibleForDecoys(F)) {
-      AnySelected = true;
-      break;
+  SmallVector<std::string, 4> Unsupported;
+  SmallVector<std::string, 4> Skipped;
+  for (const Function &F : M) {
+    const int Level = functionLevel(F);
+    if (Level < 1)
+      continue;
+    if (Level > kMaxImplementedLevel) {
+      Unsupported.push_back(F.getName().str() + " (level " +
+                            std::to_string(Level) + ")");
+      continue;
     }
+    const StringRef Why = ineligibilityReason(F);
+    if (!Why.empty()) {
+      Skipped.push_back(F.getName().str() + " (" + Why.str() + ")");
+      continue;
+    }
+    AnySelected = true;
+  }
+  // Accepting a higher tier without implementing it would ship a module whose
+  // policy claims protection that no transform applied.
+  if (!Unsupported.empty()) {
+    for (const std::string &Entry : Unsupported)
+      errs() << "[aegis-decoys] unsupported: " << Entry << "\n";
+    std::string Msg = "[aegis-decoys] " + std::to_string(Unsupported.size()) +
+                      " function(s) request a protection level above " +
+                      std::to_string(kMaxImplementedLevel) +
+                      "; refusing to build a module that claims unimplemented "
+                      "protection (lower the policy level or use a release "
+                      "that implements it)";
+    report_fatal_error(StringRef(Msg), /*GenCrashDiag=*/false);
+  }
+  // A selected function the transform cannot touch is the same class of lie:
+  // the policy says protected, the binary is not.
+  if (!Skipped.empty()) {
+    for (const std::string &Entry : Skipped)
+      errs() << "[aegis-decoys] cannot protect: " << Entry << "\n";
+    std::string Msg = "[aegis-decoys] " + std::to_string(Skipped.size()) +
+                      " selected function(s) cannot be transformed; refusing "
+                      "to build unprotectable selections (drop them from the "
+                      "policy or build from IR without -O0/optnone)";
+    report_fatal_error(StringRef(Msg), /*GenCrashDiag=*/false);
+  }
   if (!AnySelected) {
     errs() << "[aegis-decoys] no selected functions; module unchanged\n";
     return PreservedAnalyses::all();

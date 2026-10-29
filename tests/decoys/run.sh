@@ -174,6 +174,29 @@ else
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
 fi
 
+echo "== aegis-decoys: unsupported selections fail loudly =="
+# Level 2 asks for a transform tier this release does not implement.
+sed 's/"level": 1/"level": 2/' "$POLICY" > "$TMP/level2.json"
+run_opt /dev/null "aegis-policy<policy=$TMP/level2.json>,aegis-decoys" "$TMP/input.ll"
+if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'unsupported'; then
+  pass_case "unimplemented level fails the build"
+else
+  fail_case "unimplemented level fails the build (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
+fi
+
+# A function built at -O0 carries optnone; the transform cannot touch it, and
+# silently skipping it would ship a binary the policy claims is protected.
+"$CLANG" -O0 -S -emit-llvm "$HERE/fixtures/decoy_target.cpp" \
+  -o "$TMP/optnone.ll" || fail_case "compile -O0 fixture"
+run_opt /dev/null "aegis-policy<policy=$POLICY>,aegis-decoys" "$TMP/optnone.ll"
+if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'cannot protect'; then
+  pass_case "ineligible selected function fails the build"
+else
+  fail_case "ineligible selected function fails the build (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
+fi
+
 echo
 if [ "$FAILED" -ne 0 ]; then
   echo "aegis-decoys tests: FAILED"

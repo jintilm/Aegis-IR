@@ -35,6 +35,21 @@ clang-format-23 --dry-run -Werror lib/*.cpp include/aegis/*.h
 One PR solves one reviewable problem. Commit messages: `feat:`, `fix:`,
 `test:`, `docs:`, `build:`, `chore:`.
 
+## Gates a PR must pass
+
+Everything in [`docs/ci.md`](docs/ci.md) runs on every PR and must be green.
+Two of those gates are policy, not mechanics:
+
+- **Fail loudly.** A policy selection this release cannot honour (a level
+  above the implemented tier, a function carrying `optnone` or an EH
+  personality, the passes placed after inlining) must stop the build with the
+  function name and reason. Never skip silently.
+- **Same commit, same numbers.** Re-record a bench task's `content_hash`
+  whenever you edit it; a stale hash fails CI on purpose.
+
+Supported environments and the list of rejected combinations are in
+[`docs/compatibility.md`](docs/compatibility.md).
+
 ## Research feature admission (one-page proposal required)
 
 State: which asset and which attacker class it targets; what assumption is new
