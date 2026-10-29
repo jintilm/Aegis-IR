@@ -1,8 +1,9 @@
 # Benchmark protocol
 
-Status: harness implemented (`tools/aegis-bench`), one public task, no run
-published yet. Every number in future reports must be traceable to a commit,
-a model version, and a date.
+Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
+artifact profiles are implemented and tested offline; one public task, no run
+against a real model published yet. Every number in future reports must be
+traceable to a commit, a model version, and a date.
 
 ## Unit of analysis
 
@@ -22,6 +23,40 @@ Each task declares:
 - domain size and a protectability rating (same rules as `aegis-lint`);
 - a unique ID and content hash.
 
+### Task types
+
+- **`reimplement`** (default): the agent sees a written brief, the interface
+  and sample I/O, and writes an implementation from the specification.
+- **`binary-recovery`**: the runner also builds a **stripped probe** from the
+  ground truth and places only that binary in the workspace. The agent may run
+  it as an oracle, but must still deliver a standalone implementation; the
+  interface, driver and scoring are identical to `reimplement`.
+
+A binary-recovery manifest adds an artifact recipe:
+
+```json
+"task_type": "binary-recovery",
+"artifact": {
+  "source": "ground_truth/target.cpp",
+  "probe": "grader/driver.cpp",
+  "include_dirs": ["include"],
+  "profiles": {
+    "baseline": {"level": 0},
+    "aegis-level1": {"level": 1, "policy": "grader/policies/level1.json"},
+    "aegis-level2": {"level": 2, "policy": "grader/policies/level2.json"},
+    "aegis-level3": {"level": 3, "policy": "grader/policies/level3.json"}
+  }
+}
+```
+
+`source` must be the same file as `ground_truth`, so the binary the agent
+reverses and the reference the grader tests are built from one source. Level
+0 is a plain `default<O2>` build; levels 1–3 run
+`aegis-policy, aegis-decoys[, aegis-cff], default<O2>, aegis-verify` on
+frontend IR. The builder records the probe's SHA-256, file size, `.text` size
+and build log in every run row. Policy files are validated at task load: a
+level-3 profile whose policy selects level-1 functions fails before a run.
+
 Agents must produce an executable candidate implementation (or a structured
 semantic answer). Scoring:
 
@@ -30,7 +65,9 @@ semantic answer). Scoring:
 3. double-blind human rubric sampling for descriptive tasks.
 
 Implementation status: (1) and (2) are implemented and tested; (3) is not,
-and descriptive tasks are therefore not accepted yet.
+and descriptive tasks are therefore not accepted yet. Binary-recovery artifact
+building is implemented for levels 0–3, tested offline with deterministic
+adapters and a harness self-check. No model has been run.
 
 ### Integrity rules the harness enforces
 
@@ -41,6 +78,16 @@ and descriptive tasks are therefore not accepted yet.
   separator or traversal segment is rejected, not written.
 - Candidate text is compiled and executed as untrusted input; the grader never
   reads adapter notes or cost claims when deciding a score.
+- The workspace contains the stripped probe but never the ground truth,
+  grader, property tests or hidden cases (asserted by test).
+- **Adapters are trusted not to read grader material.** The harness isolates
+  the *workspace* it hands to an in-process adapter, but it cannot sandbox a
+  malicious adapter that walks the filesystem. Real runs should execute the
+  adapter in an environment whose filesystem view contains only the workspace.
+- A submission must be a standalone implementation. Embedding or wrapping the
+  provided probe is not a valid solution; the harness cannot detect it
+  automatically, so reports must flag anomalously large candidate sources and
+  human review must reject oracle replay.
 
 ## Budgets and controls
 
@@ -50,21 +97,27 @@ reported, never silently absorbed.
 
 The harness records the budget config and environment stamp in every row.
 Token and tool-call figures are adapter self-reports and are labelled as such
-in the reports; the harness currently cannot corroborate them.
+in the reports; the harness currently cannot corroborate them. For
+binary-recovery tasks, probe invocations are made by the adapter and are not
+observable either; the `--profile` name selects the artifact, not a query
+budget.
 
 ## Matrix
 
-`{baseline, release, aegis-standard, aegis-research?, Pluto/PLO control} ×
-{C1, C2, C3, white-box} × {>= 2 model families} × N >= 5 repetitions`,
-reporting mean, variance, and confidence intervals. Per-transform ablations
-report marginal contribution.
+`{baseline, aegis-level1, aegis-level2, aegis-level3} × {C1, C2, C3,
+white-box} × {>= 2 model families} × N >= 5 repetitions`, reporting mean,
+variance, and confidence intervals. Binary-recovery tasks define their profile
+names in the manifest; `reimplement` tasks keep their earlier profile labels.
+Per-transform ablations report marginal contribution.
 
 ## Oracle-budget curve
 
 For the primary scenario (offline C++ algorithm libraries), tasks allow oracle
 queries under a budget B; we report recovery accuracy as a function of B.
-This curve is expected to show that small-domain functions are recoverable
-regardless of obfuscation — an honest result we commit to publishing.
+Binary-recovery tasks currently expose the probe as an unconstrained local
+oracle; enforcing and measuring B is future work. This curve is expected to
+show that small-domain functions are recoverable regardless of obfuscation —
+an honest result we commit to publishing.
 
 ## Private set
 

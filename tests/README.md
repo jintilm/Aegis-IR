@@ -31,11 +31,13 @@ Current coverage:
   [`docs/controlflow.md`](../docs/controlflow.md).
 
 - `bench/` — Aegis-Bench harness tests (`bash tests/bench/run.sh
-  tools/aegis-bench`; CTest name `aegis-bench`). Offline only: deterministic
-  adapters, no model, no network, no credentials. Covers the ground truth
-  scoring 100%, a compiling-but-wrong candidate failing, adapter crashes
-  being recorded, hash-tamper rejection, workspace exclusion of grader
-  material, and report provenance. See
+  tools/aegis-bench <plugin>`; CTest name `aegis-bench`). Offline only:
+  deterministic adapters, no model, no network, no credentials. Covers the
+  ground truth scoring 100%, a compiling-but-wrong candidate failing, adapter
+  crashes being recorded, hash-tamper rejection, workspace exclusion of grader
+  material, report provenance, and binary-recovery artifact builds at levels
+  0–3 (probe hash/`.text`, workspace contains only the stripped probe, the
+  level-3 build log shows flattening). See
   [`tools/aegis-bench/README.md`](../tools/aegis-bench/README.md).
 
 Planned layout (populated as transforms land):

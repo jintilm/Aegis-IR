@@ -22,7 +22,21 @@ Manifest shape (schema_version 1)::
       "budgets": {"max_tool_calls": 200, "timeout_seconds": 600,
                   "max_output_tokens": 200000},
       "protectability": {"domain_size": "small", "rating": "high"},
-      "content_hash": "sha256:..."
+      "content_hash": "sha256:...",
+
+      # Optional. "reimplement" (default) gives the agent a brief and
+      # examples; "binary-recovery" also builds a stripped probe per profile.
+      "task_type": "binary-recovery",
+      "artifact": {
+        "source": "ground_truth/target.cpp",   # must equal ground_truth
+        "probe": "grader/driver.cpp",          # linked into the probe
+        "include_dirs": ["include"],
+        "profiles": {
+          "baseline": {"level": 0},
+          "aegis-level3": {"level": 3,
+                           "policy": "grader/policies/level3.json"}
+        }
+      }
     }
 """
 
@@ -30,11 +44,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 SCHEMA_VERSION = 1
+_PROFILE_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 
 
 class TaskError(Exception):
@@ -71,6 +87,33 @@ class FuzzConfig:
         )
 
 
+TASK_TYPES = ("reimplement", "binary-recovery")
+
+
+@dataclass(frozen=True)
+class ArtifactProfile:
+    """One protection profile that the runner can build into a probe."""
+
+    level: int
+    policy: str | None = None
+
+
+@dataclass(frozen=True)
+class ArtifactRecipe:
+    """How to build a stripped probe for a binary-recovery task.
+
+    The runner builds the probe from ``source`` + ``probe``; only the binary
+    reaches the agent workspace. ``profiles`` maps the CLI's ``--profile``
+    names to a policy level and (for level >= 1) the Aegis policy file that
+    selects functions in ``source``.
+    """
+
+    source: str
+    probe: str
+    include_dirs: tuple[str, ...]
+    profiles: dict[str, ArtifactProfile]
+
+
 @dataclass(frozen=True)
 class Task:
     root: Path
@@ -88,6 +131,8 @@ class Task:
     budgets: Budget
     protectability: dict[str, Any] = field(default_factory=dict)
     content_hash: str = ""
+    task_type: str = "reimplement"
+    artifact: ArtifactRecipe | None = None
 
     # -- helpers ---------------------------------------------------------
 
@@ -126,7 +171,16 @@ class Task:
                             self.ground_truth, self.properties, self.driver]
         names += list(self.visible)
         names += list(self.hidden_cases)
+        if self.artifact is not None:
+            names += [self.artifact.source, self.artifact.probe]
+            names += list(self.artifact.include_dirs)
+            names += [p.policy for p in self.artifact.profiles.values()
+                      if p.policy]
+        seen: set[str] = set()
         for name in names:
+            if name in seen:
+                continue
+            seen.add(name)
             path = self.path(name)
             if path.is_dir():
                 for child in sorted(p for p in path.rglob("*") if p.is_file()):
@@ -147,6 +201,92 @@ def _require(raw: dict[str, Any], key: str, kind: type) -> Any:
         raise TaskError(f"'{key}' must be {kind.__name__}, "
                         f"got {type(value).__name__}")
     return value
+
+
+def _parse_artifact(raw: Any, task_id: str) -> ArtifactRecipe:
+    if not isinstance(raw, dict):
+        raise TaskError(f"{task_id}: 'artifact' must be an object")
+    source = _require(raw, "source", str)
+    probe = _require(raw, "probe", str)
+    include_dirs = raw.get("include_dirs", [])
+    if not isinstance(include_dirs, list) or not all(
+            isinstance(d, str) for d in include_dirs):
+        raise TaskError(f"{task_id}: artifact.include_dirs must be a list of "
+                        f"strings")
+    raw_profiles = raw.get("profiles")
+    if not isinstance(raw_profiles, dict) or not raw_profiles:
+        raise TaskError(f"{task_id}: artifact.profiles must be a non-empty "
+                        f"object")
+    profiles: dict[str, ArtifactProfile] = {}
+    for name, spec in raw_profiles.items():
+        if not isinstance(name, str) or not _PROFILE_NAME.match(name):
+            raise TaskError(f"{task_id}: invalid artifact profile name "
+                            f"{name!r} (use [a-z0-9][a-z0-9_-]*)")
+        if not isinstance(spec, dict):
+            raise TaskError(f"{task_id}: profile '{name}' must be an object")
+        level = spec.get("level")
+        if isinstance(level, bool) or not isinstance(level, int) or not (
+                0 <= level <= 3):
+            raise TaskError(f"{task_id}: profile '{name}' level must be an "
+                            f"integer in 0..3")
+        policy = spec.get("policy")
+        if level == 0:
+            if policy is not None:
+                raise TaskError(f"{task_id}: profile '{name}' is level 0 and "
+                                f"must not name a policy")
+        else:
+            if not isinstance(policy, str) or not policy:
+                raise TaskError(f"{task_id}: profile '{name}' at level {level} "
+                                f"requires a policy file")
+            if "," in policy:
+                raise TaskError(f"{task_id}: policy path '{policy}' contains a "
+                                f"comma, which the pass-name parser cannot carry")
+        profiles[name] = ArtifactProfile(level=level, policy=policy)
+    return ArtifactRecipe(source=source, probe=probe,
+                          include_dirs=tuple(include_dirs),
+                          profiles=profiles)
+
+
+def _validate_policy(path: Path, level: int, task_id: str,
+                     profile: str) -> None:
+    """Minimal cross-check that a policy actually asks for this level.
+
+    The C++ parser performs the full validation at build time. This check
+    exists so a mislabelled profile (say, a level-3 artifact built from a
+    level-1 policy) fails when the task is loaded, not after a run.
+    """
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise TaskError(f"{task_id}: cannot read policy '{path.name}': "
+                        f"{exc}") from exc
+    if not isinstance(policy, dict):
+        raise TaskError(f"{task_id}: policy '{path.name}' must be an object")
+    if policy.get("schema_version") != 1:
+        raise TaskError(f"{task_id}: policy '{path.name}' has unsupported "
+                        f"schema_version")
+    seed = policy.get("seed")
+    if isinstance(seed, bool) or not isinstance(seed, int) or not (
+            0 <= seed <= 2**32 - 1):
+        raise TaskError(f"{task_id}: policy '{path.name}' needs an integer "
+                        f"seed in [0, 2^32-1] so the artifact is reproducible")
+    functions = policy.get("functions")
+    if not isinstance(functions, list) or not functions:
+        raise TaskError(f"{task_id}: policy '{path.name}' must select at "
+                        f"least one function")
+    for entry in functions:
+        if not isinstance(entry, dict):
+            raise TaskError(f"{task_id}: policy '{path.name}' has a malformed "
+                            f"function entry")
+        name = entry.get("name")
+        entry_level = entry.get("level")
+        if not isinstance(name, str) or not name:
+            raise TaskError(f"{task_id}: policy '{path.name}' has an entry "
+                            f"without a name")
+        if entry_level != level:
+            raise TaskError(
+                f"{task_id}: profile '{profile}' is level {level}, but policy "
+                f"'{path.name}' selects '{name}' at level {entry_level}")
 
 
 def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
@@ -170,9 +310,23 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
     if not sources:
         raise TaskError("candidate_sources must not be empty")
 
+    task_id = _require(raw, "id", str)
+    task_type = raw.get("task_type", "reimplement")
+    if task_type not in TASK_TYPES:
+        raise TaskError(f"{task_id}: task_type must be one of {TASK_TYPES}, "
+                        f"got {task_type!r}")
+    artifact_raw = raw.get("artifact")
+    if task_type == "binary-recovery":
+        artifact = _parse_artifact(artifact_raw, task_id)
+    else:
+        if artifact_raw is not None:
+            raise TaskError(f"{task_id}: 'artifact' is only valid for "
+                            f"task_type 'binary-recovery'")
+        artifact = None
+
     task = Task(
         root=root,
-        id=_require(raw, "id", str),
+        id=task_id,
         title=_require(raw, "title", str),
         description=_require(raw, "description", str),
         interface=_require(raw, "interface", str),
@@ -186,7 +340,14 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
         budgets=Budget.from_dict(raw.get("budgets", {})),
         protectability=raw.get("protectability", {}),
         content_hash=str(raw.get("content_hash", "")),
+        task_type=task_type,
+        artifact=artifact,
     )
+
+    if task.artifact is not None and task.artifact.source != task.ground_truth:
+        raise TaskError(f"{task.id}: artifact.source must be the same file as "
+                        f"ground_truth; the probe the agent reverses and the "
+                        f"grader's reference must be built from one source")
 
     # Resolve every named path now so a broken task fails at load, not after
     # an agent has already spent its budget.
@@ -195,6 +356,20 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
                  *task.hidden_cases):
         if not task.path(name).exists():
             raise TaskError(f"{task.id}: missing file '{name}'")
+    if task.artifact is not None:
+        artifact_paths = (task.artifact.source, task.artifact.probe,
+                          *task.artifact.include_dirs)
+        for name in artifact_paths:
+            if not task.path(name).exists():
+                raise TaskError(f"{task.id}: missing artifact path '{name}'")
+        for profile, spec in task.artifact.profiles.items():
+            if spec.policy is None:
+                continue
+            policy_path = task.path(spec.policy)
+            if not policy_path.is_file():
+                raise TaskError(f"{task.id}: profile '{profile}' names a "
+                                f"missing policy '{spec.policy}'")
+            _validate_policy(policy_path, spec.level, task.id, profile)
     for name in task.candidate_sources:
         if "/" in name or "\\" in name:
             raise TaskError(f"{task.id}: candidate source must be a bare "

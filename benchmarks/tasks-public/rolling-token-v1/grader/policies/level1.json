@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261028,
+  "functions": [
+    { "name": "_Z10bench_hashPKhm", "level": 1, "reason": "rolling-token-v1: level-1 artifact" },
+    { "name": "_Z14bench_checksumPKhm", "level": 1, "reason": "rolling-token-v1: level-1 artifact" },
+    { "name": "_Z12bench_verifyPKhm", "level": 1, "reason": "rolling-token-v1: level-1 artifact" }
+  ]
+}

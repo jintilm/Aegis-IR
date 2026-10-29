@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent import AdapterError, Agent
+from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .grader import Grade, Grader
 from .schema import Task
 
@@ -73,6 +74,7 @@ class RunRecord:
     ledger: dict[str, Any] = field(default_factory=dict)
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
+    artifact: dict[str, Any] = field(default_factory=dict)
     error: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -90,18 +92,32 @@ class RunRecord:
             "ledger": self.ledger,
             "budgets": self.budgets,
             "environment": self.environment,
+            "artifact": self.artifact,
             "error": self.error,
         }
 
 
 class Runner:
     def __init__(self, *, repo_root: Path, out_dir: Path,
-                 cxx: str | None = None, keep_workspaces: bool = False):
+                 cxx: str | None = None, plugin: str | None = None,
+                 clang: str | None = None, opt: str | None = None,
+                 artifact_cache: Path | None = None,
+                 keep_workspaces: bool = False):
         self.repo_root = Path(repo_root)
         self.out_dir = Path(out_dir)
         self.cxx = cxx
         self.keep_workspaces = keep_workspaces
         self.environment = environment_stamp(self.repo_root)
+        cache_root = (Path(artifact_cache) if artifact_cache
+                      else self.out_dir / ".artifacts")
+        self.artifacts = ArtifactBuilder(
+            clang=clang, opt=opt, plugin=plugin, cache_root=cache_root)
+
+    def artifact_for(self, task: Task, profile: str) -> BuiltArtifact | None:
+        """Build (or reuse) the probe for a binary-recovery task."""
+        if task.artifact is None:
+            return None
+        return self.artifacts.build(task, profile)
 
     # -- workspace -------------------------------------------------------
 
@@ -120,6 +136,13 @@ class Runner:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, dst)
 
+    @staticmethod
+    def _install_probe(artifact: BuiltArtifact, workspace: Path) -> None:
+        """Place only the stripped probe binary in the workspace."""
+        destination = workspace / artifact.path.name
+        shutil.copy2(artifact.path, destination)
+        os.chmod(destination, 0o755)
+
     # -- one cell --------------------------------------------------------
 
     def run_once(self, task: Task, agent: Agent, *, profile: str,
@@ -133,9 +156,13 @@ class Runner:
         workspace = Path(tempfile.mkdtemp(prefix=f"aegis-ws-{run_id}-"))
         grade = Grade(False, "agent", "adapter did not run")
         ledger: dict[str, Any] = {}
+        artifact: BuiltArtifact | None = None
         error = ""
         try:
             self._populate_workspace(task, workspace)
+            artifact = self.artifact_for(task, profile)
+            if artifact is not None:
+                self._install_probe(artifact, workspace)
             agent.prepare(task, workspace)
             result = agent.solve(task, workspace)
             ledger = dict(result.ledger)
@@ -144,6 +171,9 @@ class Runner:
                 ledger["notes"] = result.notes
             with Grader(task, cxx=self.cxx) as grader:
                 grade = grader.grade(result.sources)
+        except ArtifactError as exc:
+            grade = Grade(False, "artifact", f"artifact build failed: {exc}")
+            error = str(exc)
         except AdapterError as exc:
             grade = Grade(False, "agent", f"adapter error: {exc}")
             error = str(exc)
@@ -167,12 +197,20 @@ class Runner:
                 "timeout_seconds": task.budgets.timeout_seconds,
                 "max_output_tokens": task.budgets.max_output_tokens,
             },
-            environment=self.environment, error=error)
+            environment=self.environment,
+            artifact=artifact.to_dict() if artifact is not None else {},
+            error=error)
 
     # -- a whole matrix --------------------------------------------------
 
     def run(self, tasks: list[Task], agents: list[Agent], *, profile: str,
             repetitions: int = 1) -> list[RunRecord]:
+        for task in tasks:
+            if task.artifact is not None and profile not in task.artifact.profiles:
+                available = ", ".join(sorted(task.artifact.profiles))
+                raise ArtifactError(
+                    f"{task.id} has no artifact profile '{profile}' "
+                    f"(available: {available})")
         self.out_dir.mkdir(parents=True, exist_ok=True)
         records: list[RunRecord] = []
         for task in tasks:

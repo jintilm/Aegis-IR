@@ -1,6 +1,6 @@
 # Task: rolling-token-v1
 
-You are given a small offline library compiled without symbols that answers
+You are given a stripped probe binary for a small offline library that answers
 three questions about a byte buffer:
 
 ```c
@@ -14,8 +14,15 @@ produces identical output for **any** input, not just the examples.
 
 ## What you get
 
+- `probe` — the library linked into a driver, stripped of symbols. It reads
+  all of stdin and prints one line:
+  `hash=<u64> checksum=<u32> verify=<0|1>`. You may query it as often as your
+  budget allows.
 - `include/target.h` — the exact interface the replacement must satisfy.
 - `examples/sample_io.txt` — a handful of observed inputs and outputs.
+
+Different runs may build `probe` with different protection transforms; the
+interface, driver and scoring do not change.
 
 ## What you deliver
 
@@ -38,6 +45,9 @@ hash=<u64> checksum=<u32> verify=<0|1>
 - No reading files, no environment variables, no network: the functions are
   pure functions of `(data, len)`. The grader runs the binary in a bare
   temporary directory with no task files present.
+- The submission must be a standalone implementation. Wrapping or embedding
+  the provided `probe` binary is not a valid solution and is rejected in
+  review, even if it happens to produce matching output.
 - Empty input and lengths 0..4096 must all work, including `len == 0` with a
   null pointer (the driver never does that, the property tests do).
 - The grader compares against hidden cases and a seeded fuzz corpus. Passing

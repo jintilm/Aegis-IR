@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .schema import TaskError, discover_tasks, load_task
 from .agent import Agent, AdapterError
+from .artifact import ArtifactError
 from .runner import Runner
 from .report import write_reports
 
@@ -74,8 +75,10 @@ def cmd_check(args: argparse.Namespace) -> int:
             print(f"FAIL {d}: {exc}", file=sys.stderr)
             continue
         print(f"OK   {task.id} ({task.content_hash[:19]}, "
-              f"{len(task.hidden_cases)} hidden file(s), "
-              f"fuzz={task.fuzz.cases})")
+              f"{task.task_type}, {len(task.hidden_cases)} hidden file(s), "
+              f"fuzz={task.fuzz.cases}"
+              + (f", profiles={','.join(sorted(task.artifact.profiles))}"
+                 if task.artifact else "") + ")")
     return 1 if failures else 0
 
 
@@ -93,9 +96,15 @@ def cmd_run(args: argparse.Namespace) -> int:
             return 2
 
     runner = Runner(repo_root=_repo_root(), out_dir=Path(args.out),
-                    cxx=args.cxx, keep_workspaces=args.keep_workspaces)
-    records = runner.run(tasks, [agent], profile=args.profile,
-                         repetitions=args.repetitions)
+                    cxx=args.cxx, plugin=args.plugin, clang=args.clang,
+                    opt=args.opt, artifact_cache=args.artifact_cache,
+                    keep_workspaces=args.keep_workspaces)
+    try:
+        records = runner.run(tasks, [agent], profile=args.profile,
+                             repetitions=args.repetitions)
+    except ArtifactError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     paths = write_reports(records, Path(args.out))
     for kind, path in paths.items():
         print(f"{kind}: {path}")
@@ -126,6 +135,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--repetitions", type=int, default=1)
     p_run.add_argument("--out", default="bench-out")
     p_run.add_argument("--cxx", default=None)
+    p_run.add_argument("--clang", default=None,
+                       help="C++ frontend for probe builds "
+                            "(default: $BENCH_CLANG or clang++-23)")
+    p_run.add_argument("--opt", default=None,
+                       help="LLVM opt for probe builds "
+                            "(default: $BENCH_OPT or opt-23)")
+    p_run.add_argument("--plugin", default=None,
+                       help="AegisPass plugin for level>=1 artifact profiles "
+                            "(default: $AEGIS_PLUGIN)")
+    p_run.add_argument("--artifact-cache", default=None,
+                       help="directory for built probes (default: "
+                            "<out>/.artifacts)")
     p_run.add_argument("--keep-workspaces", action="store_true")
     p_run.set_defaults(func=cmd_run)
     return ap

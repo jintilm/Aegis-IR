@@ -67,7 +67,7 @@ class CaseOutcome:
 @dataclass
 class Grade:
     passed: bool
-    stage: str                      # build | hidden | fuzz | ok
+    stage: str                      # build | artifact | hidden | fuzz | ok
     reason: str = ""
     cases_total: int = 0
     cases_passed: int = 0

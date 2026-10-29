@@ -10,6 +10,8 @@ a blocker, and a box checked without evidence is worse.
       Verified for `v0.1.0-alpha` by `scripts/release-report.sh` (`ctest.log`).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
+- [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
+      shows flattening + verifier OK (`aegis-bench` integration test).
 - [x] Differential matrix: zero output mismatches, zero sanitizer reports on
       all eight profiles (`differential-report.json`).
 - [x] `clang-format --dry-run -Werror` clean (CI).

@@ -41,6 +41,7 @@ run_in_container "
 cd tools/aegis-bench
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
   --adapter ground-truth --profile baseline \
+  --artifact-cache /tmp/aegis-bench-artifacts \
   --out /src/docs/reports/$NAME/bench-ground-truth
 " 2>&1 | tee "$OUT/bench-ground-truth.log"
 
@@ -49,6 +50,7 @@ run_in_container "
 cd tools/aegis-bench
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
   --adapter stub --profile baseline \
+  --artifact-cache /tmp/aegis-bench-artifacts \
   --out /src/docs/reports/$NAME/bench-stub || true
 " 2>&1 | tee "$OUT/bench-stub.log"
 
@@ -70,9 +72,10 @@ scripts/release-report.sh $NAME
   same corpus with zero output mismatches and zero sanitizer reports
   (\`differential-report.json\`, including \`.text\`/\`.data\` totals and p95
   wall time per profile);
-- Aegis-Bench scores a known-correct solution at 100% and a
-  compiling-but-wrong one at ~0% (\`bench-ground-truth/\`, \`bench-stub/\`),
-  which validates the grader end to end.
+- Aegis-Bench builds the public binary-recovery task's stripped baseline probe
+  and scores a known-correct solution at 100% and a compiling-but-wrong one at
+  ~0% (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end
+  to end; CTest additionally builds the level-1/2/3 probes.
 
 ## What this does **not** show
 

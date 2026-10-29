@@ -15,7 +15,9 @@ no API keys. They exist to prove the harness measures what it claims:
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,6 +28,7 @@ TOOL_ROOT = HERE.parent
 sys.path.insert(0, str(TOOL_ROOT))
 
 from aegis_bench.adapters.fake import BrokenAgent, ReplayAgent, StubAgent  # noqa: E402
+from aegis_bench.artifact import ArtifactError  # noqa: E402
 from aegis_bench.grader import Grader  # noqa: E402
 from aegis_bench.report import write_reports  # noqa: E402
 from aegis_bench.runner import Runner  # noqa: E402
@@ -34,6 +37,7 @@ from aegis_bench.schema import TaskError, load_task  # noqa: E402
 REPO_ROOT = TOOL_ROOT.parents[1]
 TASKS_ROOT = REPO_ROOT / "benchmarks" / "tasks-public"
 TASK_DIR = TASKS_ROOT / "rolling-token-v1"
+AEGIS_PLUGIN = os.environ.get("AEGIS_PLUGIN") or None
 
 
 def _ground_truth_source(task) -> dict[str, str]:
@@ -181,10 +185,28 @@ class RunnerTests(unittest.TestCase):
         files = seen["files"]
         self.assertIn("task.md", files)
         self.assertIn("include/target.h", files)
+        self.assertIn("probe", files)
         for path in files:
             self.assertNotIn("ground_truth", path)
             self.assertNotIn("grader", path)
             self.assertNotIn("hidden", path)
+
+    def test_probe_is_executable(self):
+        seen: dict[str, bool] = {}
+
+        class Spy(ReplayAgent):
+            def solve(self, task, workspace):
+                probe = workspace / "probe"
+                seen["exists"] = probe.is_file()
+                seen["executable"] = os.access(probe, os.X_OK)
+                return super().solve(task, workspace)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            self._runner(tmp).run([self.task],
+                                  [Spy(_ground_truth_source(self.task))],
+                                  profile="baseline")
+        self.assertTrue(seen["exists"])
+        self.assertTrue(seen["executable"])
 
     def test_reports_carry_provenance(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -196,12 +218,129 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             row = rows[0]
             for key in ("task_hash", "profile", "agent", "environment",
-                        "budgets", "grade"):
+                        "budgets", "grade", "artifact"):
                 self.assertIn(key, row)
             self.assertEqual(row["task_hash"], self.task.content_hash)
             self.assertIn("commit", row["environment"])
+            self.assertEqual(row["artifact"]["level"], 0)
+            self.assertEqual(len(row["artifact"]["sha256"]), 64)
+            self.assertGreater(row["artifact"]["text_bytes"], 0)
             markdown = paths["markdown"].read_text(encoding="utf-8")
             self.assertIn("self-reported by the adapter", markdown)
+
+    def test_unknown_artifact_profile_fails_fast(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ArtifactError):
+                self._runner(tmp).run([self.task], [StubAgent()],
+                                      profile="not-a-profile")
+
+    def test_missing_plugin_is_recorded_as_artifact_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = Runner(repo_root=REPO_ROOT, out_dir=Path(tmp),
+                            plugin="")
+            records = runner.run([self.task], [StubAgent()],
+                                 profile="aegis-level1")
+        self.assertEqual(records[0].grade.stage, "artifact")
+        self.assertIn("plugin", records[0].error)
+
+
+class ArtifactTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.task = load_task(TASK_DIR)
+
+    def test_baseline_probe_matches_ground_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = Runner(repo_root=REPO_ROOT, out_dir=Path(tmp))
+            artifact = runner.artifact_for(self.task, "baseline")
+            self.assertIsNotNone(artifact)
+            proc = subprocess.run(
+                [str(artifact.path)], input=b"aegis-ir",
+                capture_output=True, timeout=10)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(
+            proc.stdout.decode().strip(),
+            "hash=10781158686979218516 checksum=232850194 verify=0")
+        nm = shutil.which("nm")
+        if nm:
+            symbols = subprocess.run([nm, str(artifact.path)],
+                                     capture_output=True, timeout=10)
+            self.assertNotIn("bench_hash", symbols.stdout.decode(
+                errors="replace"))
+
+    def test_artifact_build_is_cached(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = Runner(repo_root=REPO_ROOT, out_dir=Path(tmp))
+            first = runner.artifact_for(self.task, "baseline")
+            second = runner.artifact_for(self.task, "baseline")
+        self.assertEqual(first.sha256, second.sha256)
+        self.assertEqual(first.path, second.path)
+
+    @unittest.skipUnless(AEGIS_PLUGIN, "AEGIS_PLUGIN not set")
+    def test_level3_probe_is_built_and_flattened(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = Runner(repo_root=REPO_ROOT, out_dir=Path(tmp),
+                            plugin=AEGIS_PLUGIN)
+            baseline = runner.artifact_for(self.task, "baseline")
+            level3 = runner.artifact_for(self.task, "aegis-level3")
+        self.assertEqual(level3.level, 3)
+        self.assertIn("[aegis-cff] flattened", level3.build_log)
+        self.assertIn("[aegis-verify] OK", level3.build_log)
+        self.assertNotEqual(baseline.sha256, level3.sha256)
+        self.assertGreater(level3.text_bytes, baseline.text_bytes)
+
+
+class ArtifactSchemaTests(unittest.TestCase):
+    def _copy_task(self, tmp: str) -> Path:
+        copy = Path(tmp) / "task"
+        shutil.copytree(TASK_DIR, copy)
+        return copy
+
+    def test_artifact_files_are_hashed(self):
+        original = load_task(TASK_DIR).computed_hash()
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._copy_task(tmp)
+            policy = copy / "grader" / "policies" / "level1.json"
+            raw = json.loads(policy.read_text(encoding="utf-8"))
+            raw["seed"] = 99
+            policy.write_text(json.dumps(raw), encoding="utf-8")
+            changed = load_task(copy, verify_hash=False).computed_hash()
+        self.assertNotEqual(original, changed)
+
+    def test_policy_level_must_match_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._copy_task(tmp)
+            policy = copy / "grader" / "policies" / "level3.json"
+            raw = json.loads(policy.read_text(encoding="utf-8"))
+            for entry in raw["functions"]:
+                entry["level"] = 1
+            policy.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("level 3", str(ctx.exception))
+
+    def test_binary_task_requires_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._copy_task(tmp)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            del manifest["artifact"]
+            (copy / "task.json").write_text(json.dumps(manifest),
+                                            encoding="utf-8")
+            with self.assertRaises(TaskError):
+                load_task(copy, verify_hash=False)
+
+    def test_level0_profile_rejects_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._copy_task(tmp)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["artifact"]["profiles"]["baseline"]["policy"] = \
+                "grader/policies/level1.json"
+            (copy / "task.json").write_text(json.dumps(manifest),
+                                            encoding="utf-8")
+            with self.assertRaises(TaskError):
+                load_task(copy, verify_hash=False)
 
 
 if __name__ == "__main__":

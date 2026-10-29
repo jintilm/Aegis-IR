@@ -24,7 +24,8 @@ CSV_FIELDS = [
     "run_id", "task_id", "task_hash", "agent", "adversary", "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
-    "tokens", "tool_calls", "ledger_source", "commit", "commit_dirty",
+    "tokens", "tool_calls", "ledger_source", "artifact_sha256",
+    "artifact_bytes", "artifact_text", "commit", "commit_dirty",
 ]
 
 
@@ -64,6 +65,9 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "tokens": _ledger_value(row["ledger"], "tokens"),
                 "tool_calls": _ledger_value(row["ledger"], "tool_calls"),
                 "ledger_source": row["ledger"].get("ledger_source", ""),
+                "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
+                "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
+                "artifact_text": row.get("artifact", {}).get("text_bytes", ""),
                 "commit": row["environment"].get("commit", ""),
                 "commit_dirty": row["environment"].get("commit_dirty", ""),
             })
@@ -91,6 +95,28 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "counts are measured.",
         "",
     ]
+    if any(record.artifact for record in records):
+        lines += [
+            "Binary-recovery runs place only a stripped probe in the agent "
+            "workspace. Each row records the probe's SHA-256 and size; the "
+            "probe's build log is in the JSONL row. Oracle queries are made "
+            "by the adapter and are not observable by the harness.",
+            "",
+        ]
+        artifacts: dict[str, dict[str, Any]] = {}
+        for record in records:
+            if record.artifact and record.profile not in artifacts:
+                artifacts[record.profile] = record.artifact
+        lines += [
+            "| profile | artifact level | artifact `.text` | sha256 (12) |",
+            "|---|---|---|---|",
+        ]
+        for profile, artifact in sorted(artifacts.items()):
+            lines.append(
+                f"| {profile} | {artifact.get('level', '?')} | "
+                f"{artifact.get('text_bytes', '?')} | "
+                f"`{str(artifact.get('sha256', ''))[:12]}` |")
+        lines.append("")
 
     groups: dict[tuple[str, str, str], list[RunRecord]] = defaultdict(list)
     for record in records:

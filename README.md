@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". The harness (task schema, independent grader, runner, report generator) exists and is tested; **no run against a real model has been published yet.**
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks ship a stripped probe built at protection levels 0–3; the harness (task schema, artifact builder, independent grader, runner, report generator) exists and is tested offline. **No run against a real model has been published yet.**
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -26,8 +26,8 @@ numbers too.
 Present in the tree: `aegis-audit` (read-only summary), `aegis-policy`
 (JSON → IR attributes), `aegis-decoys` (level-1 transform), `aegis-cff`
 (level 2/3 control-flow transforms), `aegis-verify` (post-optimization build
-gate that fails closed), the Aegis-Bench harness, and one public benchmark
-task.
+gate that fails closed), the Aegis-Bench harness with a binary-recovery task,
+and one public benchmark task.
 
 Level 1 decoys are the default and remain deliberately weak: they slow down
 naive triage and give the benchmark ground truth, but they are ineffective

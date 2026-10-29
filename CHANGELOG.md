@@ -27,6 +27,16 @@ versions follow SemVer once past alpha.
 - **Docs** — [`docs/controlflow.md`](docs/controlflow.md), updated policy,
   compatibility, threat-model (policy levels vs tier numbers), architecture,
   build profiles and claims ledger (C-003–C-005).
+- **Aegis-Bench binary-recovery layer** — tasks can now present a stripped
+  probe built from the ground truth at protection levels 0–3. New
+  `artifact.py` builder (frontend IR → Aegis pipeline → object → stripped
+  probe), per-profile artifact cache, policy/level cross-checks, and probe
+  SHA-256 / `.text` / build-log provenance in every run row. `rolling-token-v1`
+  is now a binary-recovery task with `baseline` and `aegis-level1..3`
+  profiles; its content hash changed.
+- **Harness tests** — 24 offline tests plus shell integration covering
+  artifact builds, workspace isolation, missing-plugin failure, and level-3
+  ground-truth scoring.
 
 ### Changed
 
@@ -34,6 +44,8 @@ versions follow SemVer once past alpha.
   `aegis-standard` profile remains level 1.
 - A level-3 selection of `indirectbr`, `callbr`, an EH terminator or a
   coroutine **fails the build** with the reason instead of skipping.
+- `tests/bench/run.sh` now takes the plugin path (CMake passes it) and runs
+  binary-recovery artifact profiles end to end.
 
 ### Behaviour worth knowing
 
@@ -43,11 +55,17 @@ versions follow SemVer once past alpha.
   tracing, and the state key derives from the shipped seed.
 - The research profiles use seeds 777/778; their `.text` deltas are each
   relative to the shared baseline, not a monotonic ladder.
+- Binary-recovery tasks expose an unconstrained local oracle. Probe queries
+  are not observable by the harness, and a submission that embeds the probe is
+  invalid but not automatically detected. Adapters are trusted not to read
+  grader material; real runs need process-level isolation. See
+  [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md).
 
 ### Not claimed
 
-No adversarial effectiveness claim for levels 2/3. The only numbers are `.text`
-growth and output equality on the synthetic fixture (C-003/C-004).
+No adversarial effectiveness claim for levels 2/3, and no model result for the
+benchmark. The only numbers are `.text` growth and output equality on the
+synthetic fixture (C-003/C-004).
 
 ## [0.1.0-alpha] — 2026-10-29
 

@@ -16,6 +16,7 @@ passes exist in code; further transforms are sketches.
 
    aegis-bench (main product)
    ├── harness   — agent adapters (C1–C3 red teams), runner, budget control
+   ├── artifacts — stripped probe per protection profile (levels 0–3)
    ├── tasks     — self-authored fixtures + ground truth + property tests
    └── protocol  — scoring rules, private-set custody, drift reports
 ```
@@ -69,10 +70,12 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 - **Harness** (`tools/aegis-bench/`): Python; agent adapters, task runner,
   independent grader, report generator. Fixed budgets (model version, prompt,
   tool set, timeouts, token caps) are recorded per run.
-- **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Each task has
-  ground-truth source, executable property tests, and hidden edge cases.
-  Private scoring set is rotated quarterly and stored separately from the
-  public tasks.
+- **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Tasks are
+  either `reimplement` (brief + examples) or `binary-recovery` (a stripped
+  probe built from ground truth at protection levels 0–3). Each task has
+  ground-truth source, executable property tests, hidden edge cases, and a
+  manifest that pins a content hash and the artifact recipe. Private scoring
+  set is rotated quarterly and stored separately from the public tasks.
 - **Scoring**: re-executability against hidden property tests, differential
   fuzzing against ground truth, and a double-blind rubric for descriptive
   answers. Text similarity is never a primary metric.
