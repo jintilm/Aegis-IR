@@ -199,6 +199,58 @@ else
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
 fi
 
+# 4b. Volatile state load kept, but the dispatcher switch is replaced by a
+#     constant: the structural check must notice the state no longer selects
+#     anything, even though the volatile access still exists.
+sed 's/switch i32 %aegis.keyed, label %aegis.trap \[/switch i32 0, label %aegis.trap [/' \
+  "$TMP/l3.ll" > "$TMP/dispatch_gone.ll"
+run_opt /dev/null "aegis-verify" "$TMP/dispatch_gone.ll"
+if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -Eq 'lost its dispatch|no longer selects'; then
+  pass_case "dispatcher detached from state load fails the gate"
+else
+  fail_case "dispatcher detached from state load fails the gate (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
+fi
+
+# 4c. Level-2 bogus arms made live: the salt load and the branch survive, but
+#     the dead arm now rejoins the real path, so the structural check must
+#     reject the build.
+python3 - "$TMP/l2.ll" "$TMP/bogus_gone.ll" <<'PYEOF'
+import re
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+label_re = re.compile(r'^([A-Za-z0-9_.]+):')
+br_re = re.compile(r'^\s*br i1 .*label %([A-Za-z0-9_.]+), label %([A-Za-z0-9_.]+)')
+out, skipping, changed = [], False, 0
+for line in open(src, encoding='utf-8'):
+    match = label_re.match(line)
+    if match:
+        skipping = match.group(1).startswith('aegis.bogus')
+    if skipping:
+        changed += 1
+        continue
+    br = br_re.match(line)
+    if br and any(l.startswith('aegis.bogus') for l in br.groups()):
+        keep = [l for l in br.groups() if not l.startswith('aegis.bogus')][0]
+        out.append('  br label %' + keep + chr(10))
+        changed += 1
+        continue
+    out.append(line)
+open(dst, 'w', encoding='utf-8').writelines(out)
+if not changed:
+    sys.exit('no bogus edge found to remove')
+PYEOF
+run_opt /dev/null "aegis-verify" "$TMP/bogus_gone.ll"
+if [ "$CODE" -ne 0 ] && printf '%s
+' "$OUT" | grep -q 'opaque-predicate edge'; then
+  pass_case "level-2 bogus arm made live fails the gate"
+else
+  fail_case "level-2 bogus arm made live fails the gate (exit=$CODE)"
+  printf '%s
+' "$OUT" | sed 's/^/      /' | tail -8
+fi
+
 # 5. Level 3 on a construct flattening cannot rewrite (indirectbr).
 run_opt /dev/null "aegis-policy<policy=$POLBAD>,aegis-decoys,aegis-cff"
 if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'indirectbr'; then

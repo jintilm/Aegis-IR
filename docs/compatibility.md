@@ -26,7 +26,7 @@ These are rejected, not silently mishandled:
 | LLVM other than 23.x | configure fails at `find_package(LLVM)` or the build breaks on API changes — do not report these as bugs |
 | Policy level outside `0..3` | `aegis-policy` **fails the build**; levels 1–3 are implemented |
 | Selected function with `optnone` / `naked` / EH personality / `musttail` | **fails the build** with the reason per function, rather than skipping (levels 1–3) |
-| Level-3 selection of `indirectbr`, `callbr`, an EH terminator, or a coroutine | `aegis-cff` **fails the build** naming the function and construct; the flattening rewrite cannot preserve those safely |
+| Level-3 selection of `indirectbr`, `callbr`, an EH terminator, a coroutine/GC/stackmap/patchpoint/deoptimize intrinsic, inline assembly, a `convergent` call, or a function calling a `returns_twice` function (setjmp/longjmp) | `aegis-cff` **fails the build** naming the function and construct; the flattening rewrite cannot preserve those safely |
 | `aegis-cff` without `aegis-decoys` | **fails the build**: the live split is built on the decoy guard branch |
 | Aegis passes placed after `default<O2>` | `aegis-verify` fails the build (guarded copies were inlined away); the error names the fix |
 | Windows / macOS builds of the plugin | unbuilt and untested; the bench harness happens to run on Windows for development but is not supported there |

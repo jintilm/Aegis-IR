@@ -98,6 +98,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     runner = Runner(repo_root=_repo_root(), out_dir=Path(args.out),
                     cxx=args.cxx, plugin=args.plugin, clang=args.clang,
                     opt=args.opt, artifact_cache=args.artifact_cache,
+                    adapter_timeout=args.adapter_timeout,
                     keep_workspaces=args.keep_workspaces)
     try:
         records = runner.run(tasks, [agent], profile=args.profile,
@@ -147,6 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--artifact-cache", default=None,
                        help="directory for built probes (default: "
                             "<out>/.artifacts)")
+    p_run.add_argument("--adapter-timeout", type=int, default=600,
+                       help="wall-clock seconds per adapter.solve call "
+                            "(0 disables; default 600)")
     p_run.add_argument("--keep-workspaces", action="store_true")
     p_run.set_defaults(func=cmd_run)
     return ap

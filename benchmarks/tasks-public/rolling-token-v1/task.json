@@ -7,31 +7,6 @@
   "candidate_sources": [
     "target.cpp"
   ],
-  "task_type": "binary-recovery",
-  "artifact": {
-    "source": "ground_truth/target.cpp",
-    "probe": "grader/driver.cpp",
-    "include_dirs": [
-      "include"
-    ],
-    "profiles": {
-      "baseline": {
-        "level": 0
-      },
-      "aegis-level1": {
-        "level": 1,
-        "policy": "grader/policies/level1.json"
-      },
-      "aegis-level2": {
-        "level": 2,
-        "policy": "grader/policies/level2.json"
-      },
-      "aegis-level3": {
-        "level": 3,
-        "policy": "grader/policies/level3.json"
-      }
-    }
-  },
   "visible": [
     "task.md",
     "include/",
@@ -57,5 +32,5 @@
     "domain_size": "small",
     "rating": "high"
   },
-  "content_hash": "sha256:1a3369de4804d3fe0ddd21c202a01c7aad573b03e24c46b6473d632aec83d656"
+  "content_hash": "sha256:ce72ce07e5c6c966eddbbca46eb5eaad340e181395a911225cade2d95f62046f"
 }

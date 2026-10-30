@@ -37,6 +37,11 @@ StringRef flatteningIneligibilityReason(const Function &F) {
   if (!Base.empty())
     return Base;
 
+  // A longjmp/setjmp pair creates a second entry point into the body; the
+  // dispatcher would only be initialised on the normal path.
+  if (F.callsFunctionThatReturnsTwice())
+    return "calls a returns_twice function (setjmp/longjmp)";
+
   for (const BasicBlock &BB : F) {
     const Instruction *T = BB.getTerminator();
     if (isa<IndirectBrInst>(T))
@@ -49,15 +54,31 @@ StringRef flatteningIneligibilityReason(const Function &F) {
       return "exception-handling terminator";
   }
 
+  // Intrinsics whose lowering depends on the surrounding CFG shape or that
+  // carry runtime state the rewrite cannot preserve.
+  static constexpr StringLiteral kRejectedPrefixes[] = {
+      "llvm.coro.",
+      "llvm.experimental.gc.",
+      "llvm.call.preallocated.",
+      "llvm.experimental.stackmap",
+      "llvm.experimental.patchpoint",
+      "llvm.experimental.deoptimize",
+  };
   for (const Instruction &I : instructions(F)) {
     const auto *CB = dyn_cast<CallBase>(&I);
     if (!CB)
       continue;
+    if (CB->isInlineAsm())
+      return "inline assembly (CFG-sensitive, cannot verify the rewrite)";
     const Function *Callee = CB->getCalledFunction();
     if (!Callee)
       continue;
-    if (Callee->getName().starts_with("llvm.coro."))
-      return "coroutine (llvm.coro.* intrinsics)";
+    for (StringLiteral Prefix : kRejectedPrefixes)
+      if (Callee->getName().starts_with(Prefix))
+        return ("uses " + Prefix + "* intrinsics").str();
+    // A convergent call may not be duplicated or moved across a dispatcher.
+    if (Callee->isConvergent())
+      return "calls a convergent function";
   }
   return StringRef();
 }

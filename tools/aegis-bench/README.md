@@ -21,7 +21,7 @@ aegis_bench/
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`
 tests/
-└── test_harness.py   24 offline tests; no model, no network, no keys
+└── test_harness.py   32 offline tests; no model, no network, no keys
 ```
 
 ## Usage
@@ -57,7 +57,8 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
 Credentials are read by that external adapter; nothing in this tree imports a
 vendor SDK, opens a socket, or reads an API key. The adapter must be run in an
 environment whose filesystem view contains only the workspace; the harness
-enforces workspace isolation, not process sandboxing.
+enforces workspace isolation, not process sandboxing. `adapter.solve` is
+bounded by `--adapter-timeout` (default 600 s, SIGALRM on POSIX).
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1
@@ -132,13 +133,15 @@ that was run.
 
 ## Deliberate limits
 
-- One public task today (`rolling-token-v1`). A benchmark with one task
-  measures nothing; treat current numbers as harness validation only.
+- Two public tasks today: `rolling-token-v1` (reimplementation, frozen) and
+  `rolling-token-v2` (binary-recovery, same algorithm). Two tasks measure
+  nothing; treat current numbers as harness validation only.
 - No model adapters in-tree, by design.
 - The probe is an unconstrained local oracle; the protocol's query-budget
   curve is not implemented yet.
-- A submission that embeds or wraps the probe is invalid but not detected
-  automatically; review and cost anomalies are the current mitigation.
+- A submission that embeds or wraps the probe is invalid. The obvious forms
+  are rejected by the source policy (size, `exec*`, grader paths); a hidden
+  blob is not automatically detectable, so review is still required.
 - Windows support is incidental (used for development); CI and reported
   numbers run on Linux.
 - The run report is machine-written and not peer-reviewed; it is evidence

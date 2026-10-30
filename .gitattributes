@@ -2,3 +2,6 @@
 *.png binary
 *.jpg binary
 *.ll binary
+# Shell and Python test drivers run inside Linux containers; CRLF breaks them.
+*.sh text eol=lf
+*.py text eol=lf

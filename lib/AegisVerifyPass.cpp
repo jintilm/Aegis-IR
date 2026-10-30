@@ -83,6 +83,68 @@ bool hasSaltLoad(const Function &F, const GlobalVariable *Salt) {
   return false;
 }
 
+// Structural check for a level-2 function: the volatile salt load must reach a
+// conditional branch whose taken arm ends in `unreachable`. Merely finding a
+// volatile load is not enough — that would pass a build where the optimizer
+// kept the load but dropped the bogus edge.
+bool hasLiveOpaqueEdge(const Function &F, const GlobalVariable *Salt) {
+  if (!Salt)
+    return false;
+  for (const BasicBlock &BB : F) {
+    bool HasSaltLoad = false;
+    for (const Instruction &I : BB)
+      HasSaltLoad |= isVolatileLoadOf(I, Salt);
+    if (!HasSaltLoad)
+      continue;
+    const auto *BI = dyn_cast<BranchInst>(BB.getTerminator());
+    if (!BI || BI->isUnconditional())
+      continue;
+    for (unsigned I = 0; I < 2; ++I) {
+      const BasicBlock *Arm = BI->getSuccessor(I);
+      // The dead arm must be a block that reaches `unreachable` without
+      // returning to the live path.
+      if (isa<UnreachableInst>(Arm->getTerminator()))
+        return true;
+      if (const auto *Inner = dyn_cast<BranchInst>(Arm->getTerminator()))
+        if (Inner->isUnconditional() &&
+            isa<UnreachableInst>(Inner->getSuccessor(0)->getTerminator()))
+          return true;
+    }
+  }
+  return false;
+}
+
+// Structural check for a level-3 function: the switch condition must be
+// derived from a volatile i32 load in the same block, i.e. the dispatcher
+// still reads the state slot. A switch left behind after the state load was
+// replaced by a constant is not a flattened control flow.
+bool derivedFromVolatileLoad(const Value *V, const BasicBlock &BB,
+                             unsigned Depth = 0) {
+  if (Depth > 8 || !V)
+    return false;
+  if (const auto *LI = dyn_cast<LoadInst>(V))
+    return LI->isVolatile() && LI->getType()->isIntegerTy(32) &&
+           LI->getParent() == &BB;
+  if (const auto *I = dyn_cast<Instruction>(V)) {
+    if (isa<BinaryOperator>(I) || isa<CastInst>(I) || isa<SelectInst>(I))
+      for (const Value *Op : I->operands())
+        if (derivedFromVolatileLoad(Op, BB, Depth + 1))
+          return true;
+  }
+  return false;
+}
+
+bool hasDispatchSwitch(const Function &F) {
+  for (const BasicBlock &BB : F) {
+    const auto *SI = dyn_cast<SwitchInst>(BB.getTerminator());
+    if (!SI || SI->getNumCases() < 2)
+      continue;
+    if (derivedFromVolatileLoad(SI->getCondition(), BB))
+      return true;
+  }
+  return false;
+}
+
 // A flattened function owns one i32 state slot accessed through volatile
 // load/store pairs. Volatile access is what stops mem2reg/SROA from turning
 // the dispatcher back into the original CFG.
@@ -318,12 +380,19 @@ PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
         ++BogusInlined;
         continue;
       }
-      if (hasSaltLoad(*F, Salt))
+      // Flattening replaces every branch with a dispatcher round trip, so the
+      // level-2 shape (salt load feeding a branch to an unreachable arm) no
+      // longer exists for a level-3 function: its opaque predicates are the
+      // dispatcher and the encoded case constants. Those are checked below by
+      // the flattened-function check.
+      if (ExpectedFlattened.contains(Entry.getKey()))
+        continue;
+      if (hasLiveOpaqueEdge(*F, Salt))
         ++BogusOk;
       else
         Problems.push_back("level-2 function '" + Entry.getKey().str() +
                            "' lost its opaque-predicate edge (no volatile "
-                           "salt load)");
+                           "salt load feeding a branch to an unreachable arm)");
     }
     if (SaltLoads < ExpectedBogus.size())
       Problems.push_back(
@@ -345,12 +414,13 @@ PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
         ++FlattenedInlined;
         continue;
       }
-      if (countFlattenedStates(*F) > 0)
+      if (countFlattenedStates(*F) > 0 && hasDispatchSwitch(*F))
         ++FlattenedOk;
       else
         Problems.push_back("level-3 function '" + Entry.getKey().str() +
-                           "' lost its volatile dispatch state (the "
-                           "optimizer recovered the original CFG)");
+                           "' lost its dispatch (the volatile state load no "
+                           "longer selects a switch; the optimizer recovered "
+                           "the original CFG)");
     }
     if (FlattenedStates < ExpectedFlattened.size())
       Problems.push_back(

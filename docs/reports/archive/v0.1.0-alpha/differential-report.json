@@ -1,0 +1,104 @@
+{
+  "profiles": {
+    "baseline": {
+      "binary_bytes": 17176,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": null,
+      "cases": 235,
+      "total_ms": 344.6084478928242,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 1.7896799836307764
+    },
+    "release": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": null,
+      "cases": 235,
+      "total_ms": 390.8215799019672,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 3.0464850133284926
+    },
+    "release-opt": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": "default<O2>",
+      "cases": 235,
+      "total_ms": 359.3158448347822,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 1.8507069908082485
+    },
+    "aegis-standard": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 6132,
+        "data": 720,
+        "bss": 16
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,default<O2>,aegis-verify",
+      "cases": 235,
+      "total_ms": 351.72389581566676,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 1.7575429810676724
+    },
+    "aegis-research": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 6152,
+        "data": 720,
+        "bss": 16
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,default<O2>,aegis-verify",
+      "cases": 235,
+      "total_ms": 339.87787511432543,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 1.6944140079431236
+    },
+    "aegis-debug": {
+      "binary_bytes": 78576,
+      "sections": {
+        "text": 13722,
+        "data": 760,
+        "bss": 8
+      },
+      "pipeline": null,
+      "cases": 235,
+      "total_ms": 352.0408289914485,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 1.7930729954969138
+    },
+    "baseline-asan": {
+      "binary_bytes": 1809040,
+      "sections": {
+        "text": 1430735,
+        "data": 15152,
+        "bss": 9781580
+      },
+      "pipeline": null,
+      "cases": 235,
+      "total_ms": 2333.877531986218,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 11.221755994483829
+    }
+  },
+  "corpus_size": 235,
+  "seed": 1234
+}

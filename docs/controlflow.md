@@ -76,9 +76,10 @@ volatile load and store per basic block. Measured numbers and scope:
 | check | failure it catches |
 | --- | --- |
 | salt global exists, internal, zero-initialised, only volatile reads | a transform bug or optimizer change making the predicates live |
-| every recorded level-2 function still has a volatile salt load | an opaque edge was erased |
+| every recorded level-2 function has a volatile salt load feeding a branch whose arm ends in `unreachable` | an opaque edge was erased, or the load survived while the edge did not |
 | total salt loads >= number of level-2 functions | inlining/erasure lost an edge |
 | every recorded level-3 function still has an `i32` alloca with a volatile load **and** store | mem2reg/SROA recovered the CFG |
+| the dispatcher `switch` condition is derived from a volatile load in its own block | the switch survived but no longer selects on the state (a constant-folded dispatcher) |
 | total state slots >= number of flattened functions | a state machine was erased |
 | every level>=2 function with the attribute is in the recorded set | `aegis-cff` skipped or run out of order |
 
@@ -93,7 +94,11 @@ with the reason, instead of leaving the function partially transformed:
 
 - `indirectbr` (computed goto) and `callbr`;
 - exception-handling terminators (`invoke`, `catchswitch`, `cleanupret`, …);
-- coroutines (`llvm.coro.*` intrinsics);
+- coroutines, GC statepoints, stackmap/patchpoint and `llvm.experimental.
+  deoptimize` intrinsics;
+- inline assembly and calls to `convergent` functions;
+- functions that call a `returns_twice` function (`setjmp`/`longjmp`), where a
+  second entry into the body would skip the dispatcher prologue;
 - the base rules shared with decoys: `optnone`, `naked`,
   `available_externally`, an EH personality, `musttail`.
 
@@ -131,7 +136,9 @@ transform.
 pipelines building and verifying, salt loads and state slots surviving `-O2`,
 byte-identical output against baseline on the fixture, determinism, PHI
 demotion on a hand-written IR fixture, the gate failing when `aegis-cff` is
-skipped, when the state or salt loses `volatile`, when decoys are skipped, and
-when level 3 is requested for an `indirectbr` function. The differential matrix
+skipped, when the state or salt loses `volatile`, when the dispatcher is
+detached from the state load, when a level-2 bogus arm is made live, when
+decoys are skipped, and when level 3 is requested for an `indirectbr`
+function. The differential matrix
 adds level-2 (`aegis-research`) and level-3 (`aegis-flattened`) profiles over
 the 235-case corpus.

@@ -26,8 +26,8 @@ numbers too.
 Present in the tree: `aegis-audit` (read-only summary), `aegis-policy`
 (JSON → IR attributes), `aegis-decoys` (level-1 transform), `aegis-cff`
 (level 2/3 control-flow transforms), `aegis-verify` (post-optimization build
-gate that fails closed), the Aegis-Bench harness with a binary-recovery task,
-and one public benchmark task.
+gate that fails closed), the Aegis-Bench harness with binary-recovery tasks,
+and two public benchmark tasks (`rolling-token-v1`, `rolling-token-v2`).
 
 Level 1 decoys are the default and remain deliberately weak: they slow down
 naive triage and give the benchmark ground truth, but they are ineffective
@@ -57,8 +57,9 @@ Non-goals, permanently:
 Linux x86-64, LLVM/Clang 23.x (pinned), CMake ≥ 3.20, Ninja, C++17. Python
 3.10+ (stdlib only) for the benchmark harness. Everything else — other LLVM
 majors, Windows/macOS plugin builds, LTO, policy levels outside `0..3`, and
-level-3 flattening of `indirectbr`/`callbr`/coroutine/EH constructs — is
-rejected with a clear error rather than half-supported. Full matrix and
+level-3 flattening of `indirectbr`/`callbr`/coroutine/EH/`returns_twice`/
+convergent constructs — is rejected with a clear error rather than
+half-supported. Full matrix and
 rationale: [`docs/compatibility.md`](docs/compatibility.md).
 
 ## Build
@@ -137,11 +138,15 @@ Five suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
 cd tools/aegis-bench
 python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
-    --adapter ground-truth --profile baseline --out /tmp/bench
+    --task rolling-token-v2 --adapter ground-truth --profile baseline \
+    --out /tmp/bench
 ```
 
 Real runs pass an adapter from outside this repository, so no vendor SDK or API
-key enters the tree or CI. Protocol:
+key enters the tree or CI; run it with only the workspace mounted, since the
+harness isolates the workspace but does not sandbox the process. Token and
+tool-call columns are adapter self-reports; budget enforcement is recorded per
+row. Protocol:
 [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md); harness:
 [`tools/aegis-bench/README.md`](tools/aegis-bench/README.md).
 

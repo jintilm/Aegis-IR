@@ -19,6 +19,7 @@ Rules:
 
 | Report | What it establishes | Claim ID |
 |---|---|---|
+| [`archive/v0.1.0-alpha/`](archive/v0.1.0-alpha/README.md) | frozen report as published with `v0.1.0-alpha`; claims written against it must cite this copy, not the moving live report | C-001 |
 | [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches across levels 0–3; binary-recovery probes build and are scored; the grader scores a known-correct solution 100% and a wrong one 0% | C-001–C-005 (supporting artifacts) |
 
 Still missing, and therefore unclaimed: any measurement involving a real

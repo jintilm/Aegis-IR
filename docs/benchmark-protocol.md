@@ -1,8 +1,9 @@
 # Benchmark protocol
 
 Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
-artifact profiles are implemented and tested offline; one public task, no run
-against a real model published yet. Every number in future reports must be
+artifact profiles are implemented and tested offline; two public tasks
+(`rolling-token-v1`, `rolling-token-v2`), no run against a real model
+published yet. Every number in future reports must be
 traceable to a commit, a model version, and a date.
 
 ## Unit of analysis
@@ -78,6 +79,16 @@ adapters and a harness self-check. No model has been run.
   separator or traversal segment is rejected, not written.
 - Candidate text is compiled and executed as untrusted input; the grader never
   reads adapter notes or cost claims when deciding a score.
+- The candidate include path never contains the task root, and compilation and
+  execution both run in a private scratch directory with a minimal
+  environment, a wall-clock timeout, an address-space rlimit and an output cap.
+  Absolute and parent-relative `#include`s are rejected before compilation.
+- A candidate-source policy rejects (a) references to grader material,
+  (b) `system`/`exec*`/`fork` calls, (c) quoted includes outside the task
+  interface and the candidate's own files, and (d) sources over 256 KiB.
+  These are tripwires for oracle replay, not a sandbox: a malicious adapter
+  can still open sockets or walk the filesystem, so real runs must execute the
+  adapter and grader inside a container or namespace.
 - The workspace contains the stripped probe but never the ground truth,
   grader, property tests or hidden cases (asserted by test).
 - **Adapters are trusted not to read grader material.** The harness isolates
@@ -85,9 +96,10 @@ adapters and a harness self-check. No model has been run.
   malicious adapter that walks the filesystem. Real runs should execute the
   adapter in an environment whose filesystem view contains only the workspace.
 - A submission must be a standalone implementation. Embedding or wrapping the
-  provided probe is not a valid solution; the harness cannot detect it
-  automatically, so reports must flag anomalously large candidate sources and
-  human review must reject oracle replay.
+  provided probe is not a valid solution. The source policy rejects the
+  obvious forms (oversized sources, `system`/`exec*`, references to grader
+  paths); a determined replay that hides the blob is still not detectable, so
+  human review must reject it.
 
 ## Budgets and controls
 
@@ -101,6 +113,28 @@ in the reports; the harness currently cannot corroborate them. For
 binary-recovery tasks, probe invocations are made by the adapter and are not
 observable either; the `--profile` name selects the artifact, not a query
 budget.
+
+## Task versioning
+
+Task ids are immutable once a result is published. A change to a task's
+files, its interface, its artifact profiles or its visibility is a **new
+task id**, never an in-place edit: `rolling-token-v1` (reimplementation) and
+`rolling-token-v2` (binary-recovery) share a code base precisely so a reader
+can tell which question a result answered. The content hash catches accidental
+edits, but only the id carries the semantic difference.
+
+## Enforced vs. reported budgets
+
+Each run row records both the configured budget and whether it was enforced:
+
+| Budget | Status |
+|---|---|
+| Adapter wall clock | enforced (`SIGALRM` on POSIX; watchdog elsewhere, which detects but cannot interrupt) |
+| Candidate build/run time, address space, output size | enforced by the grader |
+| Tool calls, output tokens, oracle queries | **not enforced**; adapter self-report only |
+
+A report may quote enforced numbers; unenforced ones are labelled
+`self-reported by adapter` and cannot support a cost claim on their own.
 
 ## Matrix
 

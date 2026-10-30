@@ -25,26 +25,35 @@ export AEGIS_PLUGIN="$PLUGIN"
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 
-run_bench() { # <agent> <profile> <out-name> [extra args...]
-  local agent="$1" profile="$2" name="$3"
-  shift 3
+# rolling-token-v1 is the frozen reimplementation task; v2 is the
+# binary-recovery task with artifact profiles. Both must keep working.
+V1=rolling-token-v1
+V2=rolling-token-v2
+
+bench_run() { # <task> <agent> <profile> <out-name> [extra args...]
+  local task="$1" agent="$2" profile="$3" name="$4"
+  shift 4
   (cd "$BENCH_ROOT" && python3 -m aegis_bench run \
-     --tasks-root "$TASKS_ROOT" --adapter "$agent" --profile "$profile" \
+     --tasks-root "$TASKS_ROOT" --task "$task" \
+     --adapter "$agent" --profile "$profile" \
      --plugin "$PLUGIN" --out "$OUT/$name" "$@")
 }
 
-echo "== artifact: baseline ground truth =="
-run_bench ground-truth baseline base --keep-workspaces
+echo "== reimplementation task (v1) still scores =="
+bench_run "$V1" ground-truth baseline v1 >/dev/null
 
-echo "== artifact: negative control =="
-if run_bench stub baseline stub; then
+echo "== artifact: baseline ground truth (v2) =="
+bench_run "$V2" ground-truth baseline base --keep-workspaces
+
+echo "== artifact: negative control (v2) =="
+if bench_run "$V2" stub baseline stub; then
   echo "FAIL negative control passed" >&2
   exit 1
 fi
 
-echo "== artifact: protected profiles =="
+echo "== artifact: protected profiles (v2) =="
 for profile in aegis-level1 aegis-level2 aegis-level3; do
-  run_bench ground-truth "$profile" "$profile"
+  bench_run "$V2" ground-truth "$profile" "$profile"
 done
 
 echo "== artifact: workspace and provenance =="
@@ -78,6 +87,11 @@ def row(name: str) -> dict:
         return json.loads(fh.readline())
 
 
+v1 = row("v1")
+assert v1["task_id"] == "rolling-token-v1", v1["task_id"]
+assert v1["artifact"] == {}, "a reimplementation task must not build a probe"
+assert v1["grade"]["passed"], v1["grade"]
+
 base = row("base")
 level3 = row("aegis-level3")
 assert base["artifact"]["level"] == 0, base["artifact"]
@@ -87,6 +101,10 @@ assert level3["artifact"]["text_bytes"] > base["artifact"]["text_bytes"], (
 assert "[aegis-cff] flattened" in level3["artifact"]["build_log"]
 assert "[aegis-verify] OK" in level3["artifact"]["build_log"]
 assert base["artifact"]["sha256"] != level3["artifact"]["sha256"]
+# No host or user name may reach a committed report.
+assert "host" not in base["environment"] and "user" not in base["environment"]
+assert base["environment"]["machine"]
+assert base["budgets"]["enforcement"]["adapter_timeout"] != "unset"
 print("artifact provenance OK")
 PY
 

@@ -14,6 +14,20 @@ Nothing an adapter returns is executed directly: candidate text is written to
 a fresh directory, compiled from scratch, and treated as hostile input. The
 grader never reads the adapter's notes or ledger when deciding a score.
 
+Isolation in this version is process-level, not a sandbox:
+
+* the include path never contains the task root, so a candidate cannot include
+  the ground truth through the compiler's search path (policy.py rejects
+  absolute and parent-relative includes as a second line);
+* compilation and every run happen in a private scratch directory with a
+  minimal environment;
+* each run is bounded by a wall-clock timeout, an address-space rlimit and an
+  output-size cap.
+
+A malicious candidate that opens sockets or walks the filesystem is not
+contained by this. Real runs must put the adapter and grader in a container or
+namespace; `docs/benchmark-protocol.md` says so explicitly.
+
 Scores are intentionally coarse. A candidate that agrees on every case is
 ``passed``; anything else is ``failed`` with a machine-readable reason, so a
 report can break failures down by cause instead of collapsing them into one
@@ -32,11 +46,42 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .policy import check_candidate
 from .schema import Task
 
 COMPILE_TIMEOUT = 120
 RUN_TIMEOUT = 10
 MAX_STDERR_CHARS = 2000
+MAX_STDOUT_BYTES = 1024 * 1024
+RUN_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
+
+
+def _minimal_env() -> dict[str, str]:
+    """Environment for compiling and running untrusted candidate code."""
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+           "LC_ALL": "C", "LANG": "C"}
+    for key in ("TMPDIR", "SYSTEMROOT", "WINDIR"):
+        if key in os.environ:
+            env[key] = os.environ[key]
+    return env
+
+
+def _limit_resources() -> None:  # pragma: no cover - runs in the child
+    """Best-effort rlimits; silently skipped where unsupported."""
+    try:
+        import resource
+    except ImportError:  # Windows
+        return
+    for limit, value in ((resource.RLIMIT_AS, RUN_ADDRESS_SPACE_BYTES),
+                         (resource.RLIMIT_CORE, 0),
+                         (resource.RLIMIT_FSIZE, 16 * 1024 * 1024)):
+        try:
+            soft, hard = resource.getrlimit(limit)
+            if hard != resource.RLIM_INFINITY:
+                value = min(value, hard)
+            resource.setrlimit(limit, (value, value))
+        except (ValueError, OSError):
+            pass
 
 
 def _load_hidden_cases(path: Path) -> list[tuple[str, bytes]]:
@@ -121,13 +166,15 @@ class Grader:
         # writes ``name.exe`` while the harness looks for ``name``.
         out = self.workdir / "bin" / (name + (".exe" if os.name == "nt" else ""))
         out.parent.mkdir(parents=True, exist_ok=True)
+        scratch = self.workdir / f"cwd-{name}"
+        scratch.mkdir(parents=True, exist_ok=True)
         cmd = [self.cxx, "-std=c++17", "-O1", "-g0", *map(str, sources)]
         for inc in include_dirs:
             cmd += ["-I", str(inc)]
         cmd += ["-o", str(out)]
         try:
-            proc = subprocess.run(cmd, capture_output=True,
-                                  timeout=COMPILE_TIMEOUT)
+            proc = subprocess.run(cmd, capture_output=True, cwd=scratch,
+                                  env=_minimal_env(), timeout=COMPILE_TIMEOUT)
         except (OSError, subprocess.TimeoutExpired) as exc:
             return None, f"compiler invocation failed: {exc}"
         if proc.returncode != 0:
@@ -138,10 +185,11 @@ class Grader:
         driver = self.task.path(self.task.driver)
         props = self.task.path(self.task.properties)
         include = self.task.path(self.task.interface).parent
-        # The driver and property tests are grader-owned headers/sources; both
-        # their directories are on the include path so tasks can organise the
-        # hidden side freely.
-        includes = [include, driver.parent, props.parent, self.task.root]
+        # The driver and property tests are grader-owned headers/sources, so
+        # their directories are on the include path. The task root is
+        # deliberately absent: with it, a candidate could `#include
+        # "ground_truth/target.cpp"` and skip the task entirely.
+        includes = [include, driver.parent, props.parent]
         return [driver, props], includes
 
     def reference(self) -> tuple[Path | None, str]:
@@ -172,12 +220,21 @@ class Grader:
                               f"expected one of {sorted(allowed)}")
             if not isinstance(text, str):
                 return None, f"source '{name}' is not text"
-            path = candidate_dir / name
-            path.write_text(text, encoding="utf-8")
-            written.append(path)
         missing = allowed - set(sources)
         if missing:
             return None, f"adapter omitted required source(s): {sorted(missing)}"
+
+        # Reject oracle replay / grader-material access before touching disk.
+        rejection = check_candidate(
+            sources,
+            allowed_headers=(self.task.path(self.task.interface).name,))
+        if rejection:
+            return None, f"candidate rejected by policy: {rejection}"
+
+        for name, text in sources.items():
+            path = candidate_dir / name
+            path.write_text(text, encoding="utf-8")
+            written.append(path)
         common, includes = self._common_sources()
         return self._compile("candidate", [*common, *written],
                              [*includes, candidate_dir])
@@ -185,9 +242,17 @@ class Grader:
     # -- executing -------------------------------------------------------
 
     def _run(self, exe: Path, payload: bytes) -> tuple[bytes, int, str]:
-        proc = subprocess.run([str(exe)], input=payload, capture_output=True,
-                              timeout=RUN_TIMEOUT)
-        return proc.stdout, proc.returncode, proc.stderr.decode(errors="replace")
+        # Private working directory + minimal environment: a candidate cannot
+        # find task files relative to cwd and cannot read credentials from the
+        # harness environment. rlimits bound memory, core dumps and file
+        # output; they are best-effort on platforms without `resource`.
+        with tempfile.TemporaryDirectory(prefix="aegis-run-") as cwd:
+            proc = subprocess.run(
+                [str(exe)], input=payload, capture_output=True,
+                timeout=RUN_TIMEOUT, cwd=cwd, env=_minimal_env(),
+                preexec_fn=_limit_resources if os.name == "posix" else None)
+        stdout = proc.stdout[:MAX_STDOUT_BYTES]
+        return stdout, proc.returncode, proc.stderr.decode(errors="replace")
 
     def _corpus(self) -> list[tuple[str, bytes]]:
         cases: list[tuple[str, bytes]] = []

@@ -14,6 +14,11 @@ a blocker, and a box checked without evidence is worse.
       shows flattening + verifier OK (`aegis-bench` integration test).
 - [x] Differential matrix: zero output mismatches, zero sanitizer reports on
       all eight profiles (`differential-report.json`).
+- [x] Grader isolation: candidate include path excludes the task root;
+      compile/run use scratch directories, minimal environment and rlimits;
+      the candidate-source policy rejects oracle replay tripwires (tests).
+- [x] Task ids are immutable: `rolling-token-v1` is frozen at its original
+      content hash; the binary-recovery task ships as `rolling-token-v2`.
 - [x] `clang-format --dry-run -Werror` clean (CI).
 - [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) for
       level 1, 5672 (+12.9%) for level 2 and 6642 (+32.2%) for level 3 on the
@@ -42,6 +47,8 @@ a blocker, and a box checked without evidence is worse.
       Python stdlib, CMake/Ninja (build only). No vendored code.
 - [x] No keys, tokens, private sources, or hidden grading answers in the repo
       (CI hygiene gate + manual scan).
+- [x] Reports contain no host or user names; provenance uses a salted machine
+      hash.
 - [ ] Trademark search; GitHub org, domain, and package names secured.
       **Outstanding** — tracked as release follow-up, not a code blocker.
 - [x] README name disclaimer present (IR = Intermediate Representation).

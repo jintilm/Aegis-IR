@@ -17,7 +17,7 @@ pull request, and on demand. It has read-only repository permissions, a
 | Python sanity | harness sources are not importable (`compileall`) | cheap syntax gate |
 | Format check | `clang-format --dry-run -Werror` reports a diff | review noise reduction |
 | Repository hygiene | private material tracked, a file > 1 MiB, or a credential-shaped string | a benchmark repo that leaks hidden answers or keys is worse than one that fails |
-| Tests | any CTest suite fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `aegis-bench`) | behavioural gate; the bench suite builds binary-recovery probes at levels 0–3 |
+| Tests | any CTest suite fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `aegis-bench`) | behavioural gate; the bench suite builds binary-recovery probes at levels 0–3, enforces the candidate-source policy, and exercises the adapter timeout |
 
 Artifacts uploaded on every outcome: `differential-report.json` and the CTest
 log, retained 30 days. A failing run therefore always has numbers attached.

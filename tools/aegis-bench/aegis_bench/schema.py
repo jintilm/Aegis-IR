@@ -176,11 +176,7 @@ class Task:
             names += list(self.artifact.include_dirs)
             names += [p.policy for p in self.artifact.profiles.values()
                       if p.policy]
-        seen: set[str] = set()
         for name in names:
-            if name in seen:
-                continue
-            seen.add(name)
             path = self.path(name)
             if path.is_dir():
                 for child in sorted(p for p in path.rglob("*") if p.is_file()):

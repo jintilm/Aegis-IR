@@ -34,9 +34,20 @@ versions follow SemVer once past alpha.
   SHA-256 / `.text` / build-log provenance in every run row. `rolling-token-v1`
   is now a binary-recovery task with `baseline` and `aegis-level1..3`
   profiles; its content hash changed.
-- **Harness tests** — 24 offline tests plus shell integration covering
-  artifact builds, workspace isolation, missing-plugin failure, and level-3
-  ground-truth scoring.
+- **Harness tests** — 32 offline tests plus shell integration covering
+  artifact builds, workspace isolation, missing-plugin failure, level-3
+  ground-truth scoring, candidate-source policy, and adapter timeouts.
+- **Task versioning** — `rolling-token-v2` is the binary-recovery task; the
+  frozen `rolling-token-v1` keeps its original id, files and content hash.
+- **Isolation hardening** — the grader no longer puts the task root on the
+  include path (a candidate could `#include "ground_truth/target.cpp"`),
+  compiles and runs in scratch directories with a minimal environment and
+  rlimits, and applies a candidate-source policy. `adapter.solve` is bounded
+  by a wall-clock timeout, recorded as enforced/not in each row.
+- **Report provenance** — host and user names are no longer recorded; a
+  salted machine hash replaces them. The `v0.1.0-alpha` report is archived
+  under `docs/reports/archive/` so claims keep pointing at the artifact they
+  were written against.
 
 ### Changed
 

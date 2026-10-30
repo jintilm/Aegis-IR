@@ -14,15 +14,16 @@ truth, hidden cases or the grader into the workspace.
 
 from __future__ import annotations
 
-import getpass
 import hashlib
 import json
 import os
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -33,6 +34,96 @@ from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .grader import Grade, Grader
 from .schema import Task
+
+DEFAULT_ADAPTER_TIMEOUT = 600
+
+
+class AdapterTimeout(AdapterError):
+    """The adapter exceeded its wall-clock budget."""
+
+
+class _Deadline:
+    """Wall-clock limit around an in-process adapter call.
+
+    Adapters are ordinary Python objects, so the only portable enforcement is
+    a POSIX alarm (main thread) or a watchdog thread. On POSIX the alarm
+    interrupts the call and raises; elsewhere the watchdog records the
+    overrun but the call may keep running, which is why the run row records
+    whether the limit was actually enforced.
+    """
+
+    def __init__(self, seconds: int):
+        self.seconds = seconds
+        self.armed = False
+
+    def __enter__(self) -> "_Deadline":
+        if self.seconds <= 0:
+            return self
+        if os.name == "posix" and threading.current_thread() is threading.main_thread():
+            self._previous = signal.signal(signal.SIGALRM, self._raise)
+            signal.setitimer(signal.ITIMER_REAL, self.seconds)
+            self.armed = True
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        if self.armed:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, self._previous)
+
+    def _raise(self, signum: int, frame: Any) -> None:
+        raise AdapterTimeout(
+            f"adapter exceeded its {self.seconds}s wall-clock budget")
+
+
+def _call_with_deadline(fn: Any, seconds: int) -> tuple[Any, bool]:
+    """Run ``fn`` with a deadline; return (result, enforced)."""
+    if seconds <= 0:
+        return fn(), False
+    if os.name == "posix" and threading.current_thread() is threading.main_thread():
+        with _Deadline(seconds):
+            return fn(), True
+
+    # Fallback: watchdog thread. The call is not interrupted, but an overrun
+    # is surfaced instead of silently producing a result.
+    outcome: dict[str, Any] = {}
+
+    def target() -> None:
+        try:
+            outcome["value"] = fn()
+        except BaseException as exc:  # noqa: BLE001 - re-raised below
+            outcome["error"] = exc
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    if thread.is_alive():
+        raise AdapterTimeout(
+            f"adapter exceeded its {seconds}s wall-clock budget "
+            f"(watchdog mode; the call was not interrupted)")
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"], False
+
+
+def _deadline_mode(seconds: int) -> str:
+    """What the run row should claim about timeout enforcement."""
+    if seconds <= 0:
+        return "unset"
+    if os.name == "posix" and threading.current_thread() is threading.main_thread():
+        return "enforced (SIGALRM)"
+    return "watchdog (overrun detected, call not interrupted)"
+
+
+def _machine_id() -> str:
+    """Non-identifying environment fingerprint for reproducibility.
+
+    Host and user names are deliberately not recorded: reports are committed,
+    and a benchmark result does not need to name the machine's owner. Hashing
+    the platform string keeps the value stable across runs in the same
+    environment (a container id would change on every launch) while revealing
+    nothing beyond what ``platform`` already states.
+    """
+    return hashlib.sha256(platform.platform().encode()).hexdigest()[:12]
 
 
 def _git(args: list[str], cwd: Path) -> str:
@@ -54,8 +145,7 @@ def environment_stamp(repo_root: Path) -> dict[str, str]:
                                       repo_root) else "no",
         "python": platform.python_version(),
         "platform": platform.platform(),
-        "host": platform.node(),
-        "user": getpass.getuser(),
+        "machine": _machine_id(),
     }
 
 
@@ -102,10 +192,12 @@ class Runner:
                  cxx: str | None = None, plugin: str | None = None,
                  clang: str | None = None, opt: str | None = None,
                  artifact_cache: Path | None = None,
+                 adapter_timeout: int = DEFAULT_ADAPTER_TIMEOUT,
                  keep_workspaces: bool = False):
         self.repo_root = Path(repo_root)
         self.out_dir = Path(out_dir)
         self.cxx = cxx
+        self.adapter_timeout = adapter_timeout
         self.keep_workspaces = keep_workspaces
         self.environment = environment_stamp(self.repo_root)
         cache_root = (Path(artifact_cache) if artifact_cache
@@ -157,6 +249,17 @@ class Runner:
         grade = Grade(False, "agent", "adapter did not run")
         ledger: dict[str, Any] = {}
         artifact: BuiltArtifact | None = None
+        budgets: dict[str, Any] = {
+            "max_tool_calls": task.budgets.max_tool_calls,
+            "timeout_seconds": task.budgets.timeout_seconds,
+            "max_output_tokens": task.budgets.max_output_tokens,
+            "adapter_timeout_seconds": self.adapter_timeout,
+            "enforcement": {
+                "adapter_timeout": "unset",
+                "max_tool_calls": "not enforced (adapter self-report)",
+                "max_output_tokens": "not enforced (adapter self-report)",
+            },
+        }
         error = ""
         try:
             self._populate_workspace(task, workspace)
@@ -164,7 +267,10 @@ class Runner:
             if artifact is not None:
                 self._install_probe(artifact, workspace)
             agent.prepare(task, workspace)
-            result = agent.solve(task, workspace)
+            timeout = self.adapter_timeout or task.budgets.timeout_seconds
+            budgets["enforcement"]["adapter_timeout"] = _deadline_mode(timeout)
+            result, _enforced = _call_with_deadline(
+                lambda: agent.solve(task, workspace), timeout)
             ledger = dict(result.ledger)
             ledger["ledger_source"] = "self-reported by adapter"
             if result.notes:
@@ -193,9 +299,11 @@ class Runner:
             duration_seconds=time.time() - started, grade=grade,
             ledger=ledger,
             budgets={
-                "max_tool_calls": task.budgets.max_tool_calls,
-                "timeout_seconds": task.budgets.timeout_seconds,
-                "max_output_tokens": task.budgets.max_output_tokens,
+                "max_tool_calls": budgets["max_tool_calls"],
+                "timeout_seconds": budgets["timeout_seconds"],
+                "max_output_tokens": budgets["max_output_tokens"],
+                "adapter_timeout_seconds": budgets["adapter_timeout_seconds"],
+                "enforcement": budgets["enforcement"],
             },
             environment=self.environment,
             artifact=artifact.to_dict() if artifact is not None else {},

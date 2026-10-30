@@ -1,0 +1,2 @@
+run_id,task_id,task_hash,agent,adversary,profile,repetition,started_utc,duration_seconds,passed,stage,reason,cases_total,cases_passed,success_rate,tokens,tool_calls,ledger_source,commit,commit_dirty
+f6e470ff7d679d43,rolling-token-v1,sha256:ce72ce07e5c6c966eddbbca46eb5eaad340e181395a911225cade2d95f62046f,stub,n/a (negative control),baseline,0,2026-10-29T10:29:15Z,4.288,False,hidden,73/73 case(s) failed,73,0,0.0,,1,self-reported by adapter,e3ea0b0e7c96c7cd1a1a4ee050de0ea3e7866edb,yes

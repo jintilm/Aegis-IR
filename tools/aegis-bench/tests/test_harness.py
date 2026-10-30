@@ -36,7 +36,10 @@ from aegis_bench.schema import TaskError, load_task  # noqa: E402
 
 REPO_ROOT = TOOL_ROOT.parents[1]
 TASKS_ROOT = REPO_ROOT / "benchmarks" / "tasks-public"
-TASK_DIR = TASKS_ROOT / "rolling-token-v1"
+# Two task shapes are exercised: the frozen reimplementation task (grader and
+# schema behaviour) and the binary-recovery task (artifact builds).
+REIMPLEMENT_DIR = TASKS_ROOT / "rolling-token-v1"
+BINARY_DIR = TASKS_ROOT / "rolling-token-v2"
 AEGIS_PLUGIN = os.environ.get("AEGIS_PLUGIN") or None
 
 
@@ -47,7 +50,7 @@ def _ground_truth_source(task) -> dict[str, str]:
 class GraderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.task = load_task(TASK_DIR)
+        cls.task = load_task(REIMPLEMENT_DIR)
 
     def test_ground_truth_passes(self):
         with Grader(self.task) as grader:
@@ -93,7 +96,7 @@ class SchemaTests(unittest.TestCase):
     def test_hash_mismatch_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "task"
-            shutil.copytree(TASK_DIR, copy)
+            shutil.copytree(REIMPLEMENT_DIR, copy)
             (copy / "grader" / "properties.cpp").write_text(
                 "// tampered\n", encoding="utf-8")
             with self.assertRaises(TaskError) as ctx:
@@ -103,7 +106,7 @@ class SchemaTests(unittest.TestCase):
     def test_missing_manifest_key_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "task"
-            shutil.copytree(TASK_DIR, copy)
+            shutil.copytree(REIMPLEMENT_DIR, copy)
             manifest = json.loads((copy / "task.json").read_text())
             del manifest["driver"]
             manifest["content_hash"] = ""
@@ -113,7 +116,7 @@ class SchemaTests(unittest.TestCase):
             self.assertIn("driver", str(ctx.exception))
 
     def test_path_traversal_rejected(self):
-        task = load_task(TASK_DIR)
+        task = load_task(REIMPLEMENT_DIR)
         with self.assertRaises(TaskError):
             task.path("../../../etc/passwd")
 
@@ -125,20 +128,20 @@ class SchemaTests(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "task"
-            shutil.copytree(TASK_DIR, copy)
+            shutil.copytree(REIMPLEMENT_DIR, copy)
             for path in copy.rglob("*"):
                 if path.is_file():
                     data = path.read_bytes().replace(b"\r\n", b"\n")
                     path.write_bytes(data.replace(b"\n", b"\r\n"))
             crlf_task = load_task(copy, verify_hash=False)
             self.assertEqual(crlf_task.computed_hash(),
-                             load_task(TASK_DIR).computed_hash())
+                             load_task(REIMPLEMENT_DIR).computed_hash())
 
 
 class RunnerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.task = load_task(TASK_DIR)
+        cls.task = load_task(BINARY_DIR)
 
     def _runner(self, tmp: str) -> Runner:
         return Runner(repo_root=REPO_ROOT, out_dir=Path(tmp))
@@ -244,10 +247,91 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("plugin", records[0].error)
 
 
+class CandidatePolicyTests(unittest.TestCase):
+    """Oracle replay and grader-material access must be rejected before build."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.task = load_task(BINARY_DIR)
+
+    def _grade(self, sources):
+        with Grader(self.task) as grader:
+            return grader.grade(sources)
+
+    def test_include_of_ground_truth_rejected(self):
+        src = "#include " + chr(34) + "ground_truth/target.cpp" + chr(34) + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertEqual(grade.stage, "build")
+        self.assertIn("policy", grade.reason)
+
+    def test_absolute_include_rejected(self):
+        src = "#include " + chr(34) + "/etc/passwd" + chr(34) + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertEqual(grade.stage, "build")
+        self.assertIn("escapes", grade.reason)
+
+    def test_parent_relative_include_rejected(self):
+        src = "#include " + chr(34) + "../target.h" + chr(34) + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertEqual(grade.stage, "build")
+        self.assertIn("escapes", grade.reason)
+
+    def test_unknown_local_header_rejected(self):
+        src = "#include " + chr(34) + "sneaky.h" + chr(34) + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertIn("not part of the task interface", grade.reason)
+
+    def test_interface_header_allowed(self):
+        src = "#include " + chr(34) + "target.h" + chr(34) + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertNotIn("policy", grade.reason)
+
+    def test_exec_call_rejected(self):
+        src = "#include <cstdlib>" + chr(10)
+        src += "int f() { return system(" + chr(34) + "./probe" + chr(34) + "); }" + chr(10)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertIn("standalone implementation", grade.reason)
+
+    def test_oversized_source_rejected(self):
+        src = "// " + "x" * (300 * 1024)
+        grade = self._grade({"target.cpp": src})
+        self.assertFalse(grade.passed)
+        self.assertIn("bytes", grade.reason)
+
+
+class AdapterTimeoutTests(unittest.TestCase):
+    def test_slow_adapter_times_out(self):
+        import time
+
+        class Slow(StubAgent):
+            name = "slow"
+
+            def solve(self, task, workspace):
+                time.sleep(5)
+                return super().solve(task, workspace)
+
+        task = load_task(REIMPLEMENT_DIR)
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = Runner(repo_root=REPO_ROOT, out_dir=Path(tmp),
+                            adapter_timeout=1)
+            records = runner.run([task], [Slow()], profile="baseline")
+        self.assertFalse(records[0].grade.passed)
+        self.assertEqual(records[0].grade.stage, "agent")
+        self.assertIn("wall-clock budget", records[0].error)
+        self.assertEqual(
+            records[0].budgets["enforcement"]["adapter_timeout"],
+            "enforced (SIGALRM)")
+
+
 class ArtifactTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.task = load_task(TASK_DIR)
+        cls.task = load_task(BINARY_DIR)
 
     def test_baseline_probe_matches_ground_truth(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -293,11 +377,11 @@ class ArtifactTests(unittest.TestCase):
 class ArtifactSchemaTests(unittest.TestCase):
     def _copy_task(self, tmp: str) -> Path:
         copy = Path(tmp) / "task"
-        shutil.copytree(TASK_DIR, copy)
+        shutil.copytree(BINARY_DIR, copy)
         return copy
 
     def test_artifact_files_are_hashed(self):
-        original = load_task(TASK_DIR).computed_hash()
+        original = load_task(BINARY_DIR).computed_hash()
         with tempfile.TemporaryDirectory() as tmp:
             copy = self._copy_task(tmp)
             policy = copy / "grader" / "policies" / "level1.json"

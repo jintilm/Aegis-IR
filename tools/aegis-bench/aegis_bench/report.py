@@ -25,7 +25,8 @@ CSV_FIELDS = [
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
     "tokens", "tool_calls", "ledger_source", "artifact_sha256",
-    "artifact_bytes", "artifact_text", "commit", "commit_dirty",
+    "artifact_bytes", "artifact_text", "adapter_timeout", "commit",
+    "commit_dirty",
 ]
 
 
@@ -68,6 +69,8 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
                 "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
                 "artifact_text": row.get("artifact", {}).get("text_bytes", ""),
+                "adapter_timeout": row.get("budgets", {}).get(
+                    "enforcement", {}).get("adapter_timeout", ""),
                 "commit": row["environment"].get("commit", ""),
                 "commit_dirty": row["environment"].get("commit_dirty", ""),
             })
@@ -88,11 +91,14 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         f"(dirty: {env.get('commit_dirty', '?')})",
         f"- Platform: {env.get('platform', '?')}",
         f"- Python: {env.get('python', '?')}",
+        f"- Machine: `{env.get('machine', 'unknown')}` (salted hash; no host "
+        f"or user name is recorded)",
         f"- Runs: {len(records)}",
         "",
-        "Token and tool-call figures are **self-reported by the adapter**; "
-        "the harness cannot observe them independently. Pass/fail and case "
-        "counts are measured.",
+        "Token, tool-call, oracle-query and cost figures are **self-reported "
+        "by the adapter**; the harness cannot observe them independently. "
+        "Pass/fail and case counts are measured. A run row states which "
+        "budgets were actually enforced.",
         "",
     ]
     if any(record.artifact for record in records):
