@@ -13,10 +13,11 @@ scripts/release-report.sh harness-validation
   same corpus with zero output mismatches and zero sanitizer reports
   (`differential-report.json`, including `.text`/`.data` totals and p95
   wall time per profile);
-- Aegis-Bench builds the public binary-recovery task's stripped baseline probe
-  and scores a known-correct solution at 100% and a compiling-but-wrong one at
-  ~0% (`bench-ground-truth/`, `bench-stub/`), which validates the grader end
-  to end; CTest additionally builds the level-1/2/3 probes.
+- Aegis-Bench builds `rolling-token-v2`'s stripped baseline probe and scores
+  a known-correct solution at 100% and a compiling-but-wrong one at ~0%
+  (`bench-ground-truth/`, `bench-stub/`), which validates the grader end to
+  end; CTest additionally builds the level-1/2/3 probes and scores the frozen
+  reimplementation task (`rolling-token-v1`).
 
 ## What this does **not** show
 

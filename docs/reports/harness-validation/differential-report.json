@@ -9,10 +9,10 @@
       },
       "pipeline": null,
       "cases": 235,
-      "total_ms": 454.63387825293466,
+      "total_ms": 448.3413950292743,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.5284200091846287
+      "p95_ms": 2.474129003530834
     },
     "release": {
       "binary_bytes": 14720,
@@ -23,10 +23,10 @@
       },
       "pipeline": null,
       "cases": 235,
-      "total_ms": 457.9303279751912,
+      "total_ms": 441.5672099785297,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.5011749821715057
+      "p95_ms": 2.3466740021831356
     },
     "release-opt": {
       "binary_bytes": 14720,
@@ -37,10 +37,10 @@
       },
       "pipeline": "default<O2>",
       "cases": 235,
-      "total_ms": 487.4773167539388,
+      "total_ms": 436.34417292196304,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.7955039986409247
+      "p95_ms": 2.447121005388908
     },
     "aegis-standard": {
       "binary_bytes": 14720,
@@ -51,10 +51,10 @@
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "cases": 235,
-      "total_ms": 455.95283203874715,
+      "total_ms": 458.8820740391384,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.6542489940766245
+      "p95_ms": 2.568051997513976
     },
     "aegis-research": {
       "binary_bytes": 14720,
@@ -65,10 +65,10 @@
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "cases": 235,
-      "total_ms": 484.9124652100727,
+      "total_ms": 438.7936819548486,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.6607020117808133
+      "p95_ms": 2.425904996925965
     },
     "aegis-flattened": {
       "binary_bytes": 14720,
@@ -79,10 +79,10 @@
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "cases": 235,
-      "total_ms": 527.4042481905781,
+      "total_ms": 480.1020690210862,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.7640170010272413
+      "p95_ms": 2.5606220006011426
     },
     "aegis-debug": {
       "binary_bytes": 78576,
@@ -93,10 +93,10 @@
       },
       "pipeline": null,
       "cases": 235,
-      "total_ms": 455.35814014147036,
+      "total_ms": 448.97019198106136,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.615080011310056
+      "p95_ms": 2.3415699979523197
     },
     "baseline-asan": {
       "binary_bytes": 1809040,
@@ -107,10 +107,10 @@
       },
       "pipeline": null,
       "cases": 235,
-      "total_ms": 2604.7447969031055,
+      "total_ms": 2582.299800000328,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 12.488653999753296
+      "p95_ms": 12.202605001220945
     }
   },
   "corpus_size": 235,

@@ -1,11 +1,12 @@
 # Aegis-Bench run report
 
-- Commit: `ef7b2a799faa2ce7a9a0fecd17cfd01f93b486d9` (dirty: yes)
+- Commit: `266113166f863ac1bbf5007872927c72c4e419cb` (dirty: yes)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
+- Machine: `5122c9870c43` (salted hash; no host or user name is recorded)
 - Runs: 1
 
-Token and tool-call figures are **self-reported by the adapter**; the harness cannot observe them independently. Pass/fail and case counts are measured.
+Token, tool-call, oracle-query and cost figures are **self-reported by the adapter**; the harness cannot observe them independently. Pass/fail and case counts are measured. A run row states which budgets were actually enforced.
 
 Binary-recovery runs place only a stripped probe in the agent workspace. Each row records the probe's SHA-256 and size; the probe's build log is in the JSONL row. Oracle queries are made by the adapter and are not observable by the harness.
 
@@ -15,10 +16,10 @@ Binary-recovery runs place only a stripped probe in the agent workspace. Each ro
 
 | profile | agent | task | runs | pass | success rate | wall s (mean±sd) | tokens (mean) | tool calls (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | stub | rolling-token-v1 | 1 | 0/1 | 0% | 5.19±0.00 | n/a | 1.0 |
+| baseline | stub | rolling-token-v2 | 1 | 0/1 | 0% | 5.41±0.00 | n/a | 1.0 |
 
 ## Failures
 
 | agent | task | stage | reason |
 |---|---|---|---|
-| stub | rolling-token-v1 | hidden | 73/73 case(s) failed |
+| stub | rolling-token-v2 | hidden | 73/73 case(s) failed |
