@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks ship a stripped probe built at protection levels 0–3; the harness (task schema, artifact builder, independent grader, runner, report generator) exists and is tested offline. **No run against a real model has been published yet.**
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. **No run against a real model has been published yet.**
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -146,8 +146,11 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
 Real runs pass an adapter from outside this repository, so no vendor SDK or API
 key enters the tree or CI; run it with only the workspace mounted, since the
 harness isolates the workspace but does not sandbox the process. Token and
-tool-call columns are adapter self-reports; budget enforcement is recorded per
-row. Protocol:
+tool-call columns are adapter self-reports; oracle queries are counted by the
+harness broker (and capped when a task sets `budgets.oracle_queries`); budget
+enforcement is recorded per row. Report pass rates carry Wilson 95% intervals,
+and cost deltas get an interval only when both sides have at least two runs.
+Protocol:
 [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md); harness:
 [`tools/aegis-bench/README.md`](tools/aegis-bench/README.md).
 
@@ -181,7 +184,9 @@ Known limits, stated so they are not discovered as surprises:
   (semantics removal); the state encoding key derives from the shipped seed;
 - flattening costs a volatile load and store per basic block; it is not
   recommended for hot paths;
-- benchmark cost columns are adapter self-reports, unverifiable by the harness;
+- benchmark token and tool-call columns are adapter self-reports,
+  unverifiable by the harness; oracle queries are counted by the broker, which
+  is accounting rather than a sandbox;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 

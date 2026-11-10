@@ -21,18 +21,22 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TOOL_ROOT = HERE.parent
 sys.path.insert(0, str(TOOL_ROOT))
 
-from aegis_bench.adapters.fake import BrokenAgent, ReplayAgent, StubAgent  # noqa: E402
-from aegis_bench.artifact import ArtifactError  # noqa: E402
-from aegis_bench.grader import Grader  # noqa: E402
-from aegis_bench.report import write_reports  # noqa: E402
-from aegis_bench.runner import Runner  # noqa: E402
-from aegis_bench.schema import TaskError, discover_tasks, load_task  # noqa: E402
+from aegis_bench.adapters.fake import (  # noqa: E402
+    BrokenAgent, ProbeQueryAgent, ReplayAgent, StubAgent)
+from aegis_bench.artifact import ArtifactError, BuiltArtifact  # noqa: E402
+from aegis_bench.grader import Grade, Grader  # noqa: E402
+from aegis_bench.oracle import (  # noqa: E402
+    OracleBroker, OracleError, install_shim, query)
+from aegis_bench.report import wilson_interval, write_markdown, write_reports  # noqa: E402
+from aegis_bench.runner import RunRecord, Runner  # noqa: E402
+from aegis_bench.schema import Budget, TaskError, discover_tasks, load_task  # noqa: E402
 
 REPO_ROOT = TOOL_ROOT.parents[1]
 TASKS_ROOT = REPO_ROOT / "benchmarks" / "tasks-public"
@@ -476,6 +480,204 @@ class ArtifactSchemaTests(unittest.TestCase):
                                             encoding="utf-8")
             with self.assertRaises(TaskError):
                 load_task(copy, verify_hash=False)
+
+
+class OracleBrokerTests(unittest.TestCase):
+    """The probe must be counted by the harness, not by the adapter."""
+
+    ECHO_PROBE = (
+        "import sys\n"
+        "data = sys.stdin.buffer.read()\n"
+        "sys.stdout.write('n=%d' % len(data))\n"
+        "sys.stderr.write('echo')\n")
+
+    def _broker(self, *, budget=None) -> OracleBroker:
+        return OracleBroker([sys.executable, "-c", self.ECHO_PROBE],
+                            budget=budget)
+
+    def _query(self, broker: OracleBroker, payload: bytes):
+        return query(broker.address, payload, transport=broker.transport)
+
+    def test_queries_are_counted_and_capped(self):
+        with self._broker(budget=1) as broker:
+            code, out, err = self._query(broker, b"abcd")
+            self.assertEqual(code, 0)
+            self.assertEqual(out, b"n=4")
+            self.assertEqual(err, b"echo")
+            with self.assertRaises(OracleError) as ctx:
+                self._query(broker, b"a")
+            self.assertIn("budget exhausted", str(ctx.exception))
+        self.assertEqual(broker.stats.queries, 1)
+        self.assertEqual(broker.stats.refused, 1)
+        self.assertEqual(broker.stats.failed, 0)
+        self.assertEqual(broker.stats.enforcement,
+                         "enforced by harness broker")
+
+    def test_unset_budget_counts_without_capping(self):
+        with self._broker() as broker:
+            for _ in range(3):
+                self._query(broker, b"x")
+        self.assertEqual(broker.stats.queries, 3)
+        self.assertEqual(broker.stats.refused, 0)
+        self.assertIn("no cap", broker.stats.enforcement)
+
+    def test_workspace_shim_round_trips_and_refuses(self):
+        with self._broker(budget=1) as broker, \
+                tempfile.TemporaryDirectory() as tmp:
+            shim = install_shim(broker, Path(tmp))
+            command = ([sys.executable, str(shim)] if os.name == "nt"
+                       else [str(shim)])
+            first = subprocess.run(command, input=b"hello",
+                                   capture_output=True, timeout=30)
+            self.assertEqual(first.returncode, 0)
+            self.assertEqual(first.stdout, b"n=5")
+            self.assertEqual(first.stderr, b"echo")
+            second = subprocess.run(command, input=b"hello",
+                                    capture_output=True, timeout=30)
+            self.assertEqual(second.returncode, 125)
+            self.assertIn(b"budget exhausted", second.stderr)
+        self.assertEqual(broker.stats.queries, 1)
+        self.assertEqual(broker.stats.refused, 1)
+
+    def test_shim_is_a_script_not_a_binary(self):
+        with self._broker() as broker, tempfile.TemporaryDirectory() as tmp:
+            shim = install_shim(broker, Path(tmp))
+            data = shim.read_bytes()
+            self.assertTrue(data.startswith(b"#!"))
+            self.assertIn(b"harness-owned broker", data)
+            self.assertFalse(data.startswith(b"\x7fELF"))
+
+
+class RunnerOracleTests(unittest.TestCase):
+    """Runner integration: shim in the workspace, counts in the run row."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.task = load_task(BINARY_DIR)
+
+    def test_queries_reach_the_broker_and_stop_at_the_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe = Path(tmp) / "probe.py"
+            probe.write_text("import sys\n"
+                             "sys.stdout.write('ok')\n", encoding="utf-8")
+            task = replace(self.task, budgets=replace(
+                self.task.budgets, oracle_queries=2))
+
+            class FakeArtifactRunner(Runner):
+                def artifact_for(self, task, profile):
+                    return BuiltArtifact(
+                        profile=profile, level=0, path=probe,
+                        sha256="0" * 64, size_bytes=0, text_bytes=0,
+                        toolchain={}, build_log="")
+
+                def _probe_command(self, artifact):
+                    return [sys.executable, str(artifact.path)]
+
+            runner = FakeArtifactRunner(repo_root=REPO_ROOT,
+                                        out_dir=Path(tmp),
+                                        keep_workspaces=True)
+            records = runner.run([task], [ProbeQueryAgent(queries=3)],
+                                 profile="baseline")
+            workspace = next(Path(tmp).glob("ws-*"))
+            installed = (workspace / "probe").read_bytes()
+
+        record = records[0]
+        self.assertEqual(record.oracle["queries"], 2)
+        self.assertEqual(record.oracle["refused"], 1)
+        self.assertEqual(record.oracle["budget"], 2)
+        self.assertEqual(record.budgets["enforcement"]["oracle_queries"],
+                         "enforced by harness broker")
+        self.assertTrue(installed.startswith(b"#!"),
+                        "the workspace must hold the shim, not the probe")
+        self.assertIn(b"Oracle shim", installed)
+        self.assertGreater(len(installed), 100)
+
+    def test_reimplementation_tasks_have_no_oracle(self):
+        task = load_task(REIMPLEMENT_DIR)
+        with tempfile.TemporaryDirectory() as tmp:
+            records = Runner(repo_root=REPO_ROOT,
+                             out_dir=Path(tmp)).run(
+                                 [task], [StubAgent()], profile="baseline")
+        self.assertEqual(records[0].oracle, {})
+        self.assertEqual(
+            records[0].budgets["enforcement"]["oracle_queries"],
+            "n/a (no probe)")
+
+
+class BudgetTests(unittest.TestCase):
+    def test_oracle_budget_parsing(self):
+        self.assertIsNone(Budget.from_dict({}).oracle_queries)
+        self.assertEqual(Budget.from_dict({"oracle_queries": 10}).oracle_queries,
+                         10)
+        self.assertEqual(Budget.from_dict({"oracle_queries": 0}).oracle_queries,
+                         0)
+        for bad in (-1, True, "10", 1.5):
+            with self.assertRaises(TaskError):
+                Budget.from_dict({"oracle_queries": bad})
+
+
+class ReportStatisticsTests(unittest.TestCase):
+    def test_wilson_interval_behaves_at_the_edges(self):
+        self.assertIsNone(wilson_interval(0, 0))
+        low, high = wilson_interval(5, 5)
+        self.assertAlmostEqual(low, 0.5655, places=3)
+        self.assertEqual(high, 1.0)
+        low, high = wilson_interval(0, 5)
+        self.assertEqual(low, 0.0)
+        self.assertAlmostEqual(high, 0.4345, places=3)
+        low, high = wilson_interval(0, 1)
+        self.assertEqual(low, 0.0)
+        self.assertGreater(high, 0.7)
+
+    def _record(self, profile: str, seconds: float, *,
+                passed: bool = True, oracle_queries: int = 5) -> RunRecord:
+        grade = Grade(passed, "ok" if passed else "hidden", "ok")
+        return RunRecord(
+            run_id=f"{profile}-{seconds}", task_id="task-x",
+            task_hash="sha256:" + "0" * 64, agent="agent-x",
+            adversary="n/a", profile=profile, repetition=0,
+            started_utc="2026-11-11T00:00:00Z", duration_seconds=seconds,
+            grade=grade,
+            ledger={"tokens": 100, "tool_calls": 1,
+                    "ledger_source": "self-reported by adapter"},
+            budgets={"oracle_queries": None, "enforcement": {}},
+            environment={"commit": "abc", "commit_dirty": "no",
+                         "platform": "linux", "python": "3.12",
+                         "machine": "deadbeef"},
+            oracle={"queries": oracle_queries, "refused": 0, "failed": 0,
+                    "budget": None, "transport": "unix",
+                    "enforcement": "counted by harness broker (no cap)"})
+
+    def test_markdown_reports_intervals_and_cost_delta(self):
+        records = [
+            self._record("baseline", 1.0),
+            self._record("baseline", 2.0),
+            self._record("aegis-level1", 3.0),
+            self._record("aegis-level1", 4.0),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.md"
+            write_markdown(records, path)
+            text = path.read_text(encoding="utf-8")
+        self.assertIn("pass rate (95% CI)", text)
+        self.assertIn("100% [34%-100%]", text)
+        self.assertIn("## By (agent, profile), across tasks", text)
+        self.assertIn("## Cost delta vs baseline", text)
+        self.assertIn("baseline → aegis-level1", text)
+        self.assertIn("+2.00", text)
+        self.assertIn("self-reported", text)
+        self.assertIn("measured by the harness", text)
+
+    def test_single_run_states_no_interval_for_delta(self):
+        records = [
+            self._record("baseline", 1.0),
+            self._record("aegis-level1", 3.0),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.md"
+            write_markdown(records, path)
+            text = path.read_text(encoding="utf-8")
+        self.assertIn("(n<2)", text)
 
 
 if __name__ == "__main__":

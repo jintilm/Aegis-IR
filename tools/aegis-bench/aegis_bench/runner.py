@@ -33,6 +33,7 @@ from typing import Any
 from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .grader import Grade, Grader
+from .oracle import OracleBroker, OracleError, install_shim
 from .schema import Task
 
 DEFAULT_ADAPTER_TIMEOUT = 600
@@ -165,6 +166,9 @@ class RunRecord:
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
     artifact: dict[str, Any] = field(default_factory=dict)
+    #: Broker-observed oracle accounting for binary-recovery tasks. This is
+    #: measured by the harness, unlike ``ledger``, which the adapter fills in.
+    oracle: dict[str, Any] = field(default_factory=dict)
     private: bool = False
     error: str = ""
 
@@ -184,6 +188,7 @@ class RunRecord:
             "budgets": self.budgets,
             "environment": self.environment,
             "artifact": self.artifact,
+            "oracle": self.oracle,
             "private": self.private,
             "error": self.error,
         }
@@ -231,11 +236,19 @@ class Runner:
                 shutil.copy2(src, dst)
 
     @staticmethod
-    def _install_probe(artifact: BuiltArtifact, workspace: Path) -> None:
-        """Place only the stripped probe binary in the workspace."""
-        destination = workspace / artifact.path.name
-        shutil.copy2(artifact.path, destination)
-        os.chmod(destination, 0o755)
+    def _probe_command(artifact: BuiltArtifact) -> list[str]:
+        """Command the broker runs for one oracle query.
+
+        Tests override this to run a script through the interpreter; a real
+        run executes the built probe directly.
+        """
+        return [str(artifact.path)]
+
+    @staticmethod
+    def _install_oracle(broker: OracleBroker, artifact: BuiltArtifact,
+                        workspace: Path) -> None:
+        """Put the shim — never the probe itself — in the workspace."""
+        install_shim(broker, workspace, artifact.path.stem)
 
     # -- one cell --------------------------------------------------------
 
@@ -251,15 +264,20 @@ class Runner:
         grade = Grade(False, "agent", "adapter did not run")
         ledger: dict[str, Any] = {}
         artifact: BuiltArtifact | None = None
+        broker: OracleBroker | None = None
+        oracle: dict[str, Any] = {}
         budgets: dict[str, Any] = {
             "max_tool_calls": task.budgets.max_tool_calls,
             "timeout_seconds": task.budgets.timeout_seconds,
             "max_output_tokens": task.budgets.max_output_tokens,
             "adapter_timeout_seconds": self.adapter_timeout,
+            "oracle_queries": task.budgets.oracle_queries,
             "enforcement": {
                 "adapter_timeout": "unset",
                 "max_tool_calls": "not enforced (adapter self-report)",
                 "max_output_tokens": "not enforced (adapter self-report)",
+                "oracle_queries": ("n/a (no probe)" if task.artifact is None
+                                   else "not enforced (no broker)"),
             },
         }
         error = ""
@@ -267,7 +285,16 @@ class Runner:
             self._populate_workspace(task, workspace)
             artifact = self.artifact_for(task, profile)
             if artifact is not None:
-                self._install_probe(artifact, workspace)
+                try:
+                    broker = OracleBroker(
+                        self._probe_command(artifact),
+                        budget=task.budgets.oracle_queries).start()
+                except (OSError, OracleError) as exc:
+                    raise OracleError(
+                        f"oracle broker failed to start: {exc}") from exc
+                budgets["enforcement"]["oracle_queries"] = \
+                    broker.stats.enforcement
+                self._install_oracle(broker, artifact, workspace)
             agent.prepare(task, workspace)
             timeout = self.adapter_timeout or task.budgets.timeout_seconds
             budgets["enforcement"]["adapter_timeout"] = _deadline_mode(timeout)
@@ -282,6 +309,9 @@ class Runner:
         except ArtifactError as exc:
             grade = Grade(False, "artifact", f"artifact build failed: {exc}")
             error = str(exc)
+        except OracleError as exc:
+            grade = Grade(False, "artifact", f"oracle broker failed: {exc}")
+            error = str(exc)
         except AdapterError as exc:
             grade = Grade(False, "agent", f"adapter error: {exc}")
             error = str(exc)
@@ -289,6 +319,9 @@ class Runner:
             grade = Grade(False, "agent", f"adapter crashed: {exc!r}")
             error = traceback.format_exc(limit=5)
         finally:
+            if broker is not None:
+                broker.stop()
+                oracle = broker.stats.to_dict()
             if self.keep_workspaces:
                 shutil.copytree(workspace, self.out_dir / f"ws-{run_id}",
                                 dirs_exist_ok=True)
@@ -305,10 +338,12 @@ class Runner:
                 "timeout_seconds": budgets["timeout_seconds"],
                 "max_output_tokens": budgets["max_output_tokens"],
                 "adapter_timeout_seconds": budgets["adapter_timeout_seconds"],
+                "oracle_queries": budgets["oracle_queries"],
                 "enforcement": budgets["enforcement"],
             },
             environment=self.environment,
             artifact=artifact.to_dict() if artifact is not None else {},
+            oracle=oracle,
             private=task.private,
             error=error)
 

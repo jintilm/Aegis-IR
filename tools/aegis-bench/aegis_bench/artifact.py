@@ -257,9 +257,12 @@ class ArtifactBuilder:
         except ArtifactError as exc:
             raise ArtifactError(f"probe failed its empty-input sanity run: "
                                 f"{exc}") from exc
-        if b"hash=" not in sanity.stdout:
-            raise ArtifactError("probe did not print the documented output on "
-                                "empty input")
+        # The check is deliberately structural rather than a fixed string:
+        # every task's driver prints its own format, and pinning one task's
+        # output here silently failed the builds of every other task.
+        if not sanity.stdout.strip():
+            raise ArtifactError("probe printed nothing on empty input; the "
+                                "driver or the build is broken")
 
         data = probe_path.read_bytes()
         text_bytes = _text_bytes(probe_path)

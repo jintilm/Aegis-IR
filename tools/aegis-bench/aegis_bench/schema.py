@@ -20,7 +20,8 @@ Manifest shape (schema_version 1)::
       "hidden_cases": ["grader/hidden/case-000.bin", ...],
       "fuzz": {"cases": 64, "seed": 1234, "max_len": 4096},
       "budgets": {"max_tool_calls": 200, "timeout_seconds": 600,
-                  "max_output_tokens": 200000},
+                  "max_output_tokens": 200000,
+                  "oracle_queries": 200},   # optional; capped by the broker
       "protectability": {"domain_size": "small", "rating": "high"},
       "content_hash": "sha256:...",
 
@@ -62,13 +63,23 @@ class Budget:
     max_tool_calls: int = 200
     timeout_seconds: int = 600
     max_output_tokens: int = 200_000
+    #: Cap on oracle queries for binary-recovery tasks; ``None`` counts but
+    #: does not cap. Enforced by the harness broker, not by the adapter.
+    oracle_queries: int | None = None
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "Budget":
+        oracle = raw.get("oracle_queries")
+        if oracle is not None and (isinstance(oracle, bool)
+                                   or not isinstance(oracle, int)
+                                   or oracle < 0):
+            raise TaskError("budgets.oracle_queries must be a non-negative "
+                            "integer")
         return cls(
             max_tool_calls=int(raw.get("max_tool_calls", 200)),
             timeout_seconds=int(raw.get("timeout_seconds", 600)),
             max_output_tokens=int(raw.get("max_output_tokens", 200_000)),
+            oracle_queries=oracle,
         )
 
 

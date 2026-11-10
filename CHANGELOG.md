@@ -39,9 +39,20 @@ versions follow SemVer once past alpha.
   standard constructions; a `private: true` manifest flag that requires
   `--allow-private`, with custody/rotation rules in
   `benchmarks/tasks-private/README.md` and a do-not-publish report banner.
-- **Harness tests** — 36 offline tests plus shell integration covering
+- **Oracle accounting** — binary-recovery runs place an oracle **shim** in the
+  workspace instead of the probe. A harness-owned broker holds the probe,
+  counts every query, and enforces an optional `budgets.oracle_queries`;
+  `oracle.queries` / `oracle.refused` are measured, not self-reported. This is
+  accounting, not a sandbox: an adapter that executes the cached probe directly
+  is not counted. It makes the protocol's oracle-budget curve implementable.
+- **Report statistics** — Wilson 95% intervals on pass rates, per-(agent,
+  profile) aggregates across tasks, and a cost-delta-vs-baseline table with an
+  interval once both sides have at least two runs. Wall clock and oracle
+  queries are measured; token deltas remain labelled self-reported.
+- **Harness tests** — 46 offline tests plus shell integration covering
   artifact builds, workspace isolation, missing-plugin failure, level-3
-  ground-truth scoring, candidate-source policy, and adapter timeouts.
+  ground-truth scoring, candidate-source policy, adapter timeouts, oracle
+  counting/refusal, and report statistics.
 - **Task versioning** — `rolling-token-v2` is the binary-recovery task; the
   frozen `rolling-token-v1` keeps its original id, files and content hash.
 - **Isolation hardening** — the grader no longer puts the task root on the
@@ -61,7 +72,11 @@ versions follow SemVer once past alpha.
 - A level-3 selection of `indirectbr`, `callbr`, an EH terminator or a
   coroutine **fails the build** with the reason instead of skipping.
 - `tests/bench/run.sh` now takes the plugin path (CMake passes it) and runs
-  binary-recovery artifact profiles end to end.
+  binary-recovery artifact profiles end to end; it asserts that the workspace
+  holds the oracle shim rather than the probe binary.
+- The artifact builder's empty-input sanity check now only requires exit 0 and
+  non-empty stdout. It previously looked for `hash=`, which silently failed
+  the builds of tasks whose drivers print a different format.
 
 ### Behaviour worth knowing
 
@@ -71,8 +86,10 @@ versions follow SemVer once past alpha.
   tracing, and the state key derives from the shipped seed.
 - The research profiles use seeds 777/778; their `.text` deltas are each
   relative to the shared baseline, not a monotonic ladder.
-- Binary-recovery tasks expose an unconstrained local oracle. Probe queries
-  are not observable by the harness, and a submission that embeds the probe is
+- Binary-recovery tasks expose the probe through a harness-owned oracle
+  broker. Queries are counted and capped when `budgets.oracle_queries` is set,
+  but this is accounting, not a sandbox: an adapter that finds the artifact
+  cache can query the probe uncounted. A submission that embeds the probe is
   invalid but not automatically detected. Adapters are trusted not to read
   grader material; real runs need process-level isolation. See
   [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md).

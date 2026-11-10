@@ -59,7 +59,7 @@ done
 echo "== artifact: workspace and provenance =="
 PROBE="$(find "$OUT/base"/ws-* -name probe -type f -print -quit)"
 if [ -z "$PROBE" ] || [ ! -x "$PROBE" ]; then
-  echo "FAIL probe missing or not executable in workspace" >&2
+  echo "FAIL probe shim missing or not executable in workspace" >&2
   exit 1
 fi
 WORKDIR="$(dirname "$PROBE")"
@@ -68,11 +68,16 @@ if find "$WORKDIR" \( -name ground_truth -o -name grader -o -name hidden \) \
   echo "FAIL grader material leaked into workspace" >&2
   exit 1
 fi
-OUTPUT="$(printf 'aegis-ir' | "$PROBE")"
-if [ "$OUTPUT" != "hash=10781158686979218516 checksum=232850194 verify=0" ]; then
-  echo "FAIL probe output mismatch: $OUTPUT" >&2
+# The workspace must contain the shim, not the probe binary: the second byte
+# of an ELF is 'E', while a Python shebang starts with '#!'.
+if [ "$(head -c 2 "$PROBE")" != "#!" ]; then
+  echo "FAIL workspace 'probe' is not the oracle shim" >&2
   exit 1
 fi
+
+echo "== oracle accounting (v2) =="
+# Three queries are counted at the broker even though the candidate is wrong.
+bench_run "$V2" probe-query baseline oracle || true
 
 python3 - "$OUT" <<'PY'
 import json
@@ -90,6 +95,8 @@ def row(name: str) -> dict:
 v1 = row("v1")
 assert v1["task_id"] == "rolling-token-v1", v1["task_id"]
 assert v1["artifact"] == {}, "a reimplementation task must not build a probe"
+assert v1["oracle"] == {}, v1["oracle"]
+assert v1["budgets"]["enforcement"]["oracle_queries"] == "n/a (no probe)"
 assert v1["grade"]["passed"], v1["grade"]
 
 base = row("base")
@@ -101,11 +108,20 @@ assert level3["artifact"]["text_bytes"] > base["artifact"]["text_bytes"], (
 assert "[aegis-cff] flattened" in level3["artifact"]["build_log"]
 assert "[aegis-verify] OK" in level3["artifact"]["build_log"]
 assert base["artifact"]["sha256"] != level3["artifact"]["sha256"]
+# The ground-truth adapter never queries, so the broker must report zero.
+assert base["oracle"]["queries"] == 0, base["oracle"]
+assert base["budgets"]["enforcement"]["oracle_queries"] == (
+    "counted by harness broker (no cap)")
+# The probe-query adapter asks three times; the harness counted them.
+queries = row("oracle")
+assert queries["oracle"]["queries"] == 3, queries["oracle"]
+assert queries["oracle"]["refused"] == 0, queries["oracle"]
+assert queries["oracle"]["failed"] == 0, queries["oracle"]
 # No host or user name may reach a committed report.
 assert "host" not in base["environment"] and "user" not in base["environment"]
 assert base["environment"]["machine"]
 assert base["budgets"]["enforcement"]["adapter_timeout"] != "unset"
-print("artifact provenance OK")
+print("artifact provenance and oracle accounting OK")
 PY
 
 echo "aegis-bench tests: OK"

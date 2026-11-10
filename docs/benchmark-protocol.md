@@ -29,7 +29,9 @@ Each task declares:
 - **`reimplement`** (default): the agent sees a written brief, the interface
   and sample I/O, and writes an implementation from the specification.
 - **`binary-recovery`**: the runner also builds a **stripped probe** from the
-  ground truth and places only that binary in the workspace. The agent may run
+  ground truth and places it behind an **oracle broker**: the workspace gets a
+  shim that forwards queries to the broker, which holds the probe, counts each
+  query, and enforces an optional `budgets.oracle_queries`. The agent may use
   it as an oracle, but must still deliver a standalone implementation; the
   interface, driver and scoring are identical to `reimplement`.
 
@@ -89,8 +91,8 @@ adapters and a harness self-check. No model has been run.
   These are tripwires for oracle replay, not a sandbox: a malicious adapter
   can still open sockets or walk the filesystem, so real runs must execute the
   adapter and grader inside a container or namespace.
-- The workspace contains the stripped probe but never the ground truth,
-  grader, property tests or hidden cases (asserted by test).
+- The workspace contains an oracle **shim** but never the probe binary,
+  ground truth, grader, property tests or hidden cases (asserted by test).
 - **Adapters are trusted not to read grader material.** The harness isolates
   the *workspace* it hands to an in-process adapter, but it cannot sandbox a
   malicious adapter that walks the filesystem. Real runs should execute the
@@ -109,10 +111,15 @@ reported, never silently absorbed.
 
 The harness records the budget config and environment stamp in every row.
 Token and tool-call figures are adapter self-reports and are labelled as such
-in the reports; the harness currently cannot corroborate them. For
-binary-recovery tasks, probe invocations are made by the adapter and are not
-observable either; the `--profile` name selects the artifact, not a query
-budget.
+in the reports; the harness cannot corroborate them.
+
+Oracle queries are different: the broker counts them on the harness side, so
+`oracle.queries` and `oracle.refused` are **measured**. When the manifest sets
+`budgets.oracle_queries`, the broker refuses further queries; otherwise it
+counts without a cap. The count is per run and is the input the oracle-budget
+curve needs. An adapter that bypasses the shim — for example by executing the
+cached probe directly — is not counted: the broker is accounting, not a
+sandbox.
 
 ## Task versioning
 
@@ -131,7 +138,8 @@ Each run row records both the configured budget and whether it was enforced:
 |---|---|
 | Adapter wall clock | enforced (`SIGALRM` on POSIX; watchdog elsewhere, which detects but cannot interrupt) |
 | Candidate build/run time, address space, output size | enforced by the grader |
-| Tool calls, output tokens, oracle queries | **not enforced**; adapter self-report only |
+| Oracle queries | counted by the harness broker; capped when `budgets.oracle_queries` is set |
+| Tool calls, output tokens | **not enforced**; adapter self-report only |
 
 A report may quote enforced numbers; unenforced ones are labelled
 `self-reported by adapter` and cannot support a cost claim on their own.
@@ -148,10 +156,11 @@ Per-transform ablations report marginal contribution.
 
 For the primary scenario (offline C++ algorithm libraries), tasks allow oracle
 queries under a budget B; we report recovery accuracy as a function of B.
-Binary-recovery tasks currently expose the probe as an unconstrained local
-oracle; enforcing and measuring B is future work. This curve is expected to
-show that small-domain functions are recoverable regardless of obfuscation —
-an honest result we commit to publishing.
+The broker now counts queries and enforces B when a task sets
+`budgets.oracle_queries`, so the curve is implementable; it has not been
+measured yet. This curve is expected to show that small-domain functions are
+recoverable regardless of obfuscation — an honest result we commit to
+publishing.
 
 ## Private set
 

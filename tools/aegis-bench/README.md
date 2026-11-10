@@ -14,6 +14,7 @@ This README documents what is implemented today.
 aegis_bench/
 ├── schema.py    task manifests: parsing, validation, content hashing
 ├── artifact.py  build a stripped probe per protection profile
+├── oracle.py    query broker + workspace shim (counts/caps oracle calls)
 ├── agent.py     adapter contract (no network, no credentials in-tree)
 ├── grader.py    independent grader: compile + differential execution
 ├── runner.py    workspace isolation, artifact injection, provenance
@@ -21,7 +22,7 @@ aegis_bench/
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`
 tests/
-└── test_harness.py   36 offline tests; no model, no network, no keys
+└── test_harness.py   offline tests; no model, no network, no keys
 ```
 
 ## Usage
@@ -85,10 +86,18 @@ leak ground truth into the workspace. Tests assert this explicitly.
 
 For `task_type: binary-recovery`, the manifest also names an artifact recipe
 (`source`, `probe`, `include_dirs`, `profiles`). The runner builds a stripped
-probe per profile, puts **only** that binary in the workspace, and records its
-SHA-256, `.text` size and build log. The probe is built from the ground truth
-with the same optimization pipeline as the profile, so a level-3 run is
-genuinely flattening the code the agent reverses.
+probe per profile and starts an **oracle broker** that holds it. The workspace
+receives only a `probe` shim that forwards stdin to the broker, which counts
+every query and enforces `budgets.oracle_queries` when set. The run row
+records the probe's SHA-256, `.text` size and build log, plus the broker's
+served/refused counts. The probe is built from the ground truth with the same
+optimization pipeline as the profile, so a level-3 run is genuinely flattening
+the code the agent reverses.
+
+The shim is a small stdlib-Python program, so the agent environment needs
+`python3` on `PATH` (the harness itself already does). On Windows the runner
+also writes a `probe.cmd` launcher beside it; reported numbers come from
+Linux, where `probe` is directly executable.
 
 `hidden_cases/` accepts either raw binary files (one case each) or a
 `{"cases": ["<hex>", ...]}` JSON document. Hex is used rather than base64 so
@@ -113,13 +122,22 @@ a report can distinguish "did not compile" from "wrong on edge case".
 
 ## Cost accounting, honestly
 
-The harness measures pass/fail and case counts itself. It **cannot** observe
-token usage or tool calls: those come from the adapter and are recorded with
+The harness measures pass/fail, case counts, wall clock and — for
+binary-recovery tasks — oracle queries. The broker sees the queries because
+the workspace holds a shim, not the probe. It **cannot** observe token usage
+or tool calls: those come from the adapter and are recorded with
 `ledger_source: "self-reported by adapter"`, and the Markdown report repeats
-that caveat next to the numbers. Probe queries in binary-recovery tasks are
-equally unobservable. A future adapter protocol can add harness-observable
-counters (e.g. tool calls made through a sandboxed tool proxy); until then,
-treat cost columns as the adapter's claim.
+that caveat next to the numbers.
+
+The broker is accounting, not a sandbox. An adapter that walks the filesystem
+can find the artifact cache and execute the probe directly; nothing would
+count that. Reports say so. A future adapter protocol can add harness-visible
+counters for tool calls too (e.g. a sandboxed tool proxy).
+
+The Markdown report states a Wilson 95% interval on every pass rate, aggregates
+per (agent, profile), and shows cost deltas against the `baseline` profile with
+an interval once both sides have at least two runs. With one run it prints
+`(n<2)` rather than inventing a spread.
 
 ## Provenance
 
@@ -139,8 +157,9 @@ deliberately non-standard binary-recovery tasks (`packed-record-v1`,
   `lane-shift-v1`). Four is still far too few for a claim; treat current
   numbers as harness validation only.
 - No model adapters in-tree, by design.
-- The probe is an unconstrained local oracle; the protocol's query-budget
-  curve is not implemented yet.
+- Oracle queries are counted and optionally capped by the broker, but the
+  broker is not a sandbox; a direct probe invocation is uncounted. The
+  protocol's oracle-budget curve is now implementable, not yet measured.
 - A submission that embeds or wraps the probe is invalid. The obvious forms
   are rejected by the source policy (size, `exec*`, grader paths); a hidden
   blob is not automatically detectable, so review is still required.

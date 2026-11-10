@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -84,3 +87,39 @@ class BrokenAgent(Agent):
 
     def solve(self, task: Any, workspace: Path) -> AgentResult:
         raise AdapterError("simulated adapter failure")
+
+
+class ProbeQueryAgent(StubAgent):
+    """Query the workspace oracle a fixed number of times, then answer badly.
+
+    A deterministic stand-in for an agent that uses the probe as an oracle. It
+    exists so the tests can assert that queries are **counted at the broker**
+    rather than taken from the adapter's own ledger.
+    """
+
+    name = "probe-query"
+    adversary = "n/a (oracle accounting test double)"
+
+    def __init__(self, queries: int = 3, body: str | None = None,
+                 inputs: list[bytes] | None = None):
+        super().__init__(body)
+        self.queries = queries
+        self.inputs = inputs or [b"aegis-ir", b"", b"x" * 64]
+
+    def _run_shim(self, probe: Path, payload: bytes) -> subprocess.CompletedProcess:
+        command = ([sys.executable, str(probe)] if os.name == "nt"
+                   else [str(probe)])
+        return subprocess.run(command, input=payload, capture_output=True,
+                              timeout=60)
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        probe = Path(workspace) / "probe"
+        results = []
+        for index in range(self.queries):
+            payload = self.inputs[index % len(self.inputs)]
+            proc = self._run_shim(probe, payload)
+            results.append(proc.returncode)
+        result = super().solve(task, workspace)
+        result.ledger["tool_calls"] = self.queries
+        result.ledger["note"] = f"adapter-side shim exit codes: {results}"
+        return result
