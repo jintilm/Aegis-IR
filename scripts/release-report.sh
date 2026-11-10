@@ -37,22 +37,28 @@ cd build && ctest --output-on-failure
 ' 2>&1 | tee -a "$OUT/ctest.log"
 
 echo "== bench: ground-truth replay (positive control) =="
-run_in_container "
-cd tools/aegis-bench
-python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
-  --task rolling-token-v2 --adapter ground-truth --profile baseline \
-  --artifact-cache /tmp/aegis-bench-artifacts \
-  --out /src/docs/reports/$NAME/bench-ground-truth
-" 2>&1 | tee "$OUT/bench-ground-truth.log"
-
 echo "== bench: stub (negative control) =="
+# Both runs write to /tmp inside the container; the worktree is touched only
+# after they finish. Writing one report before the other run starts would make
+# the second run stamp "dirty: yes" because of the first run's own output.
 run_in_container "
+set -e
 cd tools/aegis-bench
-python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
-  --task rolling-token-v2 --adapter stub --profile baseline \
-  --artifact-cache /tmp/aegis-bench-artifacts \
-  --out /src/docs/reports/$NAME/bench-stub || true
-" 2>&1 | tee "$OUT/bench-stub.log"
+bench() {
+  python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \\
+    --task rolling-token-v2 --adapter \"\$1\" --profile baseline \\
+    --artifact-cache /tmp/aegis-bench-artifacts --out \"/tmp/bench-\$2\"
+}
+bench ground-truth ground-truth > /tmp/ground-truth.log 2>&1 || true
+grep -q '^\[PASS\]' /tmp/ground-truth.log
+bench stub stub > /tmp/stub.log 2>&1 || true
+grep -q '^\[FAIL\]' /tmp/stub.log
+cp /tmp/ground-truth.log /src/docs/reports/$NAME/bench-ground-truth.log
+cp /tmp/stub.log /src/docs/reports/$NAME/bench-stub.log
+rm -rf /src/docs/reports/$NAME/bench-ground-truth /src/docs/reports/$NAME/bench-stub
+cp -r /tmp/bench-ground-truth /tmp/bench-stub /src/docs/reports/$NAME/
+cat /tmp/ground-truth.log /tmp/stub.log
+"
 
 cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
 
