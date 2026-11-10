@@ -21,3 +21,8 @@ bench-out/
 # release artifacts (built by scripts/package.sh; checksums are published
 # with the GitHub release, not committed)
 dist/
+
+# Private benchmark tasks live outside the repo; only the layout README is
+# tracked. See benchmarks/tasks-private/README.md.
+benchmarks/tasks-private/*
+!benchmarks/tasks-private/README.md

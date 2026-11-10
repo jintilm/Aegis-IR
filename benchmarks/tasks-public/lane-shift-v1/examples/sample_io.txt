@@ -1,0 +1,14 @@
+# Sample observations
+
+Inputs and outputs of the protected library. Long or binary inputs are shown as hex.
+
+```
+input=""                               -> mix=2166136261 window=0 accept=0
+input="a"                              -> mix=2491880027 window=3022368 accept=0
+input="aegis-ir"                       -> mix=1224818684 window=2962336 accept=0
+input=hex:0102030405                   -> mix=2737415892 window=100896 accept=0
+input="BBBBBBBBBBBB"                   -> mix=1491610751 window=3484736 accept=0
+input="window-probe-payload"           -> mix=1332890461 window=2719872 accept=0
+```
+
+Passing these examples is necessary, not sufficient: the grader also compares against hidden cases and a seeded fuzz corpus.

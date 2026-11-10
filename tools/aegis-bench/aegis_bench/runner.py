@@ -165,6 +165,7 @@ class RunRecord:
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
     artifact: dict[str, Any] = field(default_factory=dict)
+    private: bool = False
     error: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -183,6 +184,7 @@ class RunRecord:
             "budgets": self.budgets,
             "environment": self.environment,
             "artifact": self.artifact,
+            "private": self.private,
             "error": self.error,
         }
 
@@ -307,6 +309,7 @@ class Runner:
             },
             environment=self.environment,
             artifact=artifact.to_dict() if artifact is not None else {},
+            private=task.private,
             error=error)
 
     # -- a whole matrix --------------------------------------------------

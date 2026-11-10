@@ -27,7 +27,8 @@ Present in the tree: `aegis-audit` (read-only summary), `aegis-policy`
 (JSON → IR attributes), `aegis-decoys` (level-1 transform), `aegis-cff`
 (level 2/3 control-flow transforms), `aegis-verify` (post-optimization build
 gate that fails closed), the Aegis-Bench harness with binary-recovery tasks,
-and two public benchmark tasks (`rolling-token-v1`, `rolling-token-v2`).
+and four public benchmark tasks (`rolling-token-v1`, `rolling-token-v2`,
+`packed-record-v1`, `lane-shift-v1`).
 
 Level 1 decoys are the default and remain deliberately weak: they slow down
 naive triage and give the benchmark ground truth, but they are ineffective

@@ -1,9 +1,9 @@
 # Benchmark protocol
 
 Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
-artifact profiles are implemented and tested offline; two public tasks
-(`rolling-token-v1`, `rolling-token-v2`), no run against a real model
-published yet. Every number in future reports must be
+artifact profiles are implemented and tested offline; four public tasks
+(`rolling-token-v1`, `rolling-token-v2`, `packed-record-v1`,
+`lane-shift-v1`), no run against a real model published yet. Every number in future reports must be
 traceable to a commit, a model version, and a date.
 
 ## Unit of analysis

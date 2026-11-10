@@ -1,0 +1,14 @@
+# Sample observations
+
+Inputs and outputs of the protected library. Long or binary inputs are shown as hex.
+
+```
+input=""                               -> flags=0 fold=2611923443488327891 accept=0
+input="a"                              -> flags=1788458060 fold=12570274219431616174 accept=0
+input="aegis-ir"                       -> flags=1788695333 fold=15139351908703633203 accept=0
+input=hex:0001020304050607             -> flags=66051 fold=14550630646593898380 accept=0
+input="AAAAAAAAAAAAAAAA"               -> flags=4055600329 fold=3670641339382699889 accept=0
+input="example-record-payload"         -> flags=1788359969 fold=11226640532754294707 accept=0
+```
+
+Passing these examples is necessary, not sufficient: the grader also compares against hidden cases and a seeded fuzz corpus.

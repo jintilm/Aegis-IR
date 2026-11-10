@@ -61,15 +61,16 @@ def cmd_hash(args: argparse.Namespace) -> int:
 def cmd_check(args: argparse.Namespace) -> int:
     dirs = [Path(d) for d in args.task_dir]
     if args.tasks_root:
-        dirs += [t.root for t in discover_tasks(args.tasks_root,
-                                                verify_hash=False)]
+        dirs += [t.root for t in discover_tasks(
+            args.tasks_root, verify_hash=False,
+            allow_private=args.allow_private)]
     if not dirs:
         print("error: no tasks given", file=sys.stderr)
         return 2
     failures = 0
     for d in dirs:
         try:
-            task = load_task(d)
+            task = load_task(d, allow_private=args.allow_private)
         except TaskError as exc:
             failures += 1
             print(f"FAIL {d}: {exc}", file=sys.stderr)
@@ -84,7 +85,8 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     try:
-        tasks = discover_tasks(args.tasks_root)
+        tasks = discover_tasks(args.tasks_root,
+                               allow_private=args.allow_private)
         agent = _adapter(args.adapter)
     except (TaskError, AdapterError, ImportError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -123,6 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_check = sub.add_parser("check", help="validate task manifests")
     p_check.add_argument("task_dir", nargs="*")
     p_check.add_argument("--tasks-root")
+    p_check.add_argument("--allow-private", action="store_true",
+                         help="load tasks marked private")
     p_check.set_defaults(func=cmd_check)
 
     p_run = sub.add_parser("run", help="run an adapter over tasks")
@@ -133,6 +137,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="build profile label, e.g. baseline/release")
     p_run.add_argument("--task", action="append", default=[],
                        help="restrict to a task id (repeatable)")
+    p_run.add_argument("--allow-private", action="store_true",
+                       help="run tasks marked private (never publish results)")
     p_run.add_argument("--repetitions", type=int, default=1)
     p_run.add_argument("--out", default="bench-out")
     p_run.add_argument("--cxx", default=None)

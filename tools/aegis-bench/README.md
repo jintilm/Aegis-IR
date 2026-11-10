@@ -21,7 +21,7 @@ aegis_bench/
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`
 tests/
-└── test_harness.py   32 offline tests; no model, no network, no keys
+└── test_harness.py   36 offline tests; no model, no network, no keys
 ```
 
 ## Usage
@@ -133,9 +133,11 @@ that was run.
 
 ## Deliberate limits
 
-- Two public tasks today: `rolling-token-v1` (reimplementation, frozen) and
-  `rolling-token-v2` (binary-recovery, same algorithm). Two tasks measure
-  nothing; treat current numbers as harness validation only.
+- Four public tasks today: `rolling-token-v1` (reimplementation, frozen),
+  `rolling-token-v2` (binary-recovery, memorizable FNV/Adler) and two
+deliberately non-standard binary-recovery tasks (`packed-record-v1`,
+  `lane-shift-v1`). Four is still far too few for a claim; treat current
+  numbers as harness validation only.
 - No model adapters in-tree, by design.
 - The probe is an unconstrained local oracle; the protocol's query-budget
   curve is not implemented yet.

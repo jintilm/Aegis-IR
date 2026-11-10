@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261031,
+  "functions": [
+    {
+      "name": "ls_mix",
+      "level": 2,
+      "reason": "lane-shift-v1: level-2 artifact"
+    },
+    {
+      "name": "ls_window",
+      "level": 2,
+      "reason": "lane-shift-v1: level-2 artifact"
+    },
+    {
+      "name": "ls_accept",
+      "level": 2,
+      "reason": "lane-shift-v1: level-2 artifact"
+    }
+  ]
+}

@@ -25,7 +25,7 @@ CSV_FIELDS = [
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
     "tokens", "tool_calls", "ledger_source", "artifact_sha256",
-    "artifact_bytes", "artifact_text", "adapter_timeout", "commit",
+    "artifact_bytes", "artifact_text", "adapter_timeout", "private", "commit",
     "commit_dirty",
 ]
 
@@ -71,6 +71,7 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "artifact_text": row.get("artifact", {}).get("text_bytes", ""),
                 "adapter_timeout": row.get("budgets", {}).get(
                     "enforcement", {}).get("adapter_timeout", ""),
+                "private": row.get("private", False),
                 "commit": row["environment"].get("commit", ""),
                 "commit_dirty": row["environment"].get("commit_dirty", ""),
             })
@@ -101,6 +102,14 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "budgets were actually enforced.",
         "",
     ]
+    if any(record.private for record in records):
+        lines += [
+            "**PRIVATE TASK RESULTS — DO NOT PUBLISH.** At least one run used "
+            "a task marked `private`. These rows live outside the public task "
+            "set; publish them only through the custody process in "
+            "`benchmarks/tasks-private/README.md`.",
+            "",
+        ]
     if any(record.artifact for record in records):
         lines += [
             "Binary-recovery runs place only a stripped probe in the agent "

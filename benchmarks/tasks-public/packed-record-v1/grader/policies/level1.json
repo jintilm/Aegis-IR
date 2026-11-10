@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261031,
+  "functions": [
+    {
+      "name": "pr_flags",
+      "level": 1,
+      "reason": "packed-record-v1: level-1 artifact"
+    },
+    {
+      "name": "pr_fold",
+      "level": 1,
+      "reason": "packed-record-v1: level-1 artifact"
+    },
+    {
+      "name": "pr_accept",
+      "level": 1,
+      "reason": "packed-record-v1: level-1 artifact"
+    }
+  ]
+}

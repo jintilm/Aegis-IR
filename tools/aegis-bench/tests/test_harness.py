@@ -32,7 +32,7 @@ from aegis_bench.artifact import ArtifactError  # noqa: E402
 from aegis_bench.grader import Grader  # noqa: E402
 from aegis_bench.report import write_reports  # noqa: E402
 from aegis_bench.runner import Runner  # noqa: E402
-from aegis_bench.schema import TaskError, load_task  # noqa: E402
+from aegis_bench.schema import TaskError, discover_tasks, load_task  # noqa: E402
 
 REPO_ROOT = TOOL_ROOT.parents[1]
 TASKS_ROOT = REPO_ROOT / "benchmarks" / "tasks-public"
@@ -372,6 +372,57 @@ class ArtifactTests(unittest.TestCase):
         self.assertIn("[aegis-verify] OK", level3.build_log)
         self.assertNotEqual(baseline.sha256, level3.sha256)
         self.assertGreater(level3.text_bytes, baseline.text_bytes)
+
+
+class PublicTaskSetTests(unittest.TestCase):
+    """The shipped task set must load, hash-check and grade its own truth."""
+
+    def test_all_public_tasks_load(self):
+        tasks = discover_tasks(TASKS_ROOT)
+        ids = {t.id for t in tasks}
+        self.assertGreaterEqual(len(ids), 4, ids)
+        for expected in ("rolling-token-v1", "rolling-token-v2",
+                         "packed-record-v1", "lane-shift-v1"):
+            self.assertIn(expected, ids)
+
+    def test_new_tasks_ground_truth_passes(self):
+        for task_id in ("packed-record-v1", "lane-shift-v1"):
+            task = load_task(TASKS_ROOT / task_id)
+            with Grader(task) as grader:
+                grade = grader.grade(_ground_truth_source(task))
+            self.assertTrue(grade.passed, f"{task_id}: {grade.reason}")
+            self.assertGreater(grade.cases_total, 0)
+
+
+class PrivateTaskTests(unittest.TestCase):
+    def _private_copy(self, tmp: str) -> Path:
+        copy = Path(tmp) / "task"
+        shutil.copytree(BINARY_DIR, copy)
+        manifest = json.loads((copy / "task.json").read_text(encoding="utf-8"))
+        manifest["private"] = True
+        manifest["content_hash"] = ""
+        (copy / "task.json").write_text(json.dumps(manifest), encoding="utf-8")
+        return copy
+
+    def test_private_task_requires_explicit_opt_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._private_copy(tmp)
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("private task", str(ctx.exception))
+            task = load_task(copy, verify_hash=False, allow_private=True)
+            self.assertTrue(task.private)
+
+    def test_private_flag_must_be_boolean(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._private_copy(tmp)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["private"] = "yes"
+            (copy / "task.json").write_text(json.dumps(manifest),
+                                            encoding="utf-8")
+            with self.assertRaises(TaskError):
+                load_task(copy, verify_hash=False, allow_private=True)
 
 
 class ArtifactSchemaTests(unittest.TestCase):

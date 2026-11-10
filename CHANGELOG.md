@@ -34,7 +34,12 @@ versions follow SemVer once past alpha.
   SHA-256 / `.text` / build-log provenance in every run row. `rolling-token-v1`
   is now a binary-recovery task with `baseline` and `aegis-level1..3`
   profiles; its content hash changed.
-- **Harness tests** — 32 offline tests plus shell integration covering
+- **Task set and private custody** — two non-standard binary-recovery tasks
+  (`packed-record-v1`, `lane-shift-v1`) whose algorithms are deliberately not
+  standard constructions; a `private: true` manifest flag that requires
+  `--allow-private`, with custody/rotation rules in
+  `benchmarks/tasks-private/README.md` and a do-not-publish report banner.
+- **Harness tests** — 36 offline tests plus shell integration covering
   artifact builds, workspace isolation, missing-plugin failure, level-3
   ground-truth scoring, candidate-source policy, and adapter timeouts.
 - **Task versioning** — `rolling-token-v2` is the binary-recovery task; the

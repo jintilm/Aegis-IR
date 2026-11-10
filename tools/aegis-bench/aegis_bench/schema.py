@@ -133,6 +133,7 @@ class Task:
     content_hash: str = ""
     task_type: str = "reimplement"
     artifact: ArtifactRecipe | None = None
+    private: bool = False
 
     # -- helpers ---------------------------------------------------------
 
@@ -285,7 +286,8 @@ def _validate_policy(path: Path, level: int, task_id: str,
                 f"'{path.name}' selects '{name}' at level {entry_level}")
 
 
-def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
+def load_task(task_dir: str | Path, *, verify_hash: bool = True,
+              allow_private: bool = False) -> Task:
     root = Path(task_dir)
     manifest_path = root / "task.json"
     if not manifest_path.is_file():
@@ -338,7 +340,14 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
         content_hash=str(raw.get("content_hash", "")),
         task_type=task_type,
         artifact=artifact,
+        private=_require(raw, "private", bool) if "private" in raw else False,
     )
+
+    # Private tasks live outside the public tree and their results are never
+    # published; refuse to load one unless the caller opted in explicitly.
+    if task.private and not allow_private:
+        raise TaskError(
+            f"{task.id}: private task; pass --allow-private to run it")
 
     if task.artifact is not None and task.artifact.source != task.ground_truth:
         raise TaskError(f"{task.id}: artifact.source must be the same file as "
@@ -384,13 +393,15 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True) -> Task:
     return task
 
 
-def discover_tasks(root: str | Path, *, verify_hash: bool = True) -> list[Task]:
+def discover_tasks(root: str | Path, *, verify_hash: bool = True,
+                   allow_private: bool = False) -> list[Task]:
     root = Path(root)
     if not root.is_dir():
         raise TaskError(f"no such task directory: {root}")
     tasks = []
     for manifest in sorted(root.glob("*/task.json")):
-        tasks.append(load_task(manifest.parent, verify_hash=verify_hash))
+        tasks.append(load_task(manifest.parent, verify_hash=verify_hash,
+                               allow_private=allow_private))
     if not tasks:
         raise TaskError(f"no tasks found under {root}")
     return tasks
