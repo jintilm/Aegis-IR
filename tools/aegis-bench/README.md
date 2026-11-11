@@ -44,6 +44,11 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --adapter ground-truth --profile aegis-level3 \
     --plugin ../../build/lib/AegisPass.so --out /tmp/bench-l3
+
+# what a protection comparison needs: the probe itself in the workspace
+python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
+    --adapter stub --profile aegis-level3 --access binary \
+    --plugin ../../build/lib/AegisPass.so --out /tmp/bench-l3-binary
 ```
 
 A real run passes an adapter that lives **outside** this repository:
@@ -174,6 +179,13 @@ deliberately non-standard binary-recovery tasks (`packed-record-v1`,
 - Oracle queries are counted and optionally capped by the broker, but the
   broker is not a sandbox; a direct probe invocation is uncounted. The
   protocol's oracle-budget curve is now implementable, not yet measured.
+- Under `binary` access the probe is in the workspace, so query counting is
+  impossible and is reported as `null` rather than estimated. Counting a local
+  binary needs process-level execution accounting, which the harness does not
+  have.
+- Under `oracle` access no protection effect exists to measure: the shim is
+  identical in every artifact profile. Sections that compare levels must say
+  which access mode they used.
 - A submission that embeds or wraps the probe is invalid. The obvious forms
   are rejected by the source policy (size, `exec*`, grader paths); a hidden
   blob is not automatically detectable, so review is still required.

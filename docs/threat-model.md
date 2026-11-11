@@ -28,6 +28,15 @@ one or more LLM/agent instances plus tooling.
 | C3 | C2 + automated program analysis (symbolic execution, taint, constraint solving, differential fuzzing) | most local protections reduce to cost, not prevention |
 | C4 | Human expert + AI assistance | long-run; we only ever aim to raise cost |
 
+A benchmark run states which of these it models through its **access mode**
+([`benchmark-protocol.md`](benchmark-protocol.md#access-modes)). `oracle`
+access — a counted I/O oracle, no artifact — is weaker than C0 for the purposes
+of protection: it cannot see code at all, so a transform has nothing to act on
+and a level-vs-baseline delta is zero by construction. `binary` access (a
+stripped probe plus a linear disassembler) sits between C1 and C2: it has the
+artifact and can execute it, but not a decompiler, a scripting layer or tracing
+tools.
+
 ## 3. Protection tiers and expected effect
 
 | Tier | Mechanism family | Semantics | Expected effect by attacker class |

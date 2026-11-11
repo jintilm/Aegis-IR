@@ -79,6 +79,18 @@ echo "== oracle accounting (v2) =="
 # Three queries are counted at the broker even though the candidate is wrong.
 bench_run "$V2" probe-query baseline oracle || true
 
+echo "== binary access (v2) =="
+# A protection comparison needs the artifact itself; under --access binary the
+# workspace must hold the stripped ELF, not the shim.
+bench_run "$V2" stub baseline binary --access binary --keep-workspaces \
+  >/dev/null || true
+BPROBE="$(find "$OUT/binary"/ws-* -name probe -type f -print -quit)"
+if [ -z "$BPROBE" ] || \
+   [ "$(head -c 4 "$BPROBE" | od -An -tx1 | tr -d ' \n')" != "7f454c46" ]; then
+  echo "FAIL binary access did not place the ELF probe in the workspace" >&2
+  exit 1
+fi
+
 python3 - "$OUT" <<'PY'
 import json
 import sys
