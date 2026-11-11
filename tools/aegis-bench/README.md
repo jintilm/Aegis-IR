@@ -156,7 +156,8 @@ that was run.
 deliberately non-standard binary-recovery tasks (`packed-record-v1`,
   `lane-shift-v1`). Four is still far too few for a claim; treat current
   numbers as harness validation only.
-- No model adapters in-tree, by design.
+- No model adapters in-tree, by design. The contract a published result must
+  satisfy is [`docs/reference-adapter.md`](../../docs/reference-adapter.md).
 - Oracle queries are counted and optionally capped by the broker, but the
   broker is not a sandbox; a direct probe invocation is uncounted. The
   protocol's oracle-budget curve is now implementable, not yet measured.

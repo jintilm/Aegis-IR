@@ -30,7 +30,8 @@ from typing import Any, Iterable
 from .runner import RunRecord
 
 CSV_FIELDS = [
-    "run_id", "task_id", "task_hash", "agent", "adversary", "profile",
+    "run_id", "task_id", "task_hash", "agent", "adapter_version", "adversary",
+    "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
     "tokens", "tool_calls", "ledger_source", "artifact_sha256",
@@ -117,6 +118,7 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "task_id": row["task_id"],
                 "task_hash": row["task_hash"],
                 "agent": row["agent"],
+                "adapter_version": row.get("adapter_version", ""),
                 "adversary": row["adversary"],
                 "profile": row["profile"],
                 "repetition": row["repetition"],
@@ -182,6 +184,9 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "least two runs. A run row states which budgets were enforced.",
         "",
     ]
+    versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
+                       for r in records})
+    lines += ["- Adapters: " + ", ".join(f"`{v}`" for v in versions), ""]
     if any(record.private for record in records):
         lines += [
             "**PRIVATE TASK RESULTS — DO NOT PUBLISH.** At least one run used "

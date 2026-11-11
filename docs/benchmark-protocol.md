@@ -107,7 +107,10 @@ adapters and a harness self-check. No model has been run.
 
 Per run, fixed and recorded: model id + version, system prompt, tool set,
 timeouts, max tool calls, token budget, machine profile. Deviations are
-reported, never silently absorbed.
+reported, never silently absorbed. Adapters live outside this repository; their
+required parameters and the recovery policy that must be identical across
+profiles are specified in
+[`reference-adapter.md`](reference-adapter.md).
 
 The harness records the budget config and environment stamp in every row.
 Token and tool-call figures are adapter self-reports and are labelled as such

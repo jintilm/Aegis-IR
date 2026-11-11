@@ -162,6 +162,9 @@ class RunRecord:
     started_utc: str
     duration_seconds: float
     grade: Grade
+    #: Optional identifier supplied by the adapter (e.g. a source hash), so a
+    #: report can name the exact agent implementation that produced a row.
+    adapter_version: str = ""
     ledger: dict[str, Any] = field(default_factory=dict)
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
@@ -179,6 +182,7 @@ class RunRecord:
             "task_hash": self.task_hash,
             "agent": self.agent,
             "adversary": self.adversary,
+            "adapter_version": self.adapter_version,
             "profile": self.profile,
             "repetition": self.repetition,
             "started_utc": self.started_utc,
@@ -329,7 +333,9 @@ class Runner:
 
         return RunRecord(
             run_id=run_id, task_id=task.id, task_hash=task.content_hash,
-            agent=agent.name, adversary=agent.adversary, profile=profile,
+            agent=agent.name, adversary=agent.adversary,
+            adapter_version=str(getattr(agent, "version", "")),
+            profile=profile,
             repetition=repetition, started_utc=started_utc,
             duration_seconds=time.time() - started, grade=grade,
             ledger=ledger,

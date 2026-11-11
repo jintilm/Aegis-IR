@@ -49,7 +49,16 @@ versions follow SemVer once past alpha.
   profile) aggregates across tasks, and a cost-delta-vs-baseline table with an
   interval once both sides have at least two runs. Wall clock and oracle
   queries are measured; token deltas remain labelled self-reported.
-- **Harness tests** — 46 offline tests plus shell integration covering
+- **Adapter provenance** — run rows carry an `adapter_version` supplied by the
+  adapter (the reference adapter reports a hash of its own source), and the
+  Markdown report lists the adapters used. A result can now name the exact
+  agent implementation that produced it.
+- **Reference adapter protocol** — [`docs/reference-adapter.md`](docs/reference-adapter.md)
+  specifies the tool set, the parameters a published result must record, the
+  streaming/thinking requirements seen on real relays, the recovery policy that
+  must be identical across profiles, and a reproduction checklist. Adapters stay
+  out of the tree.
+- **Harness tests** — 47 offline tests plus shell integration covering
   artifact builds, workspace isolation, missing-plugin failure, level-3
   ground-truth scoring, candidate-source policy, adapter timeouts, oracle
   counting/refusal, and report statistics.

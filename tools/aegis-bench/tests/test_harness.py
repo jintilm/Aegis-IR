@@ -224,8 +224,8 @@ class RunnerTests(unittest.TestCase):
                     paths["jsonl"].read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(rows), 1)
             row = rows[0]
-            for key in ("task_hash", "profile", "agent", "environment",
-                        "budgets", "grade", "artifact"):
+            for key in ("task_hash", "profile", "agent", "adapter_version",
+                        "environment", "budgets", "grade", "artifact"):
                 self.assertIn(key, row)
             self.assertEqual(row["task_hash"], self.task.content_hash)
             self.assertIn("commit", row["environment"])
@@ -234,6 +234,22 @@ class RunnerTests(unittest.TestCase):
             self.assertGreater(row["artifact"]["text_bytes"], 0)
             markdown = paths["markdown"].read_text(encoding="utf-8")
             self.assertIn("self-reported by the adapter", markdown)
+
+    def test_adapter_version_is_recorded(self):
+        class Versioned(StubAgent):
+            name = "versioned"
+            version = "abc123def456"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            records = self._runner(tmp).run([self.task], [Versioned()],
+                                            profile="baseline")
+            paths = write_reports(records, Path(tmp))
+            row = json.loads(paths["jsonl"].read_text(
+                encoding="utf-8").splitlines()[0])
+            markdown = paths["markdown"].read_text(encoding="utf-8")
+        self.assertEqual(records[0].adapter_version, "abc123def456")
+        self.assertEqual(row["adapter_version"], "abc123def456")
+        self.assertIn("abc123def456", markdown)
 
     def test_unknown_artifact_profile_fails_fast(self):
         with tempfile.TemporaryDirectory() as tmp:
