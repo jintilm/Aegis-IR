@@ -19,8 +19,13 @@ PROFILES="${PROFILES:-baseline,aegis-level3}"
 REPS="${REPS:-3}"
 STEPS="${STEPS:-30}"
 ADAPTERS_DIR="${ADAPTERS_DIR:?set ADAPTERS_DIR to the out-of-tree adapter directory}"
-: "${LLM_API_KEY:?set LLM_API_KEY (never written to disk)}"
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
+
+# A fresh run needs a key; regenerating from REUSE_DATA must not. Check it only
+# on the path that spends model budget.
+if [ -z "${REUSE_DATA:-}" ]; then
+  : "${LLM_API_KEY:?set LLM_API_KEY (never written to disk)}"
+fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$REPO_ROOT/docs/reports/$NAME"
