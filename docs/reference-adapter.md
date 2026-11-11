@@ -6,8 +6,11 @@ This document is the contract a published result must satisfy, so someone else
 can rebuild an equivalent adapter and check the numbers.
 
 The harness itself is vendor-neutral: it hands `solve(task, workspace)` a
-workspace containing only the task's visible files (plus the oracle shim for
-binary-recovery tasks) and grades the returned source.
+workspace containing only the task's visible files, plus for binary-recovery
+tasks either the counted oracle **shim** (`--access oracle`) or the stripped
+**probe binary** (`--access binary`). The reference adapter must support both;
+a tool it offers in one mode and not the other makes the two runs
+incomparable.
 
 ## Loop
 
@@ -27,13 +30,23 @@ ground truth sits outside it.
 |---|---|---|
 | `list_files` | — | workspace-relative names only |
 | `read_file` | `path` | UTF-8 text, size-capped, binary rejected |
-| `run_probe` | `input` or `input_hex` | runs the workspace `probe` shim |
+| `run_probe` | `input` or `input_hex` | executes the workspace `probe`; output capped |
+| `disassemble` | `symbol` or `offset`+`length` | `llvm-objdump -d`/`objdump -d` over the workspace `probe`; output capped. Offered only under `binary` access |
 | `submit_solution` | `source` | final C++ file; ends the attempt |
 
-For binary-recovery tasks the workspace `probe` is the **shim** described in
-[`tools/aegis-bench/README.md`](../tools/aegis-bench/README.md): the harness
+Under `oracle` access the workspace `probe` is the **shim** described in
+[`tools/aegis-bench/README.md`](../tools/aegis-bench/README.md) and the harness
 broker counts every query. An adapter that shells out to the artifact cache
 instead would produce uncounted queries and is not a valid reference.
+
+Under `binary` access the workspace `probe` is the stripped artifact itself:
+`run_probe` executes it locally and `disassemble` reads it, so queries are
+**not counted** and a protection transform can change what the agent has to
+work through. A protection comparison must state which access mode it used;
+an `oracle`-access comparison cannot show an effect at all (the shim is
+identical in every profile), so it is a black-box synthesis result, not a
+protection result.
+
 `submit_solution` is the only accepted delivery path; prose extraction is a
 fallback and must be recorded in the ledger (see below).
 
@@ -43,6 +56,8 @@ Every published row must state:
 
 - endpoint kind and base URL class (relay or first-party API);
 - model id exactly as returned by `/v1/models`;
+- **access mode** (`oracle` or `binary`) and, for binary, which static tools
+  were offered;
 - whether thinking/reasoning was enabled, and how (parameter name);
 - `temperature`, `max_tokens`, `max_steps`, adapter wall-clock timeout;
 - reasoning-watchdog threshold, restart policy, wrap-up step;

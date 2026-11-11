@@ -21,7 +21,7 @@ from pathlib import Path
 from .schema import TaskError, discover_tasks, load_task
 from .agent import Agent, AdapterError
 from .artifact import ArtifactError
-from .runner import Runner
+from .runner import ACCESS_MODES, ACCESS_ORACLE, Runner
 from .report import write_reports
 
 
@@ -102,7 +102,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                     cxx=args.cxx, plugin=args.plugin, clang=args.clang,
                     opt=args.opt, artifact_cache=args.artifact_cache,
                     adapter_timeout=args.adapter_timeout,
-                    keep_workspaces=args.keep_workspaces)
+                    keep_workspaces=args.keep_workspaces,
+                    access=args.access)
     try:
         records = runner.run(tasks, [agent], profile=args.profile,
                              repetitions=args.repetitions)
@@ -158,6 +159,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--adapter-timeout", type=int, default=600,
                        help="wall-clock seconds per adapter.solve call "
                             "(0 disables; default 600)")
+    p_run.add_argument("--access", choices=list(ACCESS_MODES),
+                       default=ACCESS_ORACLE,
+                       help="what a binary-recovery workspace gets: 'oracle' "
+                            "(counted shim; black-box) or 'binary' (the "
+                            "stripped probe itself; queries uncounted). "
+                            "Default: oracle")
     p_run.add_argument("--keep-workspaces", action="store_true")
     p_run.set_defaults(func=cmd_run)
     return ap

@@ -85,6 +85,17 @@ versions follow SemVer once past alpha.
 
 ### Changed
 
+- **Binary-recovery access modes** — `--access {oracle,binary}` decides what a
+  binary-recovery workspace receives and is stamped in every row. `oracle`
+  (default, behaviour unchanged) puts a counted shim in the workspace and keeps
+  the probe with the broker; `binary` puts the stripped probe there, as the
+  task contract promises and the threat model assumes. This matters more than
+  it looks: under `oracle` access the shim behaves identically in every
+  artifact profile, so a level-vs-baseline cost delta is **zero by
+  construction**. Reports of `oracle` rows now say so next to the numbers, and
+  the first pilot is labelled accordingly. Under `binary` access queries are
+  not counted (`oracle.queries` is `null`, not `0`); a manifest that sets
+  `budgets.oracle_queries` is rejected rather than silently unenforced.
 - `kMaxImplementedLevel` is now 3. Levels 1–3 are implemented; the shipped
   `aegis-standard` profile remains level 1.
 - A level-3 selection of `indirectbr`, `callbr`, an EH terminator or a

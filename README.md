@@ -40,11 +40,14 @@ effectiveness has been measured, and none is claimed.**
 The first real-model pilot (`deepseek-v4.1-flash`, `packed-record-v1`,
 baseline vs `aegis-level3`, N=3 per cell) sits at the **floor**: 0/3 runs
 passed in both profiles, and the cost deltas are consistent with zero
-(Δ wall −27 s [−125, +71], Δ oracle queries −42 [−139, +55]). Its practical
-value is methodological — it exercises the whole path from probe to graded
-submission on a real model and pins the numbers the harness must record
-(adapter source hash, commit, dirty flag). A task whose baseline is too hard
-cannot show a protection effect; the next experiment has to start there.
+(Δ wall −27 s [−125, +71], Δ oracle queries −42 [−139, +55]). The pilot ran
+under **`oracle` access** — the agent got a counted oracle shim, never the
+binary — so it *could not* have shown a protection effect: every profile
+presented the same black box. That is now an explicit, recorded part of the
+protocol, and `--access binary` ships the stripped probe to the workspace,
+which is what the task contract and the threat model always assumed. A task
+whose baseline is too hard also cannot show a protection effect; the next
+experiment has to start from one where the baseline succeeds.
 
 ## Honest expectations
 

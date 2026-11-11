@@ -18,6 +18,7 @@ TASKS="${TASKS:-packed-record-v1}"
 PROFILES="${PROFILES:-baseline,aegis-level3}"
 REPS="${REPS:-3}"
 STEPS="${STEPS:-30}"
+ACCESS="${ACCESS:-oracle}"
 ADAPTERS_DIR="${ADAPTERS_DIR:?set ADAPTERS_DIR to the out-of-tree adapter directory}"
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
 
@@ -61,20 +62,21 @@ else
     -e LLM_MAX_TOKENS="${LLM_MAX_TOKENS:-16384}" \
     -e LLM_REASONING_LIMIT="${LLM_REASONING_LIMIT:-12000}" \
     -e LLM_SAVE_DIR=/tmp/submissions \
+    -e BENCH_ACCESS="$ACCESS" \
     "$IMAGE" bash -c \
     "python3 /adapters/run_pilot.py '$TASKS' '$REPS' '/src/docs/reports/$NAME/data' '$PROFILES'" \
     2>&1 | tee "$OUT/run.log"
 fi
 
 python3 - "$DATA/aegis-bench.jsonl" "$OUT/README.md" "$NAME" "$COMMIT" \
-  "$TASKS" "$PROFILES" "$REPS" "$STEPS" <<'PY'
+  "$TASKS" "$PROFILES" "$REPS" "$STEPS" "$ACCESS" <<'PY'
 import json
 import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-jsonl, readme, name, commit, tasks, profiles, reps, steps = sys.argv[1:9]
+jsonl, readme, name, commit, tasks, profiles, reps, steps, access = sys.argv[1:10]
 rows = [json.loads(line) for line in Path(jsonl).read_text(encoding="utf-8").splitlines() if line.strip()]
 
 model = rows[0]["ledger"].get("model", "?") if rows else "?"
@@ -85,6 +87,13 @@ env = rows[0].get("environment", {}) if rows else {}
 # commit the data came from, not the one the script happens to be at.
 commit = env.get("commit") or commit
 dirty = env.get("commit_dirty", "?")
+recorded_access = sorted({r["access"] for r in rows if r.get("access")})
+if recorded_access:
+    access = ", ".join(recorded_access)
+else:
+    # Rows written before access modes existed ran with the shim in the
+    # workspace; that is oracle access, whatever the flag would say today.
+    access = "oracle (predates access modes; workspace held the shim)"
 
 groups = defaultdict(list)
 for row in rows:
@@ -104,6 +113,7 @@ lines = [
     f"- profiles: `{profiles}`",
     f"- repetitions per cell: {reps}",
     f"- step budget: {steps}",
+    f"- access: {access}",
     "- adapter policy: streaming SSE, thinking enabled, reasoning watchdog, "
     "fresh conversation after repeated unproductive replies, repeated "
     "submit prompt in the wrap phase "
@@ -145,6 +155,13 @@ lines += [
     "- the probe's artifact size difference between the two profiles.",
     "",
     "## What this does **not** show", "",
+    *(["- **No protection effect is measurable in this run at all.** The "
+       "agent's workspace held an oracle shim whose behaviour is identical in "
+       "every artifact profile; it could not inspect the artifact, so levels "
+       "1–3 presented exactly the same information as the baseline. A "
+       "level-vs-baseline difference here is noise, not evidence. Protection "
+       "comparisons need `--access binary`.", ""]
+      if access.startswith("oracle") else []),
     "- **No effectiveness claim.** N is small, only one task and one model were "
     "run, and the model sits at or near the floor on this task; a 0% vs 0% "
     "comparison cannot demonstrate a protection effect.",

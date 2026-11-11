@@ -70,7 +70,34 @@ semantic answer). Scoring:
 Implementation status: (1) and (2) are implemented and tested; (3) is not,
 and descriptive tasks are therefore not accepted yet. Binary-recovery artifact
 building is implemented for levels 0–3, tested offline with deterministic
-adapters and a harness self-check. No model has been run.
+adapters and a harness self-check. One real-model pilot has been run; it used
+**oracle access**, which cannot show a protection effect — see below.
+
+### Access modes
+
+A binary-recovery run records how much of the artifact the agent gets
+(`--access`, stamped in every row):
+
+| Mode | Workspace holds | Queries | What it can measure |
+|---|---|---|---|
+| `oracle` (default) | a shim that forwards to the harness broker | counted, capped by `budgets.oracle_queries` | how much an agent can recover from I/O alone, and the oracle-budget curve |
+| `binary` | the stripped probe itself, executable | **not counted** | the cost of recovering semantics from the artifact — the only mode in which a protection transform can matter |
+
+The distinction is not cosmetic. Under `oracle` access the agent sees a shim
+whose behaviour is byte-identical in every artifact profile: it cannot inspect
+code, section layout or control flow, so levels 1–3 present exactly the same
+information as the baseline. **A level-vs-baseline cost delta measured under
+`oracle` access is zero by construction**; whatever variance appears is noise.
+Reports generated for `oracle` rows say this next to the numbers, and those
+rows cannot support an effectiveness claim. Protection comparisons require
+`binary` access, where the agent has what the task contract promises and what
+the threat model assumes (a binary it can execute and disassemble).
+
+The trade is explicit: with the probe in the workspace there is no honest way
+to count queries, so `oracle.queries` is recorded as `null` — not `0` — and a
+manifest that sets `budgets.oracle_queries` is rejected under `binary` access
+rather than silently unenforced. Counting under binary access needs
+process-level execution accounting, which this harness does not yet have.
 
 ### Integrity rules the harness enforces
 
@@ -91,8 +118,10 @@ adapters and a harness self-check. No model has been run.
   These are tripwires for oracle replay, not a sandbox: a malicious adapter
   can still open sockets or walk the filesystem, so real runs must execute the
   adapter and grader inside a container or namespace.
-- The workspace contains an oracle **shim** but never the probe binary,
-  ground truth, grader, property tests or hidden cases (asserted by test).
+- The workspace contains the task's visible files plus, for binary-recovery
+  tasks, either the oracle **shim** (`oracle` access) or the stripped **probe**
+  (`binary` access) — never ground truth, the grader, property tests or hidden
+  cases (asserted by test).
 - **Adapters are trusted not to read grader material.** The harness isolates
   the *workspace* it hands to an in-process adapter, but it cannot sandbox a
   malicious adapter that walks the filesystem. Real runs should execute the

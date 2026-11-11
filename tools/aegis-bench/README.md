@@ -86,13 +86,24 @@ leak ground truth into the workspace. Tests assert this explicitly.
 
 For `task_type: binary-recovery`, the manifest also names an artifact recipe
 (`source`, `probe`, `include_dirs`, `profiles`). The runner builds a stripped
-probe per profile and starts an **oracle broker** that holds it. The workspace
-receives only a `probe` shim that forwards stdin to the broker, which counts
-every query and enforces `budgets.oracle_queries` when set. The run row
-records the probe's SHA-256, `.text` size and build log, plus the broker's
-served/refused counts. The probe is built from the ground truth with the same
-optimization pipeline as the profile, so a level-3 run is genuinely flattening
-the code the agent reverses.
+probe per profile. What the workspace gets depends on `--access`:
+
+- `--access oracle` (default): an **oracle broker** holds the probe and the
+  workspace receives only a `probe` shim that forwards stdin to it. Every query
+  is counted and `budgets.oracle_queries` is enforced when set. The run row
+  records the probe's SHA-256, `.text` size and build log, plus the broker's
+  served/refused counts. The agent is a black-box adversary: the shim behaves
+  identically in every profile, so **no protection effect can be measured in
+  this mode**.
+- `--access binary`: the workspace receives the stripped probe itself, as the
+  task contract promises. The agent can execute and disassemble it, which is
+  the only mode in which levels 1–3 can change the cost. Queries are not
+  counted (`oracle.queries` is `null`), and a manifest that sets
+  `budgets.oracle_queries` is rejected rather than silently unenforced.
+
+Either way the probe is built from the ground truth with the same optimization
+pipeline as the profile, so a level-3 run is genuinely flattening the code the
+agent reverses.
 
 The shim is a small stdlib-Python program, so the agent environment needs
 `python3` on `PATH` (the harness itself already does). On Windows the runner
@@ -123,11 +134,13 @@ a report can distinguish "did not compile" from "wrong on edge case".
 ## Cost accounting, honestly
 
 The harness measures pass/fail, case counts, wall clock and — for
-binary-recovery tasks — oracle queries. The broker sees the queries because
-the workspace holds a shim, not the probe. It **cannot** observe token usage
-or tool calls: those come from the adapter and are recorded with
-`ledger_source: "self-reported by adapter"`, and the Markdown report repeats
-that caveat next to the numbers.
+binary-recovery tasks under `oracle` access — oracle queries. The broker sees
+the queries because the workspace holds a shim, not the probe. Under `binary`
+access it sees nothing: the probe is local, so `oracle.queries` is `null` (not
+`0`, which would claim a measurement) and the mode is stamped in every row. It
+**cannot** observe token usage or tool calls either: those come from the
+adapter and are recorded with `ledger_source: "self-reported by adapter"`, and
+the Markdown report repeats that caveat next to the numbers.
 
 The broker is accounting, not a sandbox. An adapter that walks the filesystem
 can find the artifact cache and execute the probe directly; nothing would

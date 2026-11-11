@@ -92,10 +92,16 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   result provenance.
 - **Task ids are immutable.** Any semantic change (files, interface, artifact profiles,
   visibility) is a new id (`rolling-token-v1` vs `-v2`), never an in-place edit.
+- **Binary-recovery access modes decide what a result can mean.** `--access oracle` (default)
+  puts a counted shim in the workspace; the probe stays with the broker. The shim is identical in
+  every artifact profile, so **a level-vs-baseline delta under `oracle` access is zero by
+  construction** and cannot be cited as effectiveness. `--access binary` puts the stripped probe
+  in the workspace, which is what the task contract and the threat model assume; queries are then
+  uncounted (`oracle.queries` is `null`, never `0`) and a manifest oracle budget is rejected.
 - **Binary-recovery tasks** build a probe from `artifact.source` (must equal `ground_truth`)
-  through the same pipeline as the profile. Only a `probe` **shim** enters the workspace; the
-  real binary stays with the harness broker (`aegis_bench/oracle.py`), which counts queries and
-  enforces `budgets.oracle_queries`. This is accounting, not a sandbox — say so when documenting.
+  through the same pipeline as the profile. The real binary stays with the harness broker
+  (`aegis_bench/oracle.py`) under `oracle` access, which counts queries and enforces
+  `budgets.oracle_queries`. This is accounting, not a sandbox — say so when documenting.
 - **Grader isolation**: no task root on the include path, scratch cwd, minimal env, rlimits,
   output caps, candidate-source policy tripwires (`policy.py`). Errors are returned as grades
   with stages (`build`/`artifact`/`hidden`/`fuzz`/`agent`), not exceptions.

@@ -30,7 +30,8 @@ from typing import Any, Iterable
 from .runner import RunRecord
 
 CSV_FIELDS = [
-    "run_id", "task_id", "task_hash", "agent", "adapter_version", "adversary",
+    "run_id", "task_id", "task_hash", "agent", "adapter_version", "access",
+    "adversary",
     "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
@@ -119,6 +120,7 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "task_hash": row["task_hash"],
                 "agent": row["agent"],
                 "adapter_version": row.get("adapter_version", ""),
+                "access": row.get("access", ""),
                 "adversary": row["adversary"],
                 "profile": row["profile"],
                 "repetition": row["repetition"],
@@ -187,6 +189,18 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
     versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
                        for r in records})
     lines += ["- Adapters: " + ", ".join(f"`{v}`" for v in versions), ""]
+    accesses = sorted({r.access or "?" for r in records})
+    lines += ["- Access: " + ", ".join(f"`{a}`" for a in accesses), ""]
+    if "oracle" in accesses:
+        lines += [
+            "**Under `oracle` access a protection comparison is structurally "
+            "zero.** The agent gets a shim whose observable behaviour is "
+            "identical in every profile; it cannot inspect the artifact, so a "
+            "transform has nothing to act on. Any level-vs-baseline difference "
+            "in those rows is noise, and no effectiveness claim may cite them. "
+            "Protection cost can only be measured under `binary` access.",
+            "",
+        ]
     if any(record.private for record in records):
         lines += [
             "**PRIVATE TASK RESULTS — DO NOT PUBLISH.** At least one run used "
@@ -197,13 +211,17 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         ]
     if any(record.artifact for record in records):
         lines += [
-            "Binary-recovery runs place only an **oracle shim** in the agent "
-            "workspace; the probe itself stays with the harness broker, which "
-            "counts every query and enforces `budgets.oracle_queries` when the "
-            "manifest sets one. This is accounting, not a sandbox: an adapter "
-            "that reaches the artifact cache directly is not counted. Each row "
-            "records the probe's SHA-256 and size; its build log is in the "
-            "JSONL row.",
+            "A binary-recovery row records an **access mode**. Under `oracle` "
+            "the workspace holds only a shim and the probe stays with the "
+            "harness broker, which counts every query and enforces "
+            "`budgets.oracle_queries` when the manifest sets one. Under "
+            "`binary` the workspace holds the stripped probe itself, so the "
+            "agent can execute and disassemble it; queries are then "
+            "**not counted** (the JSONL says `null`, not `0`). Neither mode is "
+            "a sandbox: an adapter that reaches the artifact cache directly is "
+            "not counted either way, and real runs need process isolation. "
+            "Each row records the probe's SHA-256 and size; its build log is "
+            "in the JSONL row.",
             "",
         ]
         artifacts: dict[str, dict[str, Any]] = {}

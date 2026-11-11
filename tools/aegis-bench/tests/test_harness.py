@@ -620,6 +620,92 @@ class RunnerOracleTests(unittest.TestCase):
             "n/a (no probe)")
 
 
+class BinaryAccessTests(unittest.TestCase):
+    """``access=binary`` ships the probe itself; queries stop being counted.
+
+    Under oracle access the agent's observable world is identical in every
+    artifact profile, so a protection transform cannot change its cost. These
+    tests pin the mode that can, and the fact that the row says so.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.task = load_task(BINARY_DIR)
+
+    def _runner(self, tmp: str, **kwargs) -> Runner:
+        probe = Path(tmp) / "probe.sh"
+        probe.write_text("#!/bin/sh\ncat >/dev/null\necho ok\n",
+                         encoding="utf-8", newline="\n")
+        probe.chmod(0o755)
+
+        class FakeArtifactRunner(Runner):
+            def artifact_for(self, task, profile):
+                return BuiltArtifact(
+                    profile=profile, level=0, path=probe,
+                    sha256="0" * 64, size_bytes=probe.stat().st_size,
+                    text_bytes=0, toolchain={}, build_log="")
+
+            def _probe_command(self, artifact):
+                return [str(artifact.path)]
+
+        return FakeArtifactRunner(repo_root=REPO_ROOT, out_dir=Path(tmp),
+                                  **kwargs)
+
+    def test_probe_is_copied_and_queries_are_not_counted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = self._runner(tmp, keep_workspaces=True, access="binary")
+            records = runner.run([self.task], [ProbeQueryAgent(queries=3)],
+                                 profile="baseline")
+            workspace = next(Path(tmp).glob("ws-*"))
+            installed = workspace / "probe"
+            payload = installed.read_bytes()
+            executable = os.access(installed, os.X_OK)
+
+        record = records[0]
+        self.assertEqual(record.access, "binary")
+        self.assertEqual(record.oracle["access"], "binary")
+        # Not zero: a local binary makes any count the adapter's own claim.
+        self.assertIsNone(record.oracle["queries"])
+        self.assertEqual(record.budgets["enforcement"]["oracle_queries"],
+                         "not counted (binary access)")
+        self.assertTrue(payload.startswith(b"#!/bin/sh"),
+                        "workspace must hold the probe, not the shim")
+        self.assertNotIn(b"Oracle shim", payload)
+        self.assertTrue(executable)
+
+    def test_binary_access_refuses_an_oracle_budget(self):
+        task = replace(self.task, budgets=replace(
+            self.task.budgets, oracle_queries=2))
+        with tempfile.TemporaryDirectory() as tmp:
+            records = self._runner(tmp, access="binary").run(
+                [task], [StubAgent()], profile="baseline")
+        self.assertEqual(records[0].grade.stage, "artifact")
+        self.assertIn("cannot be enforced", records[0].error)
+
+    def test_oracle_access_is_recorded_and_still_counted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            records = self._runner(tmp).run(
+                [self.task], [ProbeQueryAgent(queries=2)], profile="baseline")
+        self.assertEqual(records[0].access, "oracle")
+        self.assertEqual(records[0].oracle["access"], "oracle")
+        self.assertEqual(records[0].oracle["queries"], 2)
+
+    def test_markdown_warns_that_oracle_access_cannot_show_a_delta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            records = self._runner(tmp).run(
+                [self.task], [ProbeQueryAgent(queries=1)], profile="baseline")
+            paths = write_reports(records, Path(tmp))
+            markdown = paths["markdown"].read_text(encoding="utf-8")
+        self.assertIn("structurally zero", markdown)
+        self.assertIn("- Access: `oracle`", markdown)
+
+    def test_unknown_access_mode_fails_fast(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                Runner(repo_root=REPO_ROOT, out_dir=Path(tmp), access="syscall")
+
+
+
 class BudgetTests(unittest.TestCase):
     def test_oracle_budget_parsing(self):
         self.assertIsNone(Budget.from_dict({}).oracle_queries)

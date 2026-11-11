@@ -38,6 +38,21 @@ from .schema import Task
 
 DEFAULT_ADAPTER_TIMEOUT = 600
 
+#: What the agent is given for a binary-recovery task.
+#:
+#: ``oracle`` — the workspace gets a counted shim; the probe stays with the
+#: broker. This is a black-box adversary: it can query I/O but cannot inspect
+#: the artifact, so a protection transform cannot change what it can learn.
+#:
+#: ``binary`` — the workspace gets the stripped probe itself (the task
+#: contract's "you are given a probe binary"). The agent can execute and
+#: disassemble it, which is the only access mode in which obfuscation has
+#: anything to act on. Queries are not counted here: the binary is local, so
+#: any count would be the adapter's own.
+ACCESS_ORACLE = "oracle"
+ACCESS_BINARY = "binary"
+ACCESS_MODES = (ACCESS_ORACLE, ACCESS_BINARY)
+
 
 class AdapterTimeout(AdapterError):
     """The adapter exceeded its wall-clock budget."""
@@ -165,6 +180,10 @@ class RunRecord:
     #: Optional identifier supplied by the adapter (e.g. a source hash), so a
     #: report can name the exact agent implementation that produced a row.
     adapter_version: str = ""
+    #: ``oracle``, ``binary``, or ``n/a`` for tasks with no artifact. Recorded
+    #: per row because it decides whether an oracle count exists and whether a
+    #: protection transform could have mattered at all.
+    access: str = ""
     ledger: dict[str, Any] = field(default_factory=dict)
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
@@ -183,6 +202,7 @@ class RunRecord:
             "agent": self.agent,
             "adversary": self.adversary,
             "adapter_version": self.adapter_version,
+            "access": self.access,
             "profile": self.profile,
             "repetition": self.repetition,
             "started_utc": self.started_utc,
@@ -204,12 +224,17 @@ class Runner:
                  clang: str | None = None, opt: str | None = None,
                  artifact_cache: Path | None = None,
                  adapter_timeout: int = DEFAULT_ADAPTER_TIMEOUT,
-                 keep_workspaces: bool = False):
+                 keep_workspaces: bool = False,
+                 access: str = ACCESS_ORACLE):
+        if access not in ACCESS_MODES:
+            raise ValueError(f"access must be one of {ACCESS_MODES}, "
+                             f"got {access!r}")
         self.repo_root = Path(repo_root)
         self.out_dir = Path(out_dir)
         self.cxx = cxx
         self.adapter_timeout = adapter_timeout
         self.keep_workspaces = keep_workspaces
+        self.access = access
         self.environment = environment_stamp(self.repo_root)
         cache_root = (Path(artifact_cache) if artifact_cache
                       else self.out_dir / ".artifacts")
@@ -254,6 +279,20 @@ class Runner:
         """Put the shim — never the probe itself — in the workspace."""
         install_shim(broker, workspace, artifact.path.stem)
 
+    @staticmethod
+    def _install_probe(artifact: BuiltArtifact, workspace: Path) -> Path:
+        """Put the stripped probe in the workspace under ``binary`` access.
+
+        This is what the task contract promises the agent ("you are given a
+        stripped probe binary"). The copy keeps the executable bit; only the
+        probe file moves, never the artifact directory that also holds the
+        build log.
+        """
+        dst = workspace / artifact.path.stem
+        shutil.copy2(artifact.path, dst)
+        os.chmod(dst, 0o755)
+        return dst
+
     # -- one cell --------------------------------------------------------
 
     def run_once(self, task: Task, agent: Agent, *, profile: str,
@@ -270,6 +309,7 @@ class Runner:
         artifact: BuiltArtifact | None = None
         broker: OracleBroker | None = None
         oracle: dict[str, Any] = {}
+        access = self.access if task.artifact is not None else "n/a"
         budgets: dict[str, Any] = {
             "max_tool_calls": task.budgets.max_tool_calls,
             "timeout_seconds": task.budgets.timeout_seconds,
@@ -281,14 +321,28 @@ class Runner:
                 "max_tool_calls": "not enforced (adapter self-report)",
                 "max_output_tokens": "not enforced (adapter self-report)",
                 "oracle_queries": ("n/a (no probe)" if task.artifact is None
-                                   else "not enforced (no broker)"),
+                                   else "not enforced (no broker)"
+                                   if access == ACCESS_ORACLE
+                                   else "not counted (binary access)"),
             },
         }
         error = ""
         try:
             self._populate_workspace(task, workspace)
             artifact = self.artifact_for(task, profile)
-            if artifact is not None:
+            if artifact is not None and access == ACCESS_BINARY:
+                if task.budgets.oracle_queries is not None:
+                    raise OracleError(
+                        "access=binary puts the probe in the workspace, so "
+                        "budgets.oracle_queries cannot be enforced; unset the "
+                        "budget or run with access=oracle")
+                self._install_probe(artifact, workspace)
+                oracle = {
+                    "queries": None, "refused": None, "failed": None,
+                    "budget": None, "transport": "local executable",
+                    "enforcement": "not counted (binary access)",
+                }
+            elif artifact is not None:
                 try:
                     broker = OracleBroker(
                         self._probe_command(artifact),
@@ -326,6 +380,8 @@ class Runner:
             if broker is not None:
                 broker.stop()
                 oracle = broker.stats.to_dict()
+            if oracle:
+                oracle["access"] = access
             if self.keep_workspaces:
                 shutil.copytree(workspace, self.out_dir / f"ws-{run_id}",
                                 dirs_exist_ok=True)
@@ -335,6 +391,7 @@ class Runner:
             run_id=run_id, task_id=task.id, task_hash=task.content_hash,
             agent=agent.name, adversary=agent.adversary,
             adapter_version=str(getattr(agent, "version", "")),
+            access=access,
             profile=profile,
             repetition=repetition, started_utc=started_utc,
             duration_seconds=time.time() - started, grade=grade,

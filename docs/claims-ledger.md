@@ -23,6 +23,15 @@ the flattening dispatcher is plainly visible to dynamic tracing; the state
 encoding key derives from the shipped seed. See [`decoys.md`](decoys.md) and
 [`controlflow.md`](controlflow.md).
 
+Also not claimed, and now explained rather than merely observed: the first
+real-model pilot ([`reports/pilot-2026-11-11/`](reports/pilot-2026-11-11/README.md))
+measured a level-3-vs-baseline delta of about zero, and it *had* to. That run
+used `oracle` access: the agent's workspace held a counted shim whose behaviour
+is identical in every artifact profile, so the protection had nothing to act
+on. The number is real, the design could not have produced any other, and it is
+not evidence either way. A protection comparison requires `binary` access —
+see [`benchmark-protocol.md`](benchmark-protocol.md#access-modes).
+
 Rules:
 
 1. Claims are about **cost deltas at a fixed success criterion**, never about
