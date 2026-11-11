@@ -180,11 +180,15 @@ for profile in sorted(groups):
     group = groups[profile]
     submitted = sum(1 for r in group if r["ledger"].get("stop_reason") == "submitted")
     passed = sum(1 for r in group if r["grade"]["passed"])
-    oracle = [r["oracle"]["queries"] for r in group if r.get("oracle")]
+    oracle = [r["oracle"]["queries"] for r in group
+              if r.get("oracle")
+              and isinstance(r["oracle"].get("queries"), (int, float))]
     wall = [r["duration_seconds"] for r in group]
     tokens = [r["ledger"]["tokens"] for r in group
               if isinstance(r["ledger"].get("tokens"), (int, float))]
-    oracle_cell = f"{statistics.mean(oracle):.1f}" if oracle else "n/a"
+    oracle_cell = (f"{statistics.mean(oracle):.1f}" if oracle else
+                   ("not counted (binary access)" if mode == "binary"
+                    else "n/a"))
     tokens_cell = f"{statistics.mean(tokens):.0f}" if tokens else "n/a"
     lines.append(
         f"| {profile} | {len(group)} | {submitted} | {passed} | "
