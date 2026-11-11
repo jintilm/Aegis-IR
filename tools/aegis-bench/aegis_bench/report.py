@@ -189,7 +189,10 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
     versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
                        for r in records})
     lines += ["- Adapters: " + ", ".join(f"`{v}`" for v in versions), ""]
-    accesses = sorted({r.access or "?" for r in records})
+    # Rows written before access modes existed put the shim in the workspace,
+    # i.e. oracle access; label them with the fact, not with "?".
+    accesses = sorted({r.access or ("oracle" if r.artifact else "n/a")
+                       for r in records})
     lines += ["- Access: " + ", ".join(f"`{a}`" for a in accesses), ""]
     if "oracle" in accesses:
         lines += [
