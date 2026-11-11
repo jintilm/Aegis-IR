@@ -32,6 +32,13 @@ on. The number is real, the design could not have produced any other, and it is
 not evidence either way. A protection comparison requires `binary` access —
 see [`benchmark-protocol.md`](benchmark-protocol.md#access-modes).
 
+The second pilot ([`reports/pilot-2026-11-12-binary/`](reports/pilot-2026-11-12-binary/README.md))
+does use `binary` access and does find a token-cost increase (~+90% at N=2).
+It is still not a claim: N=2, one task, one model, baseline at the ceiling, a
+wall-clock effect pointing the other way, and a disassembler-only adversary.
+It is the shape of the measurement the project exists to make; it is not
+evidence until the matrix in the protocol says so.
+
 Rules:
 
 1. Claims are about **cost deltas at a fixed success criterion**, never about

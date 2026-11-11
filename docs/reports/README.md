@@ -28,15 +28,17 @@ Rules:
 |---|---|---|
 | [`archive/v0.1.0-alpha/`](archive/v0.1.0-alpha/README.md) | frozen report as published with `v0.1.0-alpha`; claims written against it must cite this copy, not the moving live report | C-001 |
 | [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches across levels 0–3; binary-recovery probes build and are scored; the grader scores a known-correct solution 100% and a wrong one 0% | C-001–C-005 (supporting artifacts) |
-| [`pilot-2026-11-11/`](pilot-2026-11-11/README.md) | a real model (`deepseek-v4.1-flash`) can be driven end to end through a binary-recovery task and graded; on this task both profiles sit at the floor, so the pilot measures the *floor*, not a protection effect | none — pilot, not cited |
+| [`pilot-2026-11-11/`](pilot-2026-11-11/README.md) | a real model (`deepseek-v4.1-flash`) can be driven end to end through a binary-recovery task and graded; run under `oracle` access, where both profiles sit at the same floor, so it measures the *floor* and cannot show a protection effect | none — pilot, not cited |
+| [`pilot-2026-11-12-binary/`](pilot-2026-11-12-binary/README.md) | under `binary` access (probe in the workspace) `deepseek-v4-pro` solves the task in both profiles, so this is a **cost** comparison at a fixed success criterion: level 3 used ~90% more tokens; wall clock moved the other way and is explained by fewer reasoning runaways, not efficiency | none — pilot, not cited |
 
 Still missing, and therefore unclaimed: any effectiveness measurement, any
 adversarial cost-delta number, any statement about attacker difficulty. The
-pilot is listed above to document that the pipeline works against a real
-model; it is not evidence that protection changed anything, and it must not be
+pilots are listed above to document what the pipeline can and cannot measure;
+none of them is evidence that protection changed an outcome, and none may be
 cited as such.
 
 A task on which the unprotected baseline already fails cannot demonstrate a
 protection effect. The next experiment must therefore begin with a
 task/model/budget combination where the baseline succeeds at a rate the
-measurement can move.
+measurement can move — or, where it succeeds always, be read strictly as a
+cost comparison.

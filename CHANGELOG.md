@@ -94,6 +94,15 @@ versions follow SemVer once past alpha.
   adapter's operational findings (SSE streaming, reasoning round-trip,
   watchdog policy) are in `docs/reference-adapter.md`; the adapter itself stays
   out of the tree.
+- **Second pilot, under `binary` access** — [`docs/reports/pilot-2026-11-12-binary/`](docs/reports/pilot-2026-11-12-binary/README.md):
+  `deepseek-v4-pro` on `packed-record-v1`, baseline vs `aegis-level3`, N=2
+  each. Both profiles passed 2/2, so this is a cost comparison at a fixed
+  success criterion: level 3 used ~90% more tokens (822k vs 431k mean). Wall
+  clock moved the *other* way (−230 s) because the protected runs triggered
+  fewer reasoning runaways and no conversation restarts — a property of the
+  adapter policy interacting with the listing, not an efficiency result. Still
+  a pilot: one task, one model, N=2, and the task is at the ceiling for this
+  model under this access mode.
 
 ### Changed
 
@@ -143,10 +152,12 @@ versions follow SemVer once past alpha.
 
 No adversarial effectiveness claim for levels 2/3, and no model-derived claim.
 The only numbers are `.text` growth and output equality on the synthetic
-fixture (C-003/C-004). The `pilot-2026-11-11` report is listed as a pilot: it
-shows the pipeline runs against a real model, and it shows this task is too
-hard for that model in the unprotected profile too, so it cannot support a
-protection claim.
+fixture (C-003/C-004). Both pilots are listed as pilots: `pilot-2026-11-11`
+shows the pipeline runs against a real model under an access mode that cannot
+measure protection; `pilot-2026-11-12-binary` shows a ~90% token cost increase
+on one task with one model at N=2, which is a signal to follow up, not a claim.
+It does not establish anything about success rates, other tasks, other models
+or other attacker classes.
 
 ## [0.1.0-alpha] — 2026-10-29
 
