@@ -103,6 +103,13 @@ groups = defaultdict(list)
 for row in rows:
     groups[row["profile"]].append(row)
 
+# Repetitions come from the data, not from a default: regenerating a report
+# must not relabel a 2-repetition run as 3.
+cell_counts: dict[tuple[str, str, str], int] = defaultdict(int)
+for row in rows:
+    cell_counts[(row["profile"], row["task_id"], row["agent"])] += 1
+reps = max(cell_counts.values()) if cell_counts else 0
+
 
 def declared_calibration(task_id: str, mode: str) -> dict:
     """Read the task manifest's calibration for this access mode.
@@ -172,8 +179,8 @@ lines = [
     "",
     "## Results", "",
     "| profile | runs | submitted | passed | passed/runs | oracle queries "
-    "(mean) | wall s (mean) | tokens (mean) |",
-    "|---|---|---|---|---|---|---|---|",
+    "(mean) | wall s (mean) | tokens (mean) | tool calls (mean) |",
+    "|---|---|---|---|---|---|---|---|---|",
 ]
 
 for profile in sorted(groups):
@@ -190,21 +197,25 @@ for profile in sorted(groups):
                    ("not counted (binary access)" if mode == "binary"
                     else "n/a"))
     tokens_cell = f"{statistics.mean(tokens):.0f}" if tokens else "n/a"
+    tools = [r["ledger"]["tool_calls"] for r in group
+             if isinstance(r["ledger"].get("tool_calls"), (int, float))]
+    tools_cell = f"{statistics.mean(tools):.0f}" if tools else "n/a"
     lines.append(
         f"| {profile} | {len(group)} | {submitted} | {passed} | "
         f"{passed}/{len(group)} | {oracle_cell} | "
-        f"{statistics.mean(wall):.1f} | {tokens_cell} |")
+        f"{statistics.mean(wall):.1f} | {tokens_cell} | {tools_cell} |")
 
 lines += [
     "",
     "Rows with `agent` as the failure stage are attempts that produced no "
-    "submission within the step budget; they carry oracle counts but no token "
-    "ledger. They are reported, not dropped.",
+    "submission within the step budget; they may carry an oracle count under "
+    "`oracle` access, but never a token ledger. They are reported, not dropped.",
     "",
     "## What this shows", "",
     "- whether a real model can produce a graded submission on a deliberately "
-    "non-standard task, and at what measured cost (oracle queries, wall clock) "
-    "and self-reported cost (tokens, tool calls);",
+    "non-standard task, and at what measured cost (wall clock, and oracle "
+    "queries where the access mode counts them) and self-reported cost (tokens, "
+    "tool calls);",
     "- whether the protected profile changes either, with the variance the "
     "repetitions actually exhibit;",
     "- the probe's artifact size difference between the two profiles.",
@@ -231,9 +242,9 @@ lines += [
        "column, and do not describe the result as protection changing "
        "success.", ""]
       if ceiling_tasks else []),
-    "- **No effectiveness claim.** N is small, only one task and one model were "
-    "run, and the model sits at or near the floor on this task; a 0% vs 0% "
-    "comparison cannot demonstrate a protection effect.",
+    "- **No effectiveness claim.** N is small and only one task and one model "
+    "were run; the pass column describes what this agent could do, not what a "
+    "protection prevented.",
     "- No claim about other attacker classes or larger models.",
     "- Token figures include an estimate for calls aborted by the reasoning "
     "watchdog (`tokens_source` and `aborted_tokens_estimate` in the JSONL mark "
