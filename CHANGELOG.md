@@ -73,6 +73,15 @@ versions follow SemVer once past alpha.
   salted machine hash replaces them. The `v0.1.0-alpha` report is archived
   under `docs/reports/archive/` so claims keep pointing at the artifact they
   were written against.
+- **First real-model pilot** — [`docs/reports/pilot-2026-11-11/`](docs/reports/pilot-2026-11-11/README.md)
+  runs `deepseek-v4.1-flash` through `packed-record-v1` (baseline vs
+  `aegis-level3`, N=3 each) via an out-of-tree OpenAI-compatible adapter, with
+  the run's commit, dirty flag, oracle counts and adapter source hash recorded.
+  Both profiles score 0/3; the pilot documents that the path works and that
+  this task sits below the model's floor. It is a pilot, not a claim. The
+  adapter's operational findings (SSE streaming, reasoning round-trip,
+  watchdog policy) are in `docs/reference-adapter.md`; the adapter itself stays
+  out of the tree.
 
 ### Changed
 
@@ -86,6 +95,10 @@ versions follow SemVer once past alpha.
 - The artifact builder's empty-input sanity check now only requires exit 0 and
   non-empty stdout. It previously looked for `hash=`, which silently failed
   the builds of tasks whose drivers print a different format.
+- `scripts/pilot-report.sh` requires `LLM_API_KEY` only on the path that spends
+  model budget; regenerating a report from a run's own JSONL (`REUSE_DATA`)
+  needs no key. A pilot's console log is tracked as evidence
+  (`!docs/reports/**/run.log`).
 
 ### Behaviour worth knowing
 
@@ -105,9 +118,12 @@ versions follow SemVer once past alpha.
 
 ### Not claimed
 
-No adversarial effectiveness claim for levels 2/3, and no model result for the
-benchmark. The only numbers are `.text` growth and output equality on the
-synthetic fixture (C-003/C-004).
+No adversarial effectiveness claim for levels 2/3, and no model-derived claim.
+The only numbers are `.text` growth and output equality on the synthetic
+fixture (C-003/C-004). The `pilot-2026-11-11` report is listed as a pilot: it
+shows the pipeline runs against a real model, and it shows this task is too
+hard for that model in the unprotected profile too, so it cannot support a
+protection claim.
 
 ## [0.1.0-alpha] — 2026-10-29
 

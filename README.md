@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. **No run against a real model has been published yet.**
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. One **pilot** against a real model has been published ([`docs/reports/pilot-2026-11-11/`](docs/reports/pilot-2026-11-11/README.md)): one model, one task, N=3, both profiles at 0/3. It is reported as a pilot and **no effectiveness claim is drawn from it**.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -36,6 +36,15 @@ against an analyst holding the source. Levels 2/3 (input-driven live split,
 bogus edges, volatile-state flattening) raise *static* reconstruction cost and
 are off by default; they are not the threat model's Tier 2/3. **No protection
 effectiveness has been measured, and none is claimed.**
+
+The first real-model pilot (`deepseek-v4.1-flash`, `packed-record-v1`,
+baseline vs `aegis-level3`, N=3 per cell) sits at the **floor**: 0/3 runs
+passed in both profiles, and the cost deltas are consistent with zero
+(Δ wall −27 s [−125, +71], Δ oracle queries −42 [−139, +55]). Its practical
+value is methodological — it exercises the whole path from probe to graded
+submission on a real model and pins the numbers the harness must record
+(adapter source hash, commit, dirty flag). A task whose baseline is too hard
+cannot show a protection effect; the next experiment has to start there.
 
 ## Honest expectations
 
