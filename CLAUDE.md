@@ -1,0 +1,138 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this repository is
+
+Two products in one repo:
+
+1. **Aegis-Bench** (`tools/aegis-bench/`, `benchmarks/`) — the main product: a reproducible
+   benchmark measuring the *cost delta* an AI agent pays to recover a binary's semantics with
+   and without a protection profile. "Can the AI be defeated" is explicitly not a metric.
+2. **Aegis-IR** (`lib/`, `include/`) — an LLVM New-PM obfuscation pass plugin, the subject
+   under test. Also a companion deliverable.
+
+Read `docs/threat-model.md` and `docs/claims-ledger.md` before changing any claim, number, or
+README wording. Numbers without a report and a ledger entry are removed.
+
+## Environment and commands
+
+Linux x86-64, LLVM/Clang 23.x pinned, CMake ≥ 3.20, Ninja, C++17. The published numbers come
+from the pinned container; use it rather than a host toolchain.
+
+```bash
+docker build -t aegis-ir-dev docker/
+docker run --rm -it -v "$PWD:/src" -w /src aegis-ir-dev   # on Windows: MSYS_NO_PATHCONV=1
+
+# inside the container
+export LLVM_DIR=$(llvm-config-23 --cmakedir)
+cmake -S . -B build -G Ninja -DLLVM_DIR=$LLVM_DIR -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+ctest --test-dir build -R aegis-controlflow --output-on-failure   # single suite
+```
+
+Bench harness (stdlib Python only; no network, no model in tests):
+
+```bash
+cd tools/aegis-bench
+python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -k Grader -v      # single test class/pattern
+python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
+python3 -m aegis_bench hash <task-dir>                 # re-record content hash after edits
+python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
+    --task rolling-token-v2 --adapter ground-truth --profile baseline \
+    --plugin ../../build/lib/AegisPass.so --out /tmp/bench
+```
+
+Reports are generated, never hand-edited:
+
+```bash
+scripts/release-report.sh harness-validation        # offline controls + full CTest
+ADAPTERS_DIR=/path/to/out-of-tree/adapters LLM_API_KEY=... \
+  scripts/pilot-report.sh pilot-YYYY-MM-DD          # real-model pilot (never in CI)
+```
+
+## Pass pipeline invariants
+
+- The pipeline order is load-bearing:
+  `aegis-policy<policy=FILE>,aegis-decoys[,aegis-cff],default<O2>,aegis-verify`.
+- Passes must run on **frontend IR** (`clang -O2 -Xclang -disable-llvm-passes -S -emit-llvm`).
+  Running after inlining protects dead IR and `aegis-verify` fails the build on purpose.
+- `aegis-policy` resolves policy entries once and pins them as `aegis.level` attributes plus
+  `aegis.profile` / `aegis.seed` module flags; later passes read only attributes. Unresolved
+  entries fail the build.
+- `aegis-verify` is fail-closed: missing decoys/guard/state artifacts, wrong pass order, or a
+  level-2/3 function the transform never touched is a build error, never a warning.
+- Level 3 flattening must demote **all** cross-block SSA values (`DemotePHIToStack` /
+  `DemoteRegToStack`) and use a `volatile` state slot; otherwise `-O2` or the verifier recovers
+  the original CFG. Level 2 keeps its live split only if the two arms differ in volatile access
+  counts.
+- Ineligible constructs for level 3 (`indirectbr`, `callbr`, EH, coroutines, `returns_twice`,
+  convergent calls, inline asm, `optnone`/`naked`/`musttail`) fail the build with a reason.
+
+## Aegis-Bench architecture
+
+Data flow for one run:
+
+```
+task.json ──► ArtifactBuilder ──► stripped probe ──► oracle broker ──► workspace shim
+                 (levels 0–3)                              │
+adapter.solve(task, workspace) ◄──────────────────────────┘
+        │ sources
+        ▼
+Grader (independent) ──► hidden cases + seeded fuzz + property tests ──► RunRecord
+                                                                          │
+                                                     JSONL / CSV / Markdown reports
+```
+
+- **Task manifests** (`benchmarks/tasks-public/<id>/task.json`) pin `visible` files, ground
+  truth, property tests, hidden cases, fuzz config, budgets and a **content hash covering all
+  grader inputs**. Editing any task file requires `aegis-bench hash`; the hash is part of the
+  result provenance.
+- **Task ids are immutable.** Any semantic change (files, interface, artifact profiles,
+  visibility) is a new id (`rolling-token-v1` vs `-v2`), never an in-place edit.
+- **Binary-recovery tasks** build a probe from `artifact.source` (must equal `ground_truth`)
+  through the same pipeline as the profile. Only a `probe` **shim** enters the workspace; the
+  real binary stays with the harness broker (`aegis_bench/oracle.py`), which counts queries and
+  enforces `budgets.oracle_queries`. This is accounting, not a sandbox — say so when documenting.
+- **Grader isolation**: no task root on the include path, scratch cwd, minimal env, rlimits,
+  output caps, candidate-source policy tripwires (`policy.py`). Errors are returned as grades
+  with stages (`build`/`artifact`/`hidden`/`fuzz`/`agent`), not exceptions.
+- **Cost honesty**: pass/fail, case counts, wall clock and oracle queries are measured; tokens
+  and tool calls are adapter self-reports. Reports must keep that distinction and repeat the
+  caveat next to the numbers.
+- **Private tasks** (`"private": true`) require `--allow-private`, are gitignored under
+  `benchmarks/tasks-private/`, and produce a do-not-publish report banner.
+- **Adapters live outside this repository** by design (no credentials/network in tree or CI).
+  The contract a published result must satisfy is `docs/reference-adapter.md`.
+
+## Reports and provenance
+
+- Reports are machine-generated by `scripts/release-report.sh` / `scripts/pilot-report.sh` into
+  `docs/reports/<name>/`; each names the commit and whether the tree was dirty. `dirty: yes`
+  is not silently cleaned up.
+- `docs/reports/archive/` holds frozen copies that claims point at; do not regenerate them.
+- Validation reports use offline test doubles and are **not** effectiveness evidence; pilots
+  with N < 5 are pilots, not claims.
+- Keep `.text` deltas comparable only against the shared baseline; research profiles use
+  different seeds and are not a monotonic ladder.
+
+## Conventions that have bitten before
+
+- Windows working copies: write scripts with `newline="\n"` (or `write_bytes`); `.gitattributes`
+  pins LF for `*.sh`/`*.py`. Content hashing normalises CRLF, so hashes are checkout-stable.
+- Harness Python is stdlib-only; do not add dependencies or vendor SDKs.
+- `PowerShell`/`Git Bash` on Windows needs `MSYS_NO_PATHCONV=1` for `docker -v` mounts.
+- CTest `aegis-bench` needs `AEGIS_PLUGIN` for level ≥ 1 artifact profiles; baseline needs only
+  `clang++-23`/`opt-23`.
+- When adding a run field, remember dataclass defaults must follow non-default fields and that
+  `write_csv` has an explicit field list.
+
+## Where to read next
+
+- `README.md` — positioning, honest expectations, current limits.
+- `docs/benchmark-protocol.md` — task format, integrity rules, budgets, matrix, private set.
+- `docs/reference-adapter.md` — adapter contract for real-model results.
+- `docs/threat-model.md`, `docs/claims-ledger.md`, `docs/compatibility.md`, `docs/controlflow.md`.
+- `tools/aegis-bench/README.md` — harness behaviour and deliberate limits.
