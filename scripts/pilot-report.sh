@@ -82,9 +82,13 @@ from pathlib import Path
  repo_root) = sys.argv[1:11]
 rows = [json.loads(line) for line in Path(jsonl).read_text(encoding="utf-8").splitlines() if line.strip()]
 
-model = rows[0]["ledger"].get("model", "?") if rows else "?"
-endpoint = rows[0]["ledger"].get("endpoint", "?") if rows else "?"
-ledger0 = rows[0].get("ledger", {}) if rows else {}
+# A run that never submitted has no ledger, so the run configuration has to
+# come from the first row that has one. Taking rows[0] blindly made a report
+# whose model and endpoint were both "?" -- and those are exactly the fields a
+# reader uses to decide whether the result applies to them.
+ledger0 = next((r.get("ledger") or {} for r in rows if r.get("ledger")), {})
+model = ledger0.get("model", "?")
+endpoint = ledger0.get("endpoint", "?")
 versions = sorted({r.get("adapter_version", "") for r in rows})
 env = rows[0].get("environment", {}) if rows else {}
 # The run stamped its own commit; the generator may be newer. Report the
