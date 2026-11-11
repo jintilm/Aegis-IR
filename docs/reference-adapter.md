@@ -66,7 +66,8 @@ Every published row must state:
   were offered;
 - whether thinking/reasoning was enabled, and how (parameter name);
 - `temperature`, `max_tokens`, `max_steps`, adapter wall-clock timeout;
-- reasoning-watchdog threshold, restart policy, wrap-up step;
+- reasoning-watchdog threshold, restart policy, wrap-up step, and whether a
+  final-answer turn is used;
 - adapter source hash (the adapter reports it as `version`; the harness stores
   it as `adapter_version` in every row);
 - date, harness commit, task content hash, repetition index.
@@ -100,7 +101,13 @@ Reasoning length is bimodal for thinking models. The reference adapter:
   content or a tool call (`aborted_calls`, cost estimated and labelled);
 - appends a short "act now" instruction after an unproductive reply;
 - starts a fresh conversation after N consecutive unproductive replies;
-- sends a wrap-up instruction at `max_steps - 4`.
+- sends a wrap-up instruction at `max_steps - 4`;
+- makes **one tool-free final turn** when the budget expires without a
+  submission, so the run is graded instead of discarded. On relays that accept
+  it, thinking is disabled for that turn: with thinking on, a model can spend
+  the entire output budget reasoning and return no source at all. A run that
+  never submits has no grade and no cost, which is why this turn exists and why
+  its presence must be declared.
 
 Ledger fields: `tokens` (measured + estimated), `prompt_tokens`,
 `completion_tokens`, `tokens_source`, `aborted_calls`,
