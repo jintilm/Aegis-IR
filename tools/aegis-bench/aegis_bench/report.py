@@ -37,7 +37,8 @@ CSV_FIELDS = [
     "reason", "cases_total", "cases_passed", "success_rate",
     "tokens", "tool_calls", "ledger_source", "artifact_sha256",
     "artifact_bytes", "artifact_text", "adapter_timeout", "oracle_queries",
-    "oracle_refused", "oracle_budget", "private", "commit", "commit_dirty",
+    "oracle_refused", "oracle_budget", "task_calibration", "private", "commit",
+    "commit_dirty",
 ]
 
 Z95 = 1.96
@@ -144,6 +145,8 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "oracle_refused": row.get("oracle", {}).get("refused", ""),
                 "oracle_budget": row.get("budgets", {}).get(
                     "oracle_queries", ""),
+                "task_calibration": row.get("calibration", {}).get(
+                    "status", ""),
                 "private": row.get("private", False),
                 "commit": row["environment"].get("commit", ""),
                 "commit_dirty": row["environment"].get("commit_dirty", ""),
@@ -204,6 +207,34 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
             "Protection cost can only be measured under `binary` access.",
             "",
         ]
+    calibrations: dict[str, dict[str, Any]] = {}
+    for record in records:
+        if record.artifact:
+            calibrations.setdefault(record.task_id, record.calibration)
+    if calibrations:
+        parts = []
+        for task_id, cal in sorted(calibrations.items()):
+            status = cal.get("status") or "uncalibrated"
+            detail = ", ".join(str(x) for x in (
+                cal.get("model", ""), cal.get("access", ""),
+                cal.get("baseline_pass_rate", ""),
+                f"N={cal.get('runs')}" if cal.get("runs") else "") if x != "")
+            parts.append(f"`{task_id}` = {status}"
+                         + (f" ({detail})" if detail else ""))
+        lines += ["- Calibration: " + "; ".join(parts), ""]
+        if any((cal.get("status") or "uncalibrated") != "comparison-ready"
+               for cal in calibrations.values()):
+            lines += [
+                "**Calibration.** At least one task has no calibrated, "
+                "measurable baseline for this agent: its unprotected profile is "
+                "at the floor (never succeeds) or the ceiling (always "
+                "succeeds), or was never calibrated. A cost delta on such a "
+                "task cannot demonstrate a protection effect — at the floor "
+                "there is no headroom, at the ceiling nothing left to slow "
+                "down. Recalibrate the task before interpreting the deltas "
+                "below.",
+                "",
+            ]
     if any(record.private for record in records):
         lines += [
             "**PRIVATE TASK RESULTS — DO NOT PUBLISH.** At least one run used "

@@ -57,5 +57,13 @@
     "domain_size": "small",
     "rating": "medium"
   },
+  "calibration": {
+    "status": "floor",
+    "model": "deepseek-v4.1-flash",
+    "access": "oracle",
+    "baseline_pass_rate": 0.0,
+    "runs": 3,
+    "date": "2026-11-11"
+  },
   "content_hash": "sha256:61c3c050029311667a579970205440788e3ef1a88ac94a0e6e571a76e26cd982"
 }

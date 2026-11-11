@@ -99,6 +99,37 @@ manifest that sets `budgets.oracle_queries` is rejected under `binary` access
 rather than silently unenforced. Counting under binary access needs
 process-level execution accounting, which this harness does not yet have.
 
+### Task calibration
+
+A task can only support a protection comparison if its **unprotected**
+baseline is solvable sometimes. At 0/N there is no headroom for a transform to
+consume; at N/N there is nothing left to slow down. Every binary-recovery task
+therefore carries a `calibration` record in its manifest:
+
+```json
+"calibration": {
+  "status": "floor",              // uncalibrated | floor | ceiling | comparison-ready
+  "model": "deepseek-v4.1-flash",
+  "access": "oracle",             // calibration is access-specific
+  "baseline_pass_rate": 0.0,
+  "runs": 3,
+  "date": "2026-11-11"
+}
+```
+
+- `floor` means the baseline never passed, `ceiling` that it always did, and
+  `comparison-ready` that it landed strictly between. The loader rejects a
+  label that contradicts its own rate, and rejects a calibrated record without
+  a model, an access mode, a date and a run count.
+- Calibration is **model- and access-specific**: the same task can be at the
+  floor for a small model under `oracle` access and comparison-ready for a
+  larger one under `binary` access. Recalibrate when either changes; a run's
+  rows carry the calibration record that was in force.
+- The record is measurement metadata, not task semantics: it sits outside
+  `content_hash` and does not require a new task id.
+- Reports of binary-recovery runs print the calibration and warn when a
+  comparison was run on a task that is not comparison-ready.
+
 ### Integrity rules the harness enforces
 
 - The agent workspace contains only the manifest's `visible` entries; ground

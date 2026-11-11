@@ -124,6 +124,53 @@ class SchemaTests(unittest.TestCase):
         with self.assertRaises(TaskError):
             task.path("../../../etc/passwd")
 
+    def test_calibration_record_is_validated(self):
+        """A floor/ceiling/comparison-ready label must match its own number."""
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(BINARY_DIR, copy)
+            manifest = json.loads((copy / "task.json").read_text())
+
+            def load_with(calibration):
+                manifest["calibration"] = calibration
+                (copy / "task.json").write_text(json.dumps(manifest))
+                return load_task(copy, verify_hash=False)
+
+            self.assertTrue(load_with({
+                "status": "floor", "model": "m", "access": "oracle",
+                "baseline_pass_rate": 0.0, "runs": 3,
+                "date": "2026-11-11"}).calibration.status == "floor")
+            # A floor label with a non-zero rate is a contradiction, not data.
+            with self.assertRaises(TaskError):
+                load_with({"status": "floor", "model": "m", "access": "oracle",
+                           "baseline_pass_rate": 0.4, "runs": 3,
+                           "date": "2026-11-11"})
+            with self.assertRaises(TaskError):
+                load_with({"status": "comparison-ready", "model": "m",
+                           "access": "oracle", "baseline_pass_rate": 1.0,
+                           "runs": 5, "date": "2026-11-11"})
+            with self.assertRaises(TaskError):
+                load_with({"status": "floor", "model": "m", "access": "shim",
+                           "baseline_pass_rate": 0.0, "runs": 3,
+                           "date": "2026-11-11"})
+            with self.assertRaises(TaskError):
+                load_with({"status": "meaningful"})
+
+    def test_calibration_is_outside_the_content_hash(self):
+        """Calibration is measurement metadata; adding it must not rename a task."""
+        plain = load_task(BINARY_DIR, verify_hash=False)
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(BINARY_DIR, copy)
+            manifest = json.loads((copy / "task.json").read_text())
+            manifest["calibration"] = {
+                "status": "comparison-ready", "model": "m", "access": "binary",
+                "baseline_pass_rate": 0.5, "runs": 5, "date": "2026-11-11"}
+            (copy / "task.json").write_text(json.dumps(manifest))
+            calibrated = load_task(copy, verify_hash=False)
+            calibrated_hash = calibrated.computed_hash()
+        self.assertEqual(plain.computed_hash(), calibrated_hash)
+
     def test_hash_is_line_ending_stable(self):
         """A CRLF checkout must hash the same as an LF checkout.
 
@@ -703,6 +750,16 @@ class BinaryAccessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):
                 Runner(repo_root=REPO_ROOT, out_dir=Path(tmp), access="syscall")
+
+    def test_markdown_reports_calibration_and_warns_when_not_ready(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            records = self._runner(tmp, access="binary").run(
+                [self.task], [StubAgent()], profile="baseline")
+            paths = write_reports(records, Path(tmp))
+            markdown = paths["markdown"].read_text(encoding="utf-8")
+        self.assertIn("- Calibration:", markdown)
+        self.assertIn("uncalibrated", markdown)
+        self.assertIn("cannot demonstrate a protection effect", markdown)
 
 
 

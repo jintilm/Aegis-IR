@@ -34,7 +34,7 @@ from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .grader import Grade, Grader
 from .oracle import OracleBroker, OracleError, install_shim
-from .schema import Task
+from .schema import ACCESS_MODES, Task
 
 DEFAULT_ADAPTER_TIMEOUT = 600
 
@@ -51,7 +51,7 @@ DEFAULT_ADAPTER_TIMEOUT = 600
 #: any count would be the adapter's own.
 ACCESS_ORACLE = "oracle"
 ACCESS_BINARY = "binary"
-ACCESS_MODES = (ACCESS_ORACLE, ACCESS_BINARY)
+# ACCESS_MODES is defined in schema so manifest validation and the runner agree.
 
 
 class AdapterTimeout(AdapterError):
@@ -184,6 +184,10 @@ class RunRecord:
     #: per row because it decides whether an oracle count exists and whether a
     #: protection transform could have mattered at all.
     access: str = ""
+    #: The task's calibration record at run time. A delta on a task whose
+    #: unprotected baseline is at the floor or ceiling is not interpretable;
+    #: carrying the record into the row lets a report say so.
+    calibration: dict[str, Any] = field(default_factory=dict)
     ledger: dict[str, Any] = field(default_factory=dict)
     budgets: dict[str, Any] = field(default_factory=dict)
     environment: dict[str, str] = field(default_factory=dict)
@@ -203,6 +207,7 @@ class RunRecord:
             "adversary": self.adversary,
             "adapter_version": self.adapter_version,
             "access": self.access,
+            "calibration": self.calibration,
             "profile": self.profile,
             "repetition": self.repetition,
             "started_utc": self.started_utc,
@@ -392,6 +397,7 @@ class Runner:
             agent=agent.name, adversary=agent.adversary,
             adapter_version=str(getattr(agent, "version", "")),
             access=access,
+            calibration=task.calibration.to_dict(),
             profile=profile,
             repetition=repetition, started_utc=started_utc,
             duration_seconds=time.time() - started, grade=grade,

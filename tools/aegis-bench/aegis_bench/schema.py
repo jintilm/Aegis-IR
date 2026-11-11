@@ -100,6 +100,87 @@ class FuzzConfig:
 
 TASK_TYPES = ("reimplement", "binary-recovery")
 
+#: What a binary-recovery workspace gets. Defined here so both the manifest
+#: validation and the runner agree on the spelling; see the runner for what
+#: each mode does.
+ACCESS_MODES = ("oracle", "binary")
+
+CALIBRATION_STATUSES = ("uncalibrated", "floor", "ceiling", "comparison-ready")
+
+
+@dataclass(frozen=True)
+class Calibration:
+    """How hard the task's *unprotected* baseline is for a named agent.
+
+    A protection comparison can only measure something if the baseline itself
+    succeeds sometimes: at 0/N the protected profile has nowhere to fall to, and
+    at N/N there is nothing left to slow down. This record is measurement
+    metadata, not task semantics — it is deliberately outside ``content_hash``
+    and does not force a new task id. It is also access- and model-specific, so
+    a run under a different access mode or model has to recalibrate.
+    """
+
+    status: str = "uncalibrated"
+    model: str = ""
+    access: str = ""
+    baseline_pass_rate: float | None = None
+    runs: int = 0
+    date: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "model": self.model,
+            "access": self.access,
+            "baseline_pass_rate": self.baseline_pass_rate,
+            "runs": self.runs,
+            "date": self.date,
+        }
+
+    def is_comparison_ready(self) -> bool:
+        return self.status == "comparison-ready"
+
+
+def _calibration(raw: Any, task_id: str) -> Calibration:
+    if raw is None:
+        return Calibration()
+    if not isinstance(raw, dict):
+        raise TaskError(f"{task_id}: 'calibration' must be an object")
+    status = raw.get("status", "uncalibrated")
+    if status not in CALIBRATION_STATUSES:
+        raise TaskError(
+            f"{task_id}: calibration.status must be one of "
+            f"{CALIBRATION_STATUSES}, got {status!r}")
+    if status == "uncalibrated":
+        return Calibration()
+    access = raw.get("access", "")
+    if access not in ACCESS_MODES:
+        raise TaskError(f"{task_id}: calibration.access must be one of "
+                        f"{ACCESS_MODES}, got {access!r}")
+    runs = raw.get("runs", 0)
+    if not isinstance(runs, int) or runs < 1:
+        raise TaskError(f"{task_id}: calibration.runs must be a positive int")
+    rate = raw.get("baseline_pass_rate")
+    if not isinstance(rate, (int, float)) or not 0.0 <= float(rate) <= 1.0:
+        raise TaskError(f"{task_id}: calibration.baseline_pass_rate must be "
+                        f"a number in [0, 1]")
+    if status == "floor" and float(rate) != 0.0:
+        raise TaskError(f"{task_id}: calibration.status 'floor' requires a "
+                        f"0.0 baseline pass rate")
+    if status == "ceiling" and float(rate) != 1.0:
+        raise TaskError(f"{task_id}: calibration.status 'ceiling' requires a "
+                        f"1.0 baseline pass rate")
+    if status == "comparison-ready" and not 0.0 < float(rate) < 1.0:
+        raise TaskError(f"{task_id}: 'comparison-ready' needs a baseline pass "
+                        f"rate strictly between 0 and 1")
+    for key in ("model", "date"):
+        if not str(raw.get(key, "")).strip():
+            raise TaskError(f"{task_id}: calibration.{key} is required once "
+                            f"a task is calibrated")
+    return Calibration(status=status, model=str(raw["model"]), access=access,
+                       baseline_pass_rate=float(rate), runs=runs,
+                       date=str(raw["date"]))
+
 
 @dataclass(frozen=True)
 class ArtifactProfile:
@@ -145,6 +226,7 @@ class Task:
     task_type: str = "reimplement"
     artifact: ArtifactRecipe | None = None
     private: bool = False
+    calibration: Calibration = field(default_factory=Calibration)
 
     # -- helpers ---------------------------------------------------------
 
@@ -352,6 +434,7 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
         task_type=task_type,
         artifact=artifact,
         private=_require(raw, "private", bool) if "private" in raw else False,
+        calibration=_calibration(raw.get("calibration"), task_id),
     )
 
     # Private tasks live outside the public tree and their results are never
