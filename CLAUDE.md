@@ -43,6 +43,8 @@ python3 -m aegis_bench hash <task-dir>                 # re-record content hash 
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --task rolling-token-v2 --adapter ground-truth --profile baseline \
     --plugin ../../build/lib/AegisPass.so --out /tmp/bench
+# protection comparisons need the binary in the workspace, not the shim:
+python3 -m aegis_bench run ... --access binary
 ```
 
 Reports are generated, never hand-edited:

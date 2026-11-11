@@ -10,7 +10,9 @@
 #   ADAPTERS_DIR=/path/to/adapters LLM_API_KEY=... \
 #     scripts/pilot-report.sh pilot-2026-11-11
 #
-# Optional: TASKS (comma-separated), PROFILES, REPS, STEPS, LLM_* variables.
+# Optional: TASKS (comma-separated), PROFILES, REPS, STEPS, ACCESS
+# (oracle|binary; use binary for anything that compares protection levels),
+# and LLM_* variables.
 set -euo pipefail
 
 NAME="${1:-pilot}"
@@ -81,6 +83,7 @@ rows = [json.loads(line) for line in Path(jsonl).read_text(encoding="utf-8").spl
 
 model = rows[0]["ledger"].get("model", "?") if rows else "?"
 endpoint = rows[0]["ledger"].get("endpoint", "?") if rows else "?"
+ledger0 = rows[0].get("ledger", {}) if rows else {}
 versions = sorted({r.get("adapter_version", "") for r in rows})
 env = rows[0].get("environment", {}) if rows else {}
 # The run stamped its own commit; the generator may be newer. Report the
@@ -118,6 +121,9 @@ lines = [
     "fresh conversation after repeated unproductive replies, repeated "
     "submit prompt in the wrap phase "
     "(see `docs/reference-adapter.md`)",
+    f"- reasoning watchdog: {ledger0.get('reasoning_limit_chars', 'n/a')} "
+    f"chars; restart after {ledger0.get('restart_after', 'n/a')} unproductive "
+    f"replies; conversation cap recorded per row",
     "",
     "## Results", "",
     "| profile | runs | submitted | passed | passed/runs | oracle queries "

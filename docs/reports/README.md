@@ -16,6 +16,13 @@ Rules:
 - "Validation" reports (offline test doubles, self-checks) are reproducible
   but are **not** effectiveness evidence. They must say so in their own
   README, because that is the line a reader will otherwise misread.
+- A binary-recovery report must state its **access mode**. Under `oracle`
+  access the agent sees a shim that is identical in every artifact profile, so
+  any level-vs-baseline delta in such a report is zero by construction and
+  cannot be cited; only `binary` access can measure a protection effect.
+- A protection comparison must also name the task's **calibration**. A task
+  whose unprotected baseline sits at the floor or the ceiling cannot show an
+  effect; the report warns when that is the case.
 
 | Report | What it establishes | Claim ID |
 |---|---|---|
