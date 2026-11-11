@@ -179,7 +179,8 @@ lines = [
     "",
     "## Results", "",
     "| profile | runs | submitted | passed | passed/runs | oracle queries "
-    "(mean) | wall s (mean) | tokens (mean) | tool calls (mean) |",
+    "(mean) | wall s (mean) | tokens (mean, submitted runs) | tool calls "
+    "(mean) |",
     "|---|---|---|---|---|---|---|---|---|",
 ]
 
@@ -210,6 +211,26 @@ lines += [
     "Rows with `agent` as the failure stage are attempts that produced no "
     "submission within the step budget; they may carry an oracle count under "
     "`oracle` access, but never a token ledger. They are reported, not dropped.",
+]
+
+incomplete = {p: len(g) - sum(1 for r in g
+                              if isinstance(r["ledger"].get("tokens"),
+                                            (int, float)))
+              for p, g in groups.items()}
+if any(incomplete.values()):
+    parts = ", ".join(f"{profile} {n}/{len(groups[profile])}"
+                      for profile, n in sorted(incomplete.items()) if n)
+    lines += [
+        "",
+        f"**Cost is conditioned on submission.** {parts} run(s) never "
+        "submitted and therefore have no token ledger; every mean above is "
+        "over the runs that did. Where submission rates differ between "
+        "profiles, part of any cost difference is a capability difference "
+        "rather than a protection cost, and a pass-rate difference on this "
+        "few runs is inside the interval.",
+    ]
+
+lines += [
     "",
     "## What this shows", "",
     "- whether a real model can produce a graded submission on a deliberately "

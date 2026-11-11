@@ -66,10 +66,10 @@
       "date": "2026-11-11"
     },
     "binary": {
-      "status": "ceiling",
+      "status": "comparison-ready",
       "model": "deepseek-v4-pro",
-      "baseline_pass_rate": 1.0,
-      "runs": 2,
+      "baseline_pass_rate": 0.2,
+      "runs": 5,
       "date": "2026-11-12"
     }
   },
