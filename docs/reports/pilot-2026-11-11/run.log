@@ -1,0 +1,956 @@
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=51ch tools=['list_files', 'read_file'] tokens=1507/64
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=266ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=1795/222
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=3490ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2203/1693
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=2013ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4183/1032
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=4026ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=5582/2066
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 6 (12001 chars)
+[zcode] HTTP 429, retry in 1.9s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111821158892056258268d9d6ZanRI49P)","type":"ne
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=5737ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=8069/2118
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 8 (12002 chars)
+[zcode] aborted runaway reasoning at step 9 (12001 chars)
+[zcode] aborted runaway reasoning at step 10 (12003 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=7774ch tools=['run_probe'] tokens=1688/2407
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=8592ch tools=['run_probe'] tokens=4136/2987
+[zcode] step 12 run_probe -> exit=0
+[zcode] HTTP 429, retry in 2.0s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111823234007694928268d9d6EXZ1YrLm)","type":"ne
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=1562ch tools=['run_probe'] tokens=7162/610
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=3673ch tools=['run_probe'] tokens=7811/1242
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=150ch tools=['run_probe'] tokens=9091/97
+[zcode] step 15 run_probe -> exit=0
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=3970ch tools=['run_probe'] tokens=9229/1550
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=9309ch tools=['list_files'] tokens=10820/3047
+[zcode] step 17 list_files -> examples/sample_io.txt
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=10364ch tools=['run_probe'] tokens=13896/4380
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=1891ch tools=['run_probe'] tokens=18317/536
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=1406ch tools=['run_probe'] tokens=18891/525
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=3852ch tools=['run_probe'] tokens=19457/1727
+[zcode] step 21 run_probe -> exit=0
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=4580ch tools=['run_probe'] tokens=21225/2049
+[zcode] step 22 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 23 (12001 chars)
+[zcode] aborted runaway reasoning at step 24 (12001 chars)
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=23391/42
+[zcode] step 25 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 26 (12001 chars)
+[zcode] reply step 27 finish=tool_calls budget=16384 content=0ch reasoning=7690ch tools=['submit_solution'] tokens=23531/3113
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794421614.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (baseline, rep 0) - 399.88s 74/76 case(s) failed
+[pilot] done packed-record-v1/baseline rep 0
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=40ch tools=['list_files'] tokens=1510/30
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=50ch tools=['read_file', 'run_probe'] tokens=1569/80
+[zcode] step 2 read_file -> # Sample observations
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=399ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=1899/378
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=1051ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2558/637
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=1703ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=3476/895
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=2279ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4656/1066
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=3284ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=6019/1571
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=6388ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=7873/2365
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=177ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=10520/347
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=9357ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=11143/3863
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=4299ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=15295/1766
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 12 (12005 chars)
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=10350ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=17396/4117
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=3247ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=22074/1471
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.6s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111829221957787308268d9d6cyRUZgDy)","type":"ne
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=10653ch tools=['read_file'] tokens=23844/3608
+[zcode] step 15 read_file -> #!/usr/bin/env python3
+[zcode] aborted runaway reasoning at step 16 (12002 chars)
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=520ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28080/524
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=1055ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28880/726
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=2714ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=29882/1144
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 20 (12001 chars)
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=2776ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=31362/1096
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 22 (12003 chars)
+[zcode] aborted runaway reasoning at step 23 (12001 chars)
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=10531ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=32831/3625
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=1167ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=36756/659
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 26 (12002 chars)
+[zcode] reply step 27 finish=tool_calls budget=16384 content=0ch reasoning=9553ch tools=['submit_solution'] tokens=37774/3769
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794421991.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (baseline, rep 0) - 376.87s 74/76 case(s) failed
+[pilot] done packed-record-v1/baseline rep 1
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=61ch tools=['list_files', 'read_file'] tokens=1511/67
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=116ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=1819/229
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=344ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2260/416
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=2423ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2957/1136
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=943ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4382/705
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=1394ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=5370/711
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=1174ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=6372/709
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=6073ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=7376/2555
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=2796ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=10211/1703
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=3761ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=12688/1844
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=1161ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=14824/736
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=7578ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=15853/2882
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=2454ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=19035/1287
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=10979ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20622/5411
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=7297ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=26552/3547
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 16 (12001 chars)
+[zcode] aborted runaway reasoning at step 17 (12006 chars)
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=10286ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=30474/4253
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 19 (12001 chars)
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=6844ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=35360/3263
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 21 (12002 chars)
+[zcode] HTTP 429, retry in 1.9s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111838104416277068268d9d62gUynbIK)","type":"ne
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=5601ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=39839/2408
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=3153ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=42820/1466
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=3937ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=44714/1905
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=1909ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=47035/1003
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] HTTP 429, retry in 2.0s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111838588941313548268d9d6aJbBQw8w)","type":"ne
+[zcode] HTTP 429, retry in 2.5s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111839023989219208268d9d6ARzfZtpR)","type":"ne
+[zcode] aborted runaway reasoning at step 26 (12003 chars)
+[zcode] aborted runaway reasoning at step 27 (12010 chars)
+[zcode] aborted runaway reasoning at step 28 (12001 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] aborted runaway reasoning at step 29 (12005 chars)
+[zcode] aborted runaway reasoning at step 30 (12006 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (baseline, rep 0) - 478.36s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/baseline rep 2
+[zcode] HTTP 429, retry in 1.9s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111841153622290088268d9d6tTKs9Mit)","type":"ne
+[zcode] HTTP 429, retry in 2.1s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111841184915034288268d9d69u6egszS)","type":"ne
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=1571ch tools=['list_files', 'read_file'] tokens=1510/563
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=339ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2297/232
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=2187ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2718/1074
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=436ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4076/424
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=8506ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4796/3491
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=4874ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=8573/1825
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=4249ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=10687/1703
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=5528ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=12681/2385
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 9 (12001 chars)
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=5874ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=15398/2258
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=1463ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=17949/861
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=2996ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=19090/1350
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.6s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111843278146702868268d9d6G8GbyXEr)","type":"ne
+[zcode] HTTP 429, retry in 3.0s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111843310388026918268d9d6HS9ZNMy4)","type":"ne
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=7572ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20721/2761
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=2912ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=23765/1228
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 15 (12001 chars)
+[zcode] aborted runaway reasoning at step 16 (12001 chars)
+[zcode] aborted runaway reasoning at step 17 (12001 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=3409ch tools=['run_probe'] tokens=1685/1131
+[zcode] step 18 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.1s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111845209030580808268d9d6o7OxC73r)","type":"ne
+[zcode] HTTP 429, retry in 2.8s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111845225584406048268d9d6Tme3cxAG)","type":"ne
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=227ch tools=['run_probe'] tokens=2854/105
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=1188ch tools=['run_probe'] tokens=3000/404
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=393ch tools=['run_probe'] tokens=3442/171
+[zcode] step 21 run_probe -> exit=0
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=2536ch tools=['run_probe'] tokens=3652/732
+[zcode] step 22 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.2s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111845401304299798268d9d6He2W0qDc)","type":"ne
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=84ch tools=['run_probe'] tokens=4425/66
+[zcode] step 23 run_probe -> exit=0
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=2910ch tools=['run_probe'] tokens=4532/1534
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=118ch tools=['run_probe'] tokens=6104/76
+[zcode] step 25 run_probe -> exit=0
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=1298ch tools=['run_probe'] tokens=6221/624
+[zcode] step 26 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 27 (12002 chars)
+[zcode] reply step 28 finish=tool_calls budget=16384 content=0ch reasoning=7025ch tools=['submit_solution'] tokens=6942/3263
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794422805.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (aegis-level3, rep 0) - 335.26s 74/76 case(s) failed
+[pilot] done packed-record-v1/aegis-level3 rep 0
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=58ch tools=['list_files', 'read_file'] tokens=1509/66
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=779ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=1816/455
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=2623ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2450/2014
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=3818ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=5550/2020
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 5 (12003 chars)
+[zcode] aborted runaway reasoning at step 6 (12001 chars)
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=2806ch tools=['run_probe'] tokens=8236/884
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=138ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=9158/309
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=2373ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=9747/1521
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 10 (12001 chars)
+[zcode] aborted runaway reasoning at step 11 (12001 chars)
+[zcode] aborted runaway reasoning at step 12 (12003 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] HTTP 429, retry in 1.3s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111849411715522628268d9d61eZ5YG9E)","type":"ne
+[zcode] HTTP 429, retry in 2.5s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111849429066096418268d9d6oePT5AbX)","type":"ne
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=2299ch tools=['run_probe'] tokens=1683/706
+[zcode] step 13 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 14 (12008 chars)
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=340ch tools=['run_probe'] tokens=2468/151
+[zcode] step 15 run_probe -> exit=0
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=3728ch tools=['run_probe'] tokens=2660/1482
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=2652ch tools=['run_probe'] tokens=4179/857
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=52ch tools=['run_probe'] tokens=5074/62
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=694ch tools=['run_probe'] tokens=5175/254
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=343ch tools=['run_probe'] tokens=5470/154
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=3555ch tools=['run_probe'] tokens=5662/1146
+[zcode] step 21 run_probe -> exit=0
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=5116ch tools=['run_probe'] tokens=6849/1936
+[zcode] step 22 run_probe -> exit=0
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=752ch tools=['run_probe'] tokens=8826/280
+[zcode] step 23 run_probe -> exit=0
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=6837ch tools=['run_probe'] tokens=9144/2088
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=179ch tools=['run_probe'] tokens=11271/102
+[zcode] step 25 run_probe -> exit=0
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=593ch tools=['run_probe'] tokens=11412/271
+[zcode] step 26 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 27 (12004 chars)
+[zcode] aborted runaway reasoning at step 28 (12001 chars)
+[zcode] aborted runaway reasoning at step 29 (12006 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] aborted runaway reasoning at step 30 (12001 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (aegis-level3, rep 0) - 370.59s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/aegis-level3 rep 1
+[zcode] reply step 1 finish=tool_calls budget=16384 content=45ch reasoning=0ch tools=['list_files', 'read_file'] tokens=1507/63
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=1096ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=1811/508
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.8s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111853061311967388268d9d6vo348wJZ)","type":"ne
+[zcode] HTTP 429, retry in 2.4s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111853085258271418268d9d6eq1OPJJC)","type":"ne
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=4372ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=2464/2016
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] step 3 run_probe -> exit=0
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=4717ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=4737/2143
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] step 4 run_probe -> exit=0
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=5765ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=7092/2387
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=4449ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=9699/1986
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=3016ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=11897/1456
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=11575ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=13636/4866
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 9 (12010 chars)
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=18826/41
+[zcode] step 10 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 11 (12001 chars)
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=7359ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=18946/3024
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=6657ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=22112/3187
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=84ch reasoning=11306ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=25510/5041
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=755ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=30768/505
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 16 (12001 chars)
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=3489ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=31485/1507
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=5638ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=33098/2064
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=3426ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=35305/1415
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=11107ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=36894/4359
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 21 (12001 chars)
+[zcode] aborted runaway reasoning at step 22 (12001 chars)
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=9385ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=41545/4106
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] HTTP 429, retry in 1.9s: {"error":{"code":"","message":"您已达到请求数限制：1分钟内最多请求1000次 (request id: 202611111859085687985498268d9d6pijsKkUX)","type":"ne
+[zcode] aborted runaway reasoning at step 24 (12001 chars)
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=4827ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=45897/1862
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=8394ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=47971/3798
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 27 (12001 chars)
+[zcode] reply step 28 finish=tool_calls budget=16384 content=0ch reasoning=1317ch tools=['submit_solution'] tokens=52038/1148
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794423643.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4.1-flash (aegis-level3, rep 0) - 467.40s 74/76 case(s) failed
+[pilot] done packed-record-v1/aegis-level3 rep 2
+records: 6 -> /src/bench-out/pilot-deepseek-clean
