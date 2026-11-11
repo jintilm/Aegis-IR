@@ -45,7 +45,9 @@ if [ -n "${REUSE_DATA:-}" ]; then
   # without spending the model budget again. The run.log is not recreated.
   echo "reusing existing run data from $REUSE_DATA" >&2
   cp -r "$REUSE_DATA" "$DATA"
-  : > "$OUT/run.log"
+  # The console log from the run that produced this data is evidence. A
+  # regeneration succeeds it rather than truncating it.
+  [ -s "$OUT/run.log" ] || : > "$OUT/run.log"
 else
   MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$REPO_ROOT:/src" \

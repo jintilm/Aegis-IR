@@ -14,6 +14,8 @@ __pycache__/
 
 # logs and scratch
 *.log
+# ...except a published pilot's console log, which is evidence, not scratch
+!docs/reports/**/run.log
 
 # benchmark output
 bench-out/
