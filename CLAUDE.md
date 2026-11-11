@@ -136,6 +136,14 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   `clang++-23`/`opt-23`.
 - When adding a run field, remember dataclass defaults must follow non-default fields and that
   `write_csv` has an explicit field list.
+- A pilot's README is generated from its JSONL; when a number is wrong, fix
+  `scripts/pilot-report.sh` and regenerate with `REUSE_DATA=<dir>`. The generator derives
+  repetitions per cell from the rows, so never pass a `REPS` that disagrees with the data.
+- Under `binary` access, wall clock can move **opposite** to tokens: the reasoning watchdog and
+  restart policy interact with how readable the listing is (a flattened dispatcher can produce
+  fewer runaways than straight-line code). Tokens are the cost signal; wall clock is a
+  latency-contaminated second opinion, and the report must say so rather than report a
+  negative delta as if protection made the agent faster.
 
 ## Where to read next
 
