@@ -1,0 +1,1226 @@
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=115ch tools=['list_files'] tokens=1806/51
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=98ch tools=['disassemble'] tokens=1886/72
+[zcode] step 2 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=18ch tools=['disassemble'] tokens=1996/66
+[zcode] step 3 disassemble -> [listing chars 0-8000 of 18036]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=110ch tools=['disassemble'] tokens=5968/109
+[zcode] step 4 disassemble -> [listing chars 8000-18036 of 18036]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=4778ch tools=['disassemble'] tokens=11219/2061
+[zcode] step 5 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1744
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=2300ch tools=['read_file'] tokens=13318/801
+[zcode] step 6 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=2877ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=14140/1135
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=14785ch tools=['disassemble'] tokens=15483/5243
+[zcode] step 8 disassemble -> [listing chars 17000-18036 of 18036]
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=8104ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=21272/2444
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 10 (24003 chars)
+[zcode] aborted runaway reasoning at step 11 (24005 chars)
+[zcode] aborted runaway reasoning at step 12 (24002 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=563ch tools=['disassemble'] tokens=1994/199
+[zcode] step 13 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=18ch tools=['disassemble'] tokens=2231/66
+[zcode] step 14 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=6879ch tools=['disassemble'] tokens=11319/3033
+[zcode] step 15 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=217ch tools=['read_file'] tokens=14390/99
+[zcode] step 16 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=2547ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=14510/1360
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=13145ch tools=['list_files'] tokens=16441/3698
+[zcode] step 18 list_files -> examples/sample_io.txt
+[zcode] aborted runaway reasoning at step 19 (24002 chars)
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=11651ch tools=['read_file'] tokens=20206/4281
+[zcode] step 20 read_file -> #pragma once
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=73ch tools=['read_file'] tokens=24686/66
+[zcode] step 21 read_file -> # Sample observations
+[zcode] aborted runaway reasoning at step 22 (24003 chars)
+[zcode] aborted runaway reasoning at step 23 (24002 chars)
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=11038ch tools=['disassemble'] tokens=25044/3781
+[zcode] step 24 disassemble -> error: symbol .rodata not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=47ch tools=['disassemble'] tokens=28863/64
+[zcode] step 25 disassemble -> error: no instruction at or after 0x2004; the listing covers 0x1000-0x1744
+[zcode] aborted runaway reasoning at step 26 (24001 chars)
+[zcode] aborted runaway reasoning at step 27 (24002 chars)
+[zcode] aborted runaway reasoning at step 28 (24003 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] aborted runaway reasoning at step 29 (24003 chars)
+[zcode] aborted runaway reasoning at step 30 (24001 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (baseline, rep 0) - 1009.78s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/baseline rep 0
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=93ch tools=['list_files'] tokens=1806/49
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=111ch tools=['disassemble'] tokens=1884/71
+[zcode] step 2 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=77ch tools=['disassemble'] tokens=1993/86
+[zcode] step 3 disassemble -> [listing chars 0-8000 of 18036]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=21ch tools=['disassemble'] tokens=5985/67
+[zcode] step 4 disassemble -> [listing chars 8000-18036 of 18036]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=193ch tools=['disassemble'] tokens=11194/132
+[zcode] step 5 disassemble -> error: no instruction at or after 0x2004; the listing covers 0x1000-0x1744
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=5040ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=11364/2390
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=652ch tools=['read_file'] tokens=14325/209
+[zcode] step 7 read_file -> error: probe looks binary (14712 bytes)
+[zcode] aborted runaway reasoning at step 8 (24001 chars)
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=14593/48
+[zcode] step 9 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 10 (24002 chars)
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=2307ch tools=['disassemble'] tokens=14720/737
+[zcode] step 11 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=18631ch tools=['disassemble'] tokens=15495/5003
+[zcode] step 12 disassemble -> error: offset 18036 is past the end of the 18036-char listing
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=12166ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20528/5327
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=5431ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=26450/2584
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=1081ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=29621/998
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 16 (24001 chars)
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=19172ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=31252/6648
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 18 (24007 chars)
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=5771ch tools=['read_file'] tokens=38053/1858
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (baseline, rep 0) - 493.15s adapter error: path escapes the workspace: /proc/self/maps
+[pilot] done packed-record-v1/baseline rep 1
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=114ch tools=['list_files', 'read_file', 'read_file'] tokens=1802/121
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=139ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=2359/147
+[zcode] step 2 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] step 2 disassemble -> error: symbol pr_fold not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] step 2 disassemble -> error: symbol pr_accept not found (the probe is stripped; try a hex address or page the listing with
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=63ch tools=['disassemble'] tokens=2612/79
+[zcode] step 3 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=14823ch tools=['disassemble'] tokens=11713/6709
+[zcode] step 4 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=485ch tools=['read_file'] tokens=18460/161
+[zcode] step 5 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=23470ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=18642/7980
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=3877ch tools=['disassemble'] tokens=27193/1160
+[zcode] step 7 disassemble -> error: offset 18036 is past the end of the 18036-char listing
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=18844ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28383/5703
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=36ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=34681/557
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=7ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=35825/551
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 11 (24003 chars)
+[zcode] aborted runaway reasoning at step 12 (24004 chars)
+[zcode] aborted runaway reasoning at step 13 (24003 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=73ch tools=['read_file'] tokens=1990/62
+[zcode] step 14 read_file -> #pragma once
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=2251/113
+[zcode] step 15 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] step 15 disassemble -> error: symbol pr_fold not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] step 15 disassemble -> error: symbol pr_accept not found (the probe is stripped; try a hex address or page the listing with
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=18ch tools=['disassemble'] tokens=2470/66
+[zcode] step 16 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=512ch tools=['disassemble'] tokens=11558/210
+[zcode] step 17 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=1232ch tools=['run_probe'] tokens=11806/531
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=87ch tools=['run_probe'] tokens=12375/69
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=1104ch tools=['run_probe'] tokens=12485/578
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=6872ch tools=['read_file'] tokens=13104/2732
+[zcode] step 21 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=385ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=15857/647
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=7213ch tools=['disassemble'] tokens=17075/2027
+[zcode] step 23 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1744
+[zcode] aborted runaway reasoning at step 24 (24001 chars)
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=6476ch tools=['disassemble'] tokens=19178/1658
+[zcode] step 25 disassemble -> error: no instruction at or after 0x2022; the listing covers 0x1000-0x1744
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=15799ch tools=['list_files'] tokens=20874/6769
+[zcode] step 26 list_files -> examples/sample_io.txt
+[zcode] reply step 27 finish=tool_calls budget=16384 content=0ch reasoning=3689ch tools=['submit_solution'] tokens=27693/2734
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794432124.cpp
+[PASS] packed-record-v1 / openai-deepseek-v4-pro (baseline, rep 0) - 631.95s 
+[pilot] done packed-record-v1/baseline rep 2
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=110ch tools=['list_files', 'read_file', 'read_file'] tokens=1806/117
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=81ch tools=['disassemble'] tokens=2359/81
+[zcode] step 2 disassemble -> error: symbol main not found (the probe is stripped; try a hex address or page the listing with offs
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=18ch tools=['disassemble'] tokens=2476/66
+[zcode] step 3 disassemble -> [listing chars 0-12000 of 18036]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=18ch tools=['disassemble'] tokens=8485/67
+[zcode] step 4 disassemble -> [listing chars 12000-18036 of 18036]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=10980ch tools=['disassemble'] tokens=11656/5057
+[zcode] step 5 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=3543ch tools=['read_file'] tokens=16751/1432
+[zcode] step 6 read_file -> error: probe looks binary (14712 bytes)
+[zcode] aborted runaway reasoning at step 7 (24009 chars)
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=5146ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=18242/1727
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=17027ch tools=['disassemble'] tokens=20244/5142
+[zcode] step 9 disassemble -> error: symbol .rodata not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=5312ch tools=['list_files'] tokens=25424/1480
+[zcode] step 10 list_files -> examples/sample_io.txt
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=2030ch tools=['disassemble'] tokens=26933/602
+[zcode] step 11 disassemble -> error: no instruction at or after 0x2004; the listing covers 0x1000-0x1744
+[zcode] aborted runaway reasoning at step 12 (24003 chars)
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=17950ch tools=['disassemble'] tokens=27611/4976
+[zcode] step 13 disassemble -> error: offset 18036 is past the end of the 18036-char listing
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=8665ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=32617/4031
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 15 (24002 chars)
+[zcode] aborted runaway reasoning at step 16 (24002 chars)
+[zcode] aborted runaway reasoning at step 17 (24002 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=205ch tools=['disassemble'] tokens=1994/92
+[zcode] step 18 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=93ch tools=['disassemble'] tokens=2124/85
+[zcode] step 19 disassemble -> [listing chars 0-12000 of 18036]
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=152ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=8152/215
+[zcode] step 20 disassemble -> [from address 0x15a0]
+[zcode] step 20 disassemble -> [from address 0x1620]
+[zcode] step 20 disassemble -> [from address 0x1710]
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=2474ch tools=['disassemble'] tokens=10819/1114
+[zcode] step 21 disassemble -> [from address 0x16f0]
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=2438ch tools=['disassemble'] tokens=12217/1048
+[zcode] step 22 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=147ch tools=['list_files'] tokens=13303/62
+[zcode] step 23 list_files -> examples/sample_io.txt
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=1976ch tools=['run_probe'] tokens=13394/690
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=2226ch tools=['read_file'] tokens=14125/870
+[zcode] step 25 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=5375ch tools=['disassemble'] tokens=15016/1407
+[zcode] step 26 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] aborted runaway reasoning at step 27 (24005 chars)
+[zcode] aborted runaway reasoning at step 28 (24005 chars)
+[zcode] aborted runaway reasoning at step 29 (24002 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] aborted runaway reasoning at step 30 (24008 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (baseline, rep 0) - 846.52s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/baseline rep 3
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=150ch tools=['list_files', 'read_file', 'read_file'] tokens=1805/131
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=191ch tools=['disassemble'] tokens=2372/86
+[zcode] step 2 disassemble -> error: symbol main not found (the probe is stripped; try a hex address or page the listing with offs
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=51ch tools=['disassemble'] tokens=2494/76
+[zcode] step 3 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=6599ch tools=['disassemble'] tokens=11592/2895
+[zcode] step 4 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=7957ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=14525/3565
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=1587ch tools=['read_file'] tokens=18661/532
+[zcode] step 6 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=14195ch tools=['disassemble'] tokens=19214/4338
+[zcode] step 7 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1744
+[zcode] aborted runaway reasoning at step 8 (24002 chars)
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=23628/47
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=1953ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=23716/1236
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=1949ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=25510/1335
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=3013ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=27432/1723
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 13 (24001 chars)
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=29788/47
+[zcode] step 14 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 15 (24004 chars)
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=29914/47
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=7552ch tools=['disassemble'] tokens=30002/2982
+[zcode] step 17 disassemble -> [listing chars 17000-18036 of 18036]
+[zcode] aborted runaway reasoning at step 18 (24001 chars)
+[zcode] aborted runaway reasoning at step 19 (24003 chars)
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=33606/47
+[zcode] step 20 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 21 (24001 chars)
+[zcode] aborted runaway reasoning at step 22 (24001 chars)
+[zcode] aborted runaway reasoning at step 23 (24001 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=133ch tools=['list_files', 'read_file'] tokens=2068/88
+[zcode] step 24 list_files -> examples/sample_io.txt
+[zcode] step 24 read_file -> #pragma once
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=37ch tools=['disassemble'] tokens=2380/72
+[zcode] step 25 disassemble -> [listing chars 0-18036 of 18036]
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=6020ch tools=['disassemble'] tokens=11474/2654
+[zcode] step 26 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1744
+[zcode] aborted runaway reasoning at step 27 (24003 chars)
+[zcode] reply step 28 finish=tool_calls budget=16384 content=0ch reasoning=15336ch tools=['submit_solution'] tokens=14222/5994
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794433804.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (baseline, rep 0) - 833.94s 74/76 case(s) failed
+[pilot] done packed-record-v1/baseline rep 4
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=177ch tools=['list_files', 'read_file', 'read_file'] tokens=1804/136
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=64ch tools=['disassemble'] tokens=2376/77
+[zcode] step 2 disassemble -> [listing chars 0-8000 of 33341]
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=140ch tools=['disassemble'] tokens=6359/109
+[zcode] step 3 disassemble -> [listing chars 14000-26000 of 33341]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=365ch tools=['disassemble'] tokens=12471/161
+[zcode] step 4 disassemble -> [from address 0x15a0]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=1319ch tools=['run_probe'] tokens=15613/484
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=25ch tools=['run_probe'] tokens=16138/49
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=5859ch tools=['run_probe'] tokens=16225/2105
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=867ch tools=['run_probe'] tokens=18371/352
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=10775ch tools=['run_probe'] tokens=18764/5010
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=6783ch tools=['run_probe'] tokens=23815/3164
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=9654ch tools=['run_probe'] tokens=27020/4297
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=5120ch tools=['disassemble'] tokens=31358/2502
+[zcode] step 12 disassemble -> [from address 0x1680]
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['disassemble'] tokens=34132/65
+[zcode] step 13 disassemble -> [from address 0x16a9]
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=4798ch tools=['run_probe'] tokens=34472/1909
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=6876ch tools=['run_probe'] tokens=36422/3224
+[zcode] step 15 run_probe -> exit=0
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=657ch tools=['run_probe'] tokens=39687/207
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=1292ch tools=['run_probe'] tokens=39935/552
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=2152ch tools=['run_probe'] tokens=40528/907
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=177ch tools=['run_probe'] tokens=41473/108
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=3292ch tools=['disassemble'] tokens=41619/1202
+[zcode] step 20 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1d60
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=1716ch tools=['run_probe'] tokens=42860/549
+[zcode] step 21 run_probe -> exit=0
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=242ch tools=['run_probe'] tokens=43450/145
+[zcode] step 22 run_probe -> exit=0
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=1172ch tools=['run_probe'] tokens=43636/626
+[zcode] step 23 run_probe -> exit=0
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=4463ch tools=['run_probe'] tokens=44301/1730
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=1036ch tools=['run_probe'] tokens=46072/409
+[zcode] step 25 run_probe -> exit=0
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=331ch tools=['run_probe'] tokens=46520/206
+[zcode] step 26 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 27 (24001 chars)
+[zcode] reply step 28 finish=tool_calls budget=16384 content=0ch reasoning=17430ch tools=['submit_solution'] tokens=46823/7135
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794434202.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (aegis-level3, rep 0) - 397.29s 74/76 case(s) failed
+[pilot] done packed-record-v1/aegis-level3 rep 0
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=129ch tools=['list_files'] tokens=1803/57
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=85ch tools=['read_file', 'run_probe', 'run_probe', 'run_probe'] tokens=1889/162
+[zcode] step 2 read_file -> #pragma once
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] step 2 run_probe -> exit=0
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=150ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=2358/146
+[zcode] step 3 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] step 3 disassemble -> error: symbol pr_fold not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] step 3 disassemble -> error: symbol pr_accept not found (the probe is stripped; try a hex address or page the listing with
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=73ch tools=['disassemble'] tokens=2610/83
+[zcode] step 4 disassemble -> [listing chars 0-20000 of 33341]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=169ch tools=['disassemble'] tokens=12581/117
+[zcode] step 5 disassemble -> [listing chars 20000-33341 of 33341]
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=3430ch tools=['disassemble'] tokens=19722/1410
+[zcode] step 6 disassemble -> error: no instruction at or after 0x2220; the listing covers 0x1000-0x1d60
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=150ch tools=['read_file'] tokens=21171/86
+[zcode] step 7 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=3122ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=21278/1363
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=439ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=22932/504
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=669ch tools=['run_probe'] tokens=23746/303
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=85ch tools=['run_probe'] tokens=24090/77
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=5540ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=24207/2586
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=2072ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=27110/1092
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=20359ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28456/8522
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=2403ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=37273/1121
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=2400ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=38509/1258
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=3513ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=40065/1868
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] step 17 run_probe -> exit=0
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=982ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=42048/854
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=17916ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=43290/8128
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=17559ch tools=['disassemble'] tokens=51989/4654
+[zcode] step 20 disassemble -> error: offset 33341 is past the end of the 33341-char listing
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=80ch tools=['disassemble'] tokens=56673/75
+[zcode] step 21 disassemble -> error: no instruction at or after 0x20b0; the listing covers 0x1000-0x1d60
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=14334ch tools=['disassemble'] tokens=56788/4092
+[zcode] step 22 disassemble -> error: no instruction at or after 0x2004; the listing covers 0x1000-0x1d60
+[zcode] aborted runaway reasoning at step 23 (24001 chars)
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=395ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=60957/602
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=7780ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=62117/3796
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=4528ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=67128/2078
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] step 26 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 27 (24002 chars)
+[zcode] aborted runaway reasoning at step 28 (24001 chars)
+[zcode] reply step 29 finish=tool_calls budget=16384 content=0ch reasoning=12137ch tools=['submit_solution'] tokens=69482/5931
+[zcode] saved submission /src/bench-out/submissions/packed-record-v1-1794434855.cpp
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (aegis-level3, rep 0) - 653.08s 73/76 case(s) failed
+[pilot] done packed-record-v1/aegis-level3 rep 1
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=73ch tools=['list_files', 'read_file', 'read_file'] tokens=1804/114
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=68ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=2354/128
+[zcode] step 2 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] step 2 disassemble -> error: symbol pr_fold not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] step 2 disassemble -> error: symbol pr_accept not found (the probe is stripped; try a hex address or page the listing with
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=61ch tools=['disassemble'] tokens=2588/80
+[zcode] step 3 disassemble -> [listing chars 0-20000 of 33341]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=55ch tools=['disassemble'] tokens=12556/76
+[zcode] step 4 disassemble -> [listing chars 20000-33341 of 33341]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=1349ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=19656/655
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=1189ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20597/650
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=831ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=21528/662
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=2182ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=22473/1160
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=1593ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=23931/900
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=1349ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=25114/847
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=135ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=26243/341
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=209ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=26860/369
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] step 12 run_probe -> exit=0
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=1717ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=27520/740
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=4881ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28412/2174
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=6969ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=30798/2726
+[zcode] step 15 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1d60
+[zcode] step 15 disassemble -> error: no instruction at or after 0x20b0; the listing covers 0x1000-0x1d60
+[zcode] step 15 disassemble -> error: no instruction at or after 0x20f0; the listing covers 0x1000-0x1d60
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=7389ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=33635/3183
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=1782ch tools=['read_file'] tokens=37389/489
+[zcode] step 17 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=3793ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=37899/1772
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] step 18 run_probe -> exit=0
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=307ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=39947/285
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=624ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=40371/389
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=597ch tools=['run_probe'] tokens=40900/286
+[zcode] step 21 run_probe -> exit=0
+[zcode] reply step 22 finish=tool_calls budget=16384 content=0ch reasoning=1599ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=41224/645
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] step 22 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 23 (24001 chars)
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['disassemble'] tokens=42059/66
+[zcode] step 24 disassemble -> [from address 0x15a0]
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=101ch tools=['disassemble'] tokens=43136/89
+[zcode] step 25 disassemble -> [from address 0x163f]
+[zcode] reply step 26 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['disassemble'] tokens=43986/64
+[zcode] step 26 disassemble -> [from address 0x16be]
+[zcode] aborted runaway reasoning at step 27 (24001 chars)
+[zcode] aborted runaway reasoning at step 28 (24004 chars)
+[zcode] reply step 29 finish=tool_calls budget=16384 content=0ch reasoning=11828ch tools=['run_probe'] tokens=44558/4471
+[zcode] step 29 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 30 (24001 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (aegis-level3, rep 0) - 510.85s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/aegis-level3 rep 2
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=161ch tools=['list_files'] tokens=1805/63
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=161ch tools=['disassemble'] tokens=1897/99
+[zcode] step 2 disassemble -> [listing chars 0-20000 of 33341]
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=63ch tools=['disassemble'] tokens=11884/79
+[zcode] step 3 disassemble -> [listing chars 20000-33341 of 33341]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=3249ch tools=['disassemble'] tokens=18987/1228
+[zcode] step 4 disassemble -> error: no instruction at or after 0x2220; the listing covers 0x1000-0x1d60
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=7022ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20254/2888
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] step 5 run_probe -> exit=0
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=754ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=23713/834
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=4104ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=25155/1801
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] step 7 run_probe -> exit=0
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=4048ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=27272/1652
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=5931ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=29105/2369
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=12170ch tools=['read_file'] tokens=31765/4664
+[zcode] step 10 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=12659ch tools=['list_files'] tokens=36450/3377
+[zcode] step 11 list_files -> examples/sample_io.txt
+[zcode] reply step 12 finish=tool_calls budget=16384 content=0ch reasoning=7719ch tools=['disassemble'] tokens=39856/2215
+[zcode] step 12 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1d60
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=9065ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=42110/2604
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=1367ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=44854/662
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=832ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=45656/443
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] reply step 16 finish=tool_calls budget=16384 content=0ch reasoning=433ch tools=['run_probe', 'run_probe', 'run_probe'] tokens=46205/305
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] step 16 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 17 (24001 chars)
+[zcode] reply step 18 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=46653/47
+[zcode] step 18 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 19 (24001 chars)
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=326ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=46776/382
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] step 20 run_probe -> exit=0
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=9638ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=47454/3177
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] step 21 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 22 (24001 chars)
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=43ch tools=['run_probe'] tokens=50963/58
+[zcode] step 23 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 24 (24004 chars)
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=12542ch tools=['disassemble'] tokens=51100/4320
+[zcode] step 25 disassemble -> error: no instruction at or after 0x2040; the listing covers 0x1000-0x1d60
+[zcode] aborted runaway reasoning at step 26 (24002 chars)
+[zcode] reply step 27 finish=tool_calls budget=16384 content=0ch reasoning=12558ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=55518/4256
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] step 27 run_probe -> exit=0
+[zcode] reply step 28 finish=tool_calls budget=16384 content=0ch reasoning=6126ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=60353/3516
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] step 28 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 29 (24001 chars)
+[zcode] aborted runaway reasoning at step 30 (24002 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (aegis-level3, rep 0) - 859.40s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/aegis-level3 rep 3
+[zcode] reply step 1 finish=tool_calls budget=16384 content=0ch reasoning=144ch tools=['list_files', 'read_file', 'read_file'] tokens=1804/127
+[zcode] step 1 list_files -> examples/sample_io.txt
+[zcode] step 1 read_file -> #pragma once
+[zcode] step 1 read_file -> # Sample observations
+[zcode] reply step 2 finish=tool_calls budget=16384 content=0ch reasoning=117ch tools=['disassemble', 'disassemble', 'disassemble'] tokens=2367/141
+[zcode] step 2 disassemble -> error: symbol pr_flags not found (the probe is stripped; try a hex address or page the listing with 
+[zcode] step 2 disassemble -> error: symbol pr_fold not found (the probe is stripped; try a hex address or page the listing with o
+[zcode] step 2 disassemble -> error: symbol pr_accept not found (the probe is stripped; try a hex address or page the listing with
+[zcode] reply step 3 finish=tool_calls budget=16384 content=0ch reasoning=63ch tools=['disassemble'] tokens=2614/79
+[zcode] step 3 disassemble -> [listing chars 0-20000 of 33341]
+[zcode] reply step 4 finish=tool_calls budget=16384 content=0ch reasoning=261ch tools=['disassemble'] tokens=12581/146
+[zcode] step 4 disassemble -> [listing chars 20000-33341 of 33341]
+[zcode] reply step 5 finish=tool_calls budget=16384 content=0ch reasoning=2476ch tools=['disassemble'] tokens=19751/927
+[zcode] step 5 disassemble -> error: no instruction at or after 0x2000; the listing covers 0x1000-0x1d60
+[zcode] reply step 6 finish=tool_calls budget=16384 content=0ch reasoning=257ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=20717/200
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] step 6 run_probe -> exit=0
+[zcode] reply step 7 finish=tool_calls budget=16384 content=0ch reasoning=10502ch tools=['read_file'] tokens=21066/3821
+[zcode] step 7 read_file -> error: probe looks binary (14712 bytes)
+[zcode] reply step 8 finish=tool_calls budget=16384 content=0ch reasoning=9883ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=24908/3161
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] step 8 run_probe -> exit=0
+[zcode] reply step 9 finish=tool_calls budget=16384 content=0ch reasoning=169ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=28344/483
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] step 9 run_probe -> exit=0
+[zcode] reply step 10 finish=tool_calls budget=16384 content=0ch reasoning=2270ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=29275/1290
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] step 10 run_probe -> exit=0
+[zcode] reply step 11 finish=tool_calls budget=16384 content=0ch reasoning=8899ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=30716/4062
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] step 11 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 12 (24002 chars)
+[zcode] reply step 13 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=34968/45
+[zcode] step 13 run_probe -> exit=0
+[zcode] reply step 14 finish=tool_calls budget=16384 content=0ch reasoning=15868ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=35054/7430
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] step 14 run_probe -> exit=0
+[zcode] reply step 15 finish=tool_calls budget=16384 content=0ch reasoning=932ch tools=['run_probe', 'run_probe'] tokens=42783/512
+[zcode] step 15 run_probe -> exit=0
+[zcode] step 15 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 16 (24002 chars)
+[zcode] reply step 17 finish=tool_calls budget=16384 content=0ch reasoning=0ch tools=['run_probe'] tokens=43411/54
+[zcode] step 17 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 18 (24001 chars)
+[zcode] reply step 19 finish=tool_calls budget=16384 content=0ch reasoning=726ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=43544/770
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] step 19 run_probe -> exit=0
+[zcode] reply step 20 finish=tool_calls budget=16384 content=0ch reasoning=14963ch tools=['list_files'] tokens=44885/4814
+[zcode] step 20 list_files -> examples/sample_io.txt
+[zcode] reply step 21 finish=tool_calls budget=16384 content=0ch reasoning=8138ch tools=['disassemble'] tokens=49728/2099
+[zcode] step 21 disassemble -> [listing chars 33000-33341 of 33341]
+[zcode] aborted runaway reasoning at step 22 (24004 chars)
+[zcode] reply step 23 finish=tool_calls budget=16384 content=0ch reasoning=4955ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=52056/2034
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] step 23 run_probe -> exit=0
+[zcode] reply step 24 finish=tool_calls budget=16384 content=0ch reasoning=6553ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=54685/2906
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] step 24 run_probe -> exit=0
+[zcode] reply step 25 finish=tool_calls budget=16384 content=0ch reasoning=15ch tools=['run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe', 'run_probe'] tokens=58178/559
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] step 25 run_probe -> exit=0
+[zcode] aborted runaway reasoning at step 26 (24004 chars)
+[zcode] aborted runaway reasoning at step 27 (24003 chars)
+[zcode] aborted runaway reasoning at step 28 (24005 chars)
+[zcode] restarting conversation after repeated truncation
+[zcode] aborted runaway reasoning at step 29 (24001 chars)
+[zcode] aborted runaway reasoning at step 30 (24009 chars)
+[FAIL] packed-record-v1 / openai-deepseek-v4-pro (aegis-level3, rep 0) - 893.58s adapter error: model produced no solution (step limit)
+[pilot] done packed-record-v1/aegis-level3 rep 4
+records: 10 -> /src/bench-out/pilot-binary-pro-n5
