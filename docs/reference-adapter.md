@@ -47,6 +47,12 @@ an `oracle`-access comparison cannot show an effect at all (the shim is
 identical in every profile), so it is a black-box synthesis result, not a
 protection result.
 
+The reference static tool is a **linear disassembler**, not a decompiler. That
+is a deliberate, stated limitation: the measured adversary is weaker than a C2
+attacker holding Ghidra/IDA and a scripting layer. A `binary`-access result
+therefore bounds the protection cost from below against such an attacker, and
+anything built on it must say so.
+
 `submit_solution` is the only accepted delivery path; prose extraction is a
 fallback and must be recorded in the ledger (see below).
 
