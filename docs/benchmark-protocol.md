@@ -101,10 +101,20 @@ process-level execution accounting, which this harness does not yet have.
 
 ### Task calibration
 
-A task can only support a protection comparison if its **unprotected**
-baseline is solvable sometimes. At 0/N there is no headroom for a transform to
-consume; at N/N there is nothing left to slow down. Every binary-recovery task
-therefore carries a `calibration` record in its manifest:
+A task's usefulness depends on how hard its **unprotected** baseline is, and on
+which number is being read:
+
+- at the **floor** (baseline never succeeds) there is no headroom, and neither
+  a success-rate nor a cost delta is interpretable — the agent fails for reasons
+  unrelated to protection;
+- at the **ceiling** (baseline always succeeds) a success-rate delta is
+  saturated and uninterpretable, but a **cost** delta still is: the success
+  criterion is held fixed across both arms, which is exactly the benchmark's
+  primary metric;
+- **comparison-ready** (baseline passes sometimes) supports both.
+
+Every binary-recovery task therefore carries a `calibration` record in its
+manifest, one per access mode:
 
 ```json
 "calibration": {
@@ -131,7 +141,8 @@ therefore carries a `calibration` record in its manifest:
 - `floor` means the baseline never passed, `ceiling` that it always did, and
   `comparison-ready` that it landed strictly between. The loader rejects a
   label that contradicts its own rate, and rejects a calibrated record without
-  a model, a date and a run count.
+  a model, a date and a run count. A `ceiling` task can still be used for a
+  cost comparison; the reports say which kind of number is interpretable.
 - Calibration is **model- and access-specific**: the same task can be at the
   floor for a small model under `oracle` access and comparison-ready for a
   larger one under `binary` access. Recalibrate when either changes; a run's

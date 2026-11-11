@@ -64,6 +64,13 @@
       "baseline_pass_rate": 0.0,
       "runs": 3,
       "date": "2026-11-11"
+    },
+    "binary": {
+      "status": "ceiling",
+      "model": "deepseek-v4-pro",
+      "baseline_pass_rate": 1.0,
+      "runs": 2,
+      "date": "2026-11-12"
     }
   },
   "content_hash": "sha256:61c3c050029311667a579970205440788e3ef1a88ac94a0e6e571a76e26cd982"

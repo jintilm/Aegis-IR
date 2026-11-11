@@ -231,14 +231,16 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         if any((cal.get("status") or "uncalibrated") != "comparison-ready"
                for _, _, cal in calibration_rows):
             lines += [
-                "**Calibration.** At least one task has no calibrated, "
-                "measurable baseline for this agent: its unprotected profile is "
-                "at the floor (never succeeds) or the ceiling (always "
-                "succeeds), or was never calibrated. A cost delta on such a "
-                "task cannot demonstrate a protection effect — at the floor "
-                "there is no headroom, at the ceiling nothing left to slow "
-                "down. Recalibrate the task before interpreting the deltas "
-                "below.",
+                "**Calibration.** At least one task is not `comparison-ready` "
+                "for this agent and access mode. What that costs the reader "
+                "depends on which number is being read: at the **floor** "
+                "(baseline never succeeds) there is no headroom and neither a "
+                "success nor a cost delta is interpretable; at the "
+                "**ceiling** (baseline always succeeds) a *success-rate* delta "
+                "is uninterpretable but a **cost** delta still is, because the "
+                "success criterion is held fixed across both arms; with no "
+                "record at all, treat both as descriptive. Recalibrate before "
+                "citing anything here as an effect.",
                 "",
             ]
     if any(record.private for record in records):

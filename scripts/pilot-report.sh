@@ -125,22 +125,26 @@ def declared_calibration(task_id: str, mode: str) -> dict:
 
 mode = access.split(" ")[0]
 cal_lines: list[str] = []
-not_comparison_ready = False
+cal_status: list[tuple[str, str]] = []
 for task_id in (t for t in tasks.split(",") if t):
     cal = declared_calibration(task_id, mode)
     if not cal:
         cal_lines.append(f"- task calibration: `{task_id}` has no record for "
                          f"`{mode}` access")
-        not_comparison_ready = True
+        cal_status.append((task_id, "uncalibrated"))
         continue
     status = cal.get("status", "uncalibrated")
-    not_comparison_ready = not_comparison_ready or status != "comparison-ready"
     rate = cal.get("baseline_pass_rate")
     rate_text = f"{float(rate):.0%}" if isinstance(rate, (int, float)) else "n/a"
     cal_lines.append(
         f"- task calibration: `{task_id}` under `{mode}` access is "
         f"**{status}** — baseline {rate_text} over N={cal.get('runs', '?')} "
         f"(`{cal.get('model', '?')}`, {cal.get('date', '?')})")
+    cal_status.append((task_id, status))
+
+floor_tasks = [t for t, s in cal_status if s != "ceiling"
+               and s != "comparison-ready"]
+ceiling_tasks = [t for t, s in cal_status if s == "ceiling"]
 
 lines = [
     f"# Pilot report: {name}", "",
@@ -209,12 +213,20 @@ lines += [
        "level-vs-baseline difference here is noise, not evidence. Protection "
        "comparisons need `--access binary`.", ""]
       if access.startswith("oracle") else []),
-    *(["- **The task's unprotected baseline is not comparison-ready** (see the "
-       "calibration line above): it is at the floor, at the ceiling, or has no "
-       "record for this access mode. A cost delta on such a task cannot show a "
-       "protection effect — at the floor there is no headroom, at the ceiling "
-       "nothing left to slow down.", ""]
-      if not_comparison_ready else []),
+    *([f"- **`{', '.join(floor_tasks)}` is not calibrated to a measurable "
+       "baseline** for this agent and access mode: the baseline never passed "
+       "there, or there is no record. Neither a success-rate nor a cost delta "
+       "is interpretable on such a task — the agent fails for reasons that "
+       "have nothing to do with the protection.", ""]
+      if floor_tasks else []),
+    *([f"- **`{', '.join(ceiling_tasks)}` is at the ceiling** for this agent "
+       "and access mode: the unprotected baseline already passes every run. A "
+       "*success-rate* delta is therefore saturated and meaningless, but a "
+       "**cost** delta is still interpretable, because both arms are held to "
+       "the same success criterion. Read the token/wall figures, not the pass "
+       "column, and do not describe the result as protection changing "
+       "success.", ""]
+      if ceiling_tasks else []),
     "- **No effectiveness claim.** N is small, only one task and one model were "
     "run, and the model sits at or near the floor on this task; a 0% vs 0% "
     "comparison cannot demonstrate a protection effect.",

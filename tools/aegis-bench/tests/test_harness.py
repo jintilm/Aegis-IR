@@ -760,7 +760,8 @@ class BinaryAccessTests(unittest.TestCase):
             markdown = paths["markdown"].read_text(encoding="utf-8")
         self.assertIn("- Calibration:", markdown)
         self.assertIn("uncalibrated", markdown)
-        self.assertIn("cannot demonstrate a protection effect", markdown)
+        self.assertIn("Recalibrate before citing anything here as an effect",
+                      markdown)
 
 
 
