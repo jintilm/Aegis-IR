@@ -397,7 +397,8 @@ class Runner:
             agent=agent.name, adversary=agent.adversary,
             adapter_version=str(getattr(agent, "version", "")),
             access=access,
-            calibration=task.calibration.to_dict(),
+            calibration={mode: cal.to_dict()
+                         for mode, cal in task.calibration.items()},
             profile=profile,
             repetition=repetition, started_utc=started_utc,
             duration_seconds=time.time() - started, grade=grade,

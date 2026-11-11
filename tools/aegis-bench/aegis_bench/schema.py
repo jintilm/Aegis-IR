@@ -141,29 +141,24 @@ class Calibration:
         return self.status == "comparison-ready"
 
 
-def _calibration(raw: Any, task_id: str) -> Calibration:
-    if raw is None:
-        return Calibration()
+def _calibration_entry(raw: Any, task_id: str, access: str) -> Calibration:
     if not isinstance(raw, dict):
-        raise TaskError(f"{task_id}: 'calibration' must be an object")
+        raise TaskError(f"{task_id}: calibration['{access}'] must be an object")
     status = raw.get("status", "uncalibrated")
     if status not in CALIBRATION_STATUSES:
         raise TaskError(
-            f"{task_id}: calibration.status must be one of "
+            f"{task_id}: calibration['{access}'].status must be one of "
             f"{CALIBRATION_STATUSES}, got {status!r}")
     if status == "uncalibrated":
-        return Calibration()
-    access = raw.get("access", "")
-    if access not in ACCESS_MODES:
-        raise TaskError(f"{task_id}: calibration.access must be one of "
-                        f"{ACCESS_MODES}, got {access!r}")
+        return Calibration(status=status, access=access)
     runs = raw.get("runs", 0)
     if not isinstance(runs, int) or runs < 1:
-        raise TaskError(f"{task_id}: calibration.runs must be a positive int")
+        raise TaskError(f"{task_id}: calibration['{access}'].runs must be a "
+                        f"positive int")
     rate = raw.get("baseline_pass_rate")
     if not isinstance(rate, (int, float)) or not 0.0 <= float(rate) <= 1.0:
-        raise TaskError(f"{task_id}: calibration.baseline_pass_rate must be "
-                        f"a number in [0, 1]")
+        raise TaskError(f"{task_id}: calibration['{access}']."
+                        f"baseline_pass_rate must be a number in [0, 1]")
     if status == "floor" and float(rate) != 0.0:
         raise TaskError(f"{task_id}: calibration.status 'floor' requires a "
                         f"0.0 baseline pass rate")
@@ -180,6 +175,27 @@ def _calibration(raw: Any, task_id: str) -> Calibration:
     return Calibration(status=status, model=str(raw["model"]), access=access,
                        baseline_pass_rate=float(rate), runs=runs,
                        date=str(raw["date"]))
+
+
+def _calibrations(raw: Any, task_id: str) -> dict[str, Calibration]:
+    """Parse ``{"oracle": {...}, "binary": {...}}`` keyed by access mode.
+
+    One record per access mode, because the same task can be at the floor for a
+    black-box agent and solvable for one that can read the binary. A single
+    flat record would silently describe only one of those runs.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TaskError(f"{task_id}: 'calibration' must be an object keyed by "
+                        f"access mode ({', '.join(ACCESS_MODES)})")
+    out: dict[str, Calibration] = {}
+    for access, entry in raw.items():
+        if access not in ACCESS_MODES:
+            raise TaskError(f"{task_id}: calibration key must be one of "
+                            f"{ACCESS_MODES}, got {access!r}")
+        out[access] = _calibration_entry(entry, task_id, access)
+    return out
 
 
 @dataclass(frozen=True)
@@ -226,7 +242,7 @@ class Task:
     task_type: str = "reimplement"
     artifact: ArtifactRecipe | None = None
     private: bool = False
-    calibration: Calibration = field(default_factory=Calibration)
+    calibration: dict[str, Calibration] = field(default_factory=dict)
 
     # -- helpers ---------------------------------------------------------
 
@@ -434,7 +450,7 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
         task_type=task_type,
         artifact=artifact,
         private=_require(raw, "private", bool) if "private" in raw else False,
-        calibration=_calibration(raw.get("calibration"), task_id),
+        calibration=_calibrations(raw.get("calibration"), task_id),
     )
 
     # Private tasks live outside the public tree and their results are never

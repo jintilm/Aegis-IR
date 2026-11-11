@@ -108,19 +108,30 @@ therefore carries a `calibration` record in its manifest:
 
 ```json
 "calibration": {
-  "status": "floor",              // uncalibrated | floor | ceiling | comparison-ready
-  "model": "deepseek-v4.1-flash",
-  "access": "oracle",             // calibration is access-specific
-  "baseline_pass_rate": 0.0,
-  "runs": 3,
-  "date": "2026-11-11"
+  "oracle": {
+    "status": "floor",            // uncalibrated | floor | ceiling | comparison-ready
+    "model": "deepseek-v4.1-flash",
+    "baseline_pass_rate": 0.0,
+    "runs": 3,
+    "date": "2026-11-11"
+  },
+  "binary": {
+    "status": "comparison-ready",
+    "model": "deepseek-v4-pro",
+    "baseline_pass_rate": 0.5,
+    "runs": 2,
+    "date": "2026-11-12"
+  }
 }
 ```
 
+- One record per **access mode**, because the same task can be at the floor for
+  a black-box agent and solvable for one that can read the binary. A single
+  flat record would silently describe only one of those runs.
 - `floor` means the baseline never passed, `ceiling` that it always did, and
   `comparison-ready` that it landed strictly between. The loader rejects a
   label that contradicts its own rate, and rejects a calibrated record without
-  a model, an access mode, a date and a run count.
+  a model, a date and a run count.
 - Calibration is **model- and access-specific**: the same task can be at the
   floor for a small model under `oracle` access and comparison-ready for a
   larger one under `binary` access. Recalibrate when either changes; a run's

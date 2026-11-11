@@ -8,15 +8,17 @@ versions follow SemVer once past alpha.
 ### Added
 
 - **Task calibration record** — binary-recovery manifests may carry a
-  `calibration` object (`status`, `model`, `access`, `baseline_pass_rate`,
-  `runs`, `date`). The loader rejects a label that contradicts its own rate
-  (`floor` with 0.4, `comparison-ready` with 0 or 1) or a calibrated record
-  without a model/access/date/run count. Run rows carry it, reports print it,
+  `calibration` object **keyed by access mode** (`oracle`/`binary`), each with
+  `status`, `model`, `baseline_pass_rate`, `runs`, `date`. One record per mode
+  because a task can be at the floor for a black-box agent and solvable for one
+  that can read the binary. The loader rejects a label that contradicts its own
+  rate (`floor` with 0.4, `comparison-ready` with 0 or 1) or a calibrated
+  record without a model/date/run count. Run rows carry it, reports print it,
   and a report warns when a comparison was run on a task whose unprotected
   baseline is at the floor, at the ceiling, or never calibrated. The record is
   deliberately outside `content_hash`: it is measurement metadata, not task
-  semantics. `packed-record-v1` is recorded as `floor` for
-  `deepseek-v4.1-flash` under `oracle` access (0/3).
+  semantics. `packed-record-v1` is recorded as `floor` under `oracle` access
+  (0/3, `deepseek-v4.1-flash`).
 - **`aegis-cff`** — level 2/3 control-flow transforms.
   - Level 2: an input-driven live split at the decoy guard plus 1–2
     opaque-predicate bogus edges backed by `@__aegis.cff.salt` (internal, zero,

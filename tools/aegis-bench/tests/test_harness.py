@@ -136,25 +136,26 @@ class SchemaTests(unittest.TestCase):
                 (copy / "task.json").write_text(json.dumps(manifest))
                 return load_task(copy, verify_hash=False)
 
-            self.assertTrue(load_with({
-                "status": "floor", "model": "m", "access": "oracle",
-                "baseline_pass_rate": 0.0, "runs": 3,
-                "date": "2026-11-11"}).calibration.status == "floor")
+            task = load_with({"oracle": {
+                "status": "floor", "model": "m", "baseline_pass_rate": 0.0,
+                "runs": 3, "date": "2026-11-11"}})
+            self.assertEqual(task.calibration["oracle"].status, "floor")
             # A floor label with a non-zero rate is a contradiction, not data.
             with self.assertRaises(TaskError):
-                load_with({"status": "floor", "model": "m", "access": "oracle",
-                           "baseline_pass_rate": 0.4, "runs": 3,
-                           "date": "2026-11-11"})
+                load_with({"oracle": {"status": "floor", "model": "m",
+                                      "baseline_pass_rate": 0.4, "runs": 3,
+                                      "date": "2026-11-11"}})
             with self.assertRaises(TaskError):
-                load_with({"status": "comparison-ready", "model": "m",
-                           "access": "oracle", "baseline_pass_rate": 1.0,
-                           "runs": 5, "date": "2026-11-11"})
+                load_with({"oracle": {"status": "comparison-ready", "model": "m",
+                                      "baseline_pass_rate": 1.0, "runs": 5,
+                                      "date": "2026-11-11"}})
+            # Calibration is per access mode; a bare status is not a mode.
             with self.assertRaises(TaskError):
-                load_with({"status": "floor", "model": "m", "access": "shim",
-                           "baseline_pass_rate": 0.0, "runs": 3,
-                           "date": "2026-11-11"})
+                load_with({"status": "floor"})
             with self.assertRaises(TaskError):
-                load_with({"status": "meaningful"})
+                load_with({"shim": {"status": "floor"}})
+            with self.assertRaises(TaskError):
+                load_with({"oracle": {"status": "meaningful"}})
 
     def test_calibration_is_outside_the_content_hash(self):
         """Calibration is measurement metadata; adding it must not rename a task."""
@@ -163,9 +164,9 @@ class SchemaTests(unittest.TestCase):
             copy = Path(tmp) / "task"
             shutil.copytree(BINARY_DIR, copy)
             manifest = json.loads((copy / "task.json").read_text())
-            manifest["calibration"] = {
-                "status": "comparison-ready", "model": "m", "access": "binary",
-                "baseline_pass_rate": 0.5, "runs": 5, "date": "2026-11-11"}
+            manifest["calibration"] = {"binary": {
+                "status": "comparison-ready", "model": "m",
+                "baseline_pass_rate": 0.5, "runs": 5, "date": "2026-11-11"}}
             (copy / "task.json").write_text(json.dumps(manifest))
             calibrated = load_task(copy, verify_hash=False)
             calibrated_hash = calibrated.computed_hash()

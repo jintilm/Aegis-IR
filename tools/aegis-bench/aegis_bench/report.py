@@ -145,8 +145,8 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "oracle_refused": row.get("oracle", {}).get("refused", ""),
                 "oracle_budget": row.get("budgets", {}).get(
                     "oracle_queries", ""),
-                "task_calibration": row.get("calibration", {}).get(
-                    "status", ""),
+                "task_calibration": (row.get("calibration", {}) or {}).get(
+                    row.get("access", ""), {}).get("status", ""),
                 "private": row.get("private", False),
                 "commit": row["environment"].get("commit", ""),
                 "commit_dirty": row["environment"].get("commit_dirty", ""),
@@ -207,23 +207,29 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
             "Protection cost can only be measured under `binary` access.",
             "",
         ]
-    calibrations: dict[str, dict[str, Any]] = {}
+    calibration_rows: list[tuple[str, str, dict[str, Any]]] = []
+    seen_calibration: set[tuple[str, str]] = set()
     for record in records:
-        if record.artifact:
-            calibrations.setdefault(record.task_id, record.calibration)
-    if calibrations:
+        if not record.artifact:
+            continue
+        key = (record.task_id, record.access)
+        if key in seen_calibration:
+            continue
+        seen_calibration.add(key)
+        entry = (record.calibration or {}).get(record.access) or {}
+        calibration_rows.append((record.task_id, record.access, entry))
+    if calibration_rows:
         parts = []
-        for task_id, cal in sorted(calibrations.items()):
+        for task_id, access_mode, cal in calibration_rows:
             status = cal.get("status") or "uncalibrated"
             detail = ", ".join(str(x) for x in (
-                cal.get("model", ""), cal.get("access", ""),
-                cal.get("baseline_pass_rate", ""),
+                cal.get("model", ""), cal.get("baseline_pass_rate", ""),
                 f"N={cal.get('runs')}" if cal.get("runs") else "") if x != "")
-            parts.append(f"`{task_id}` = {status}"
+            parts.append(f"`{task_id}` [{access_mode}] = {status}"
                          + (f" ({detail})" if detail else ""))
         lines += ["- Calibration: " + "; ".join(parts), ""]
         if any((cal.get("status") or "uncalibrated") != "comparison-ready"
-               for cal in calibrations.values()):
+               for _, _, cal in calibration_rows):
             lines += [
                 "**Calibration.** At least one task has no calibrated, "
                 "measurable baseline for this agent: its unprotected profile is "
