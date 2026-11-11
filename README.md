@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. Two real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and one under binary access, where level 3 cost ~90% more tokens with both arms passing. Both are pilots, and **no effectiveness claim is drawn from either**.
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. Two real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and one under binary access, where the N=5 result is baseline 1/5 vs level 3 0/5 with both arms at 2/5 submissions and ~2× tokens among submitted runs. Both are pilots, and **no effectiveness claim is drawn from either**.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -37,19 +37,21 @@ bogus edges, volatile-state flattening) raise *static* reconstruction cost and
 are off by default; they are not the threat model's Tier 2/3. **No protection
 effectiveness has been measured, and none is claimed.**
 
-Two real-model pilots are published, and the pair is the useful part. Under
-**`oracle` access** (`deepseek-v4.1-flash`, N=3) the agent received a counted
-oracle shim, never the binary: every profile presented the same black box, so
-the measured delta was zero by construction — 0/3 in both, Δ wall −27 s
-[−125, +71]. Under **`binary` access** (`deepseek-v4-pro`, N=2) the stripped
-probe is in the workspace and the same task is solvable: both profiles passed
-2/2, and level 3 cost **+90% tokens** (822k vs 431k) while finishing *sooner* —
-the wall-clock direction tracks fewer reasoning runaways, not efficiency. This
-is one task and one model, it is a pilot and not an effectiveness claim, and
-the task sits at the ceiling for that model. What it establishes is narrower
-and more useful: the harness can measure a cost delta once the agent can see
-the code, and the earlier null result was a property of the access mode, not of
-the protection.
+Three real-model pilots are published, and what they establish is mostly
+methodological. Under **`oracle` access** (`deepseek-v4.1-flash`, N=3) the
+agent received a counted oracle shim, never the binary: every profile
+presented the same black box, so the delta was zero by construction — 0/3 in
+both. Under **`binary` access** (`deepseek-v4-pro`) the probe is in the
+workspace and the task becomes solvable, but the first N=2 pilot (both
+profiles 2/2, level 3 ~90% more tokens) **did not survive its own N=5 rerun**:
+baseline 1/5, level 3 0/5, and 6 of 10 runs never submitted within 30 steps.
+What replicates is the conditioned cost — among the four runs that did submit,
+level 3 used about twice the tokens — and the failure mode: on this task the
+binding constraint is producing a submission at all, and the protection did
+not move it. **No protection effect is claimed.** The durable output is that
+the harness now records what a testable claim requires (access mode, task
+calibration, submission rate, adapter hash, commit) and that the earlier null
+result was a property of the access mode, not of the protection.
 
 ## Honest expectations
 

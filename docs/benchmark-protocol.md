@@ -152,6 +152,27 @@ manifest, one per access mode:
 - Reports of binary-recovery runs print the calibration and warn when a
   comparison was run on a task that is not comparison-ready.
 
+### Submission rate and cost conditioning
+
+A run whose agent never calls `submit_solution` has no candidate, no grade and
+no token ledger. Reports therefore keep two things apart:
+
+- **Submission rate is reported next to pass rate.** "0/5 passed" and "0/5
+  passed, 2/5 submitted" describe different agents, and only the second set of
+  runs has a cost.
+- **Cost is conditioned on submission.** Token and wall means cover only the
+  runs that submitted. When the two arms' submission rates differ, part of the
+  cost difference is a capability difference, and the report has to say so
+  rather than presenting the delta as a protection cost.
+
+Several tasks in this set are **bimodal** for a given agent: it either
+reconstructs the function completely or produces nothing usable. A mean over
+such a set is misleading — with half the runs in the non-submission mode, the
+mean describes which runs existed, not how much recovery cost. Report the
+per-run outcome distribution, and if more than a fifth of runs fail to submit,
+treat the configuration as miscalibrated (step budget, task difficulty or
+agent policy) instead of computing a delta from it.
+
 ### Integrity rules the harness enforces
 
 - The agent workspace contains only the manifest's `visible` entries; ground

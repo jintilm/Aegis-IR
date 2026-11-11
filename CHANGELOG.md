@@ -96,13 +96,18 @@ versions follow SemVer once past alpha.
   out of the tree.
 - **Second pilot, under `binary` access** — [`docs/reports/pilot-2026-11-12-binary/`](docs/reports/pilot-2026-11-12-binary/README.md):
   `deepseek-v4-pro` on `packed-record-v1`, baseline vs `aegis-level3`, N=2
-  each. Both profiles passed 2/2, so this is a cost comparison at a fixed
-  success criterion: level 3 used ~90% more tokens (822k vs 431k mean). Wall
-  clock moved the *other* way (−230 s) because the protected runs triggered
-  fewer reasoning runaways and no conversation restarts — a property of the
-  adapter policy interacting with the listing, not an efficiency result. Still
-  a pilot: one task, one model, N=2, and the task is at the ceiling for this
-  model under this access mode.
+  each. Both profiles passed 2/2, so this looked like a cost comparison at a
+  fixed success criterion: level 3 used ~90% more tokens (822k vs 431k mean).
+  **Superseded by the N=5 run below**, which does not reproduce the pass rates;
+  the report is kept as published because that is what makes the correction
+  legible.
+- **N=5 rerun of the same configuration** — [`docs/reports/pilot-2026-11-12-binary-n5/`](docs/reports/pilot-2026-11-12-binary-n5/README.md):
+  baseline 1/5, level 3 0/5, both 2/5 submissions, and **6 of 10 runs never
+  submitted within 30 steps**. Pass-rate intervals overlap; among the four runs
+  that submitted, level 3 used about twice the tokens (900k vs 437k). The
+  binding constraint on this task is producing a submission at all, and the
+  protection did not move it. The task's binary-access calibration is now
+  `comparison-ready` at 0.2 over N=5.
 
 ### Changed
 
@@ -151,13 +156,13 @@ versions follow SemVer once past alpha.
 ### Not claimed
 
 No adversarial effectiveness claim for levels 2/3, and no model-derived claim.
-The only numbers are `.text` growth and output equality on the synthetic
-fixture (C-003/C-004). Both pilots are listed as pilots: `pilot-2026-11-11`
-shows the pipeline runs against a real model under an access mode that cannot
-measure protection; `pilot-2026-11-12-binary` shows a ~90% token cost increase
-on one task with one model at N=2, which is a signal to follow up, not a claim.
-It does not establish anything about success rates, other tasks, other models
-or other attacker classes.
+The only `.text` numbers are the synthetic fixture (C-003/C-004). The pilots are
+listed as pilots: `pilot-2026-11-11` shows the pipeline runs against a real
+model under an access mode that cannot measure protection;
+`pilot-2026-11-12-binary` and its N=5 rerun show that this task's binding
+constraint is producing a submission at all, with a conditioned token cost
+(~2×, n=2 per arm) and no reproducible success-rate difference. None of it
+establishes anything about other tasks, models or attacker classes.
 
 ## [0.1.0-alpha] — 2026-10-29
 

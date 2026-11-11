@@ -32,12 +32,15 @@ on. The number is real, the design could not have produced any other, and it is
 not evidence either way. A protection comparison requires `binary` access —
 see [`benchmark-protocol.md`](benchmark-protocol.md#access-modes).
 
-The second pilot ([`reports/pilot-2026-11-12-binary/`](reports/pilot-2026-11-12-binary/README.md))
-does use `binary` access and does find a token-cost increase (~+90% at N=2).
-It is still not a claim: N=2, one task, one model, baseline at the ceiling, a
-wall-clock effect pointing the other way, and a disassembler-only adversary.
-It is the shape of the measurement the project exists to make; it is not
-evidence until the matrix in the protocol says so.
+The second pilots use `binary` access and do find a cost signal, but not a
+stable success signal: at N=2 both profiles passed, and the N=5 rerun
+([`reports/pilot-2026-11-12-binary-n5/`](reports/pilot-2026-11-12-binary-n5/README.md))
+did not reproduce that — baseline 1/5, level 3 0/5, with the binding
+constraint being whether the agent submits at all. Among the four runs that
+submitted, level 3 used about twice the tokens. None of this is a claim: one
+task, one model, overlapping success intervals, and a conditioned cost over
+two runs per arm. It is the shape of the measurement the project exists to
+make; it is not evidence until the matrix in the protocol says so.
 
 Rules:
 

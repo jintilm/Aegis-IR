@@ -29,7 +29,8 @@ Rules:
 | [`archive/v0.1.0-alpha/`](archive/v0.1.0-alpha/README.md) | frozen report as published with `v0.1.0-alpha`; claims written against it must cite this copy, not the moving live report | C-001 |
 | [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches across levels 0–3; binary-recovery probes build and are scored; the grader scores a known-correct solution 100% and a wrong one 0% | C-001–C-005 (supporting artifacts) |
 | [`pilot-2026-11-11/`](pilot-2026-11-11/README.md) | a real model (`deepseek-v4.1-flash`) can be driven end to end through a binary-recovery task and graded; run under `oracle` access, where both profiles sit at the same floor, so it measures the *floor* and cannot show a protection effect | none — pilot, not cited |
-| [`pilot-2026-11-12-binary/`](pilot-2026-11-12-binary/README.md) | under `binary` access (probe in the workspace) `deepseek-v4-pro` solves the task in both profiles, so this is a **cost** comparison at a fixed success criterion: level 3 used ~90% more tokens; wall clock moved the other way and is explained by fewer reasoning runaways, not efficiency | none — pilot, not cited |
+| [`pilot-2026-11-12-binary/`](pilot-2026-11-12-binary/README.md) | under `binary` access `deepseek-v4-pro` solved the task in both profiles (2/2 each, N=2) and level 3 used ~90% more tokens — **superseded by the N=5 run below: the 2/2 was a small-sample draw** | none — pilot, not cited |
+| [`pilot-2026-11-12-binary-n5/`](pilot-2026-11-12-binary-n5/README.md) | the same configuration at N=5: baseline 1/5, level 3 0/5, both 2/5 submissions, 6/10 runs never submitted within 30 steps. Pass rates overlap; among submitted runs level 3 used ~2× the tokens (n=2 each). The binding constraint is producing a submission, and the protection did not move it | none — pilot, not cited |
 
 Still missing, and therefore unclaimed: any effectiveness measurement, any
 adversarial cost-delta number, any statement about attacker difficulty. The
@@ -37,8 +38,8 @@ pilots are listed above to document what the pipeline can and cannot measure;
 none of them is evidence that protection changed an outcome, and none may be
 cited as such.
 
-A task on which the unprotected baseline already fails cannot demonstrate a
-protection effect. The next experiment must therefore begin with a
-task/model/budget combination where the baseline succeeds at a rate the
-measurement can move — or, where it succeeds always, be read strictly as a
-cost comparison.
+The N=5 run also corrects the N=2 pilot that precedes it, which is the reason
+both are kept: a two-run cell cannot distinguish a protection effect from the
+agent's own variance, and one of these tasks is bimodal — the agent either
+solves it or never submits. Cost figures must be read as conditioned on
+submission, and the submission rate reported next to them.
