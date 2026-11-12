@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "rolling-token-v2",
   "title": "Recover a rolling hash, adler checksum and token predicate from a stripped probe",
   "description": "task.md",
@@ -56,6 +56,23 @@
   "protectability": {
     "domain_size": "small",
     "rating": "high"
+  },
+  "experiment_use": "harness-validation",
+  "difficulty": "small",
+  "tool_policy": {
+    "allowed_tools": [
+      "list_files",
+      "read_file",
+      "run_probe",
+      "disassemble",
+      "submit_solution"
+    ],
+    "network": "metered_model",
+    "workspace_writable": true
+  },
+  "input_domain": {
+    "kind": "bytes",
+    "summary": "arbitrary byte strings supplied through the target interface"
   },
   "content_hash": "sha256:3723071199f5079919fb76598e89b3f56ded8a931d423f5e9052b534a26df6d0"
 }

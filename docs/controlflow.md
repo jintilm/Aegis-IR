@@ -13,6 +13,24 @@ aegis-policy<policy=...>,aegis-decoys,aegis-cff,default<O2>,aegis-verify
 on the decoy guard branch); it fails the build rather than silently skipping if
 the guard or decoy functions are missing.
 
+## Lint before transforming
+
+`aegis-lint` is a read-only pass that applies the same eligibility predicates
+as the transforms without changing IR:
+
+```bash
+opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+  -passes='aegis-policy<policy=policy.json>,aegis-lint' \
+  -disable-output module.ll
+```
+
+For every definition it prints the selected level, block/instruction counts,
+and either `eligible=yes` or `eligible=no reason=...`. A summary reports
+selected, eligible, ineligible and unsupported counts. This lets policy review
+catch an `indirectbr`, EH terminator, coroutine, inline assembly or other
+fail-closed construct before invoking the transforms. `aegis-lint` is advisory
+and exits successfully; the transforms remain the enforcement point.
+
 ## Level 2 — bogus flow plus an input-driven live split
 
 For every function the policy marks `level >= 2`:
@@ -120,8 +138,10 @@ Stated plainly, because the tier names invite over-reading:
 - **It does not survive a white-box analyst with the source and this
   document.** The state encoding key is derived from the shipped seed, and the
   algorithm is public. Kerckhoffs applies.
-- **It has no measured adversarial effect.** No model has been run against
-  these levels. See the claims ledger for the exact scope of every number.
+- **It has no established adversarial effect.** Level 3 has appeared in
+  real-model pilots, but they measure one task and one model under a linear
+  disassembler, and the success-rate effect is unresolved. See the claims
+  ledger for the exact scope of every number.
 
 ## Determinism
 
@@ -139,6 +159,7 @@ demotion on a hand-written IR fixture, the gate failing when `aegis-cff` is
 skipped, when the state or salt loses `volatile`, when the dispatcher is
 detached from the state load, when a level-2 bogus arm is made live, when
 decoys are skipped, and when level 3 is requested for an `indirectbr`
-function. The differential matrix
+function. Lint checks cover both an eligible level-3 selection and the
+reason-naming path for an ineligible construct. The differential matrix
 adds level-2 (`aegis-research`) and level-3 (`aegis-flattened`) profiles over
 the 235-case corpus.

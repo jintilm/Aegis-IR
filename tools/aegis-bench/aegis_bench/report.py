@@ -28,8 +28,11 @@ report says so instead of inventing a spread.
 from __future__ import annotations
 
 import csv
+import io
 import json
 import math
+import os
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean, pstdev, stdev
@@ -38,6 +41,8 @@ from typing import Any, Iterable
 from .runner import RunRecord
 
 CSV_FIELDS = [
+    "record_schema", "campaign_id", "campaign_purpose",
+    "task_schema", "experiment_use", "tool_network",
     "run_id", "task_id", "task_hash", "agent", "adapter_version", "access",
     "adversary",
     "profile",
@@ -112,58 +117,90 @@ def _oracle_value(record: RunRecord, key: str) -> Any:
     return record.oracle.get(key, "") if record.oracle else ""
 
 
+def atomic_write_text(path: Path, text: str, *,
+                      newline: str | None = None) -> None:
+    """Replace a report atomically so a killed process cannot truncate it."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline=newline) as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+
+
 def write_jsonl(records: Iterable[RunRecord], path: Path) -> None:
-    with path.open("w", encoding="utf-8") as fh:
-        for record in records:
-            fh.write(json.dumps(record.to_dict(), sort_keys=True) + "\n")
+    text = "".join(json.dumps(record.to_dict(), sort_keys=True) + "\n"
+                   for record in records)
+    atomic_write_text(Path(path), text, newline="\n")
 
 
 def write_csv(records: Iterable[RunRecord], path: Path) -> None:
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
-        writer.writeheader()
-        for record in records:
-            row = record.to_dict()
-            writer.writerow({
-                "run_id": row["run_id"],
-                "task_id": row["task_id"],
-                "task_hash": row["task_hash"],
-                "agent": row["agent"],
-                "adapter_version": row.get("adapter_version", ""),
-                "access": row.get("access", ""),
-                "adversary": row["adversary"],
-                "profile": row["profile"],
-                "repetition": row["repetition"],
-                "started_utc": row["started_utc"],
-                "duration_seconds": row["duration_seconds"],
-                "passed": row["grade"]["passed"],
-                "stage": row["grade"]["stage"],
-                "reason": row["grade"]["reason"],
-                "cases_total": row["grade"]["cases_total"],
-                "cases_passed": row["grade"]["cases_passed"],
-                "success_rate": row["grade"]["success_rate"],
-                "tokens": _ledger_value(row["ledger"], "tokens"),
-                "metered_tokens": _ledger_value(row.get("metering") or {},
-                                                "total_tokens"),
-                "metered_requests": _ledger_value(row.get("metering") or {},
-                                                  "requests"),
-                "tool_calls": _ledger_value(row["ledger"], "tool_calls"),
-                "ledger_source": row["ledger"].get("ledger_source", ""),
-                "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
-                "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
-                "artifact_text": row.get("artifact", {}).get("text_bytes", ""),
-                "adapter_timeout": row.get("budgets", {}).get(
-                    "enforcement", {}).get("adapter_timeout", ""),
-                "oracle_queries": row.get("oracle", {}).get("queries", ""),
-                "oracle_refused": row.get("oracle", {}).get("refused", ""),
-                "oracle_budget": row.get("budgets", {}).get(
-                    "oracle_queries", ""),
-                "task_calibration": (row.get("calibration", {}) or {}).get(
-                    row.get("access", ""), {}).get("status", ""),
-                "private": row.get("private", False),
-                "commit": row["environment"].get("commit", ""),
-                "commit_dirty": row["environment"].get("commit_dirty", ""),
-            })
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=CSV_FIELDS)
+    writer.writeheader()
+    for record in records:
+        row = record.to_dict()
+        campaign = row.get("campaign") or {}
+        writer.writerow({
+            "record_schema": row.get("record_schema_version", ""),
+            "campaign_id": campaign.get("id", ""),
+            "campaign_purpose": campaign.get("purpose", ""),
+            "task_schema": (row.get("task_protocol") or {}).get(
+                "schema_version", ""),
+            "experiment_use": (row.get("task_protocol") or {}).get(
+                "experiment_use", ""),
+            "tool_network": ((row.get("task_protocol") or {}).get(
+                "tool_policy") or {}).get("network", ""),
+            "run_id": row["run_id"],
+            "task_id": row["task_id"],
+            "task_hash": row["task_hash"],
+            "agent": row["agent"],
+            "adapter_version": row.get("adapter_version", ""),
+            "access": row.get("access", ""),
+            "adversary": row["adversary"],
+            "profile": row["profile"],
+            "repetition": row["repetition"],
+            "started_utc": row["started_utc"],
+            "duration_seconds": row["duration_seconds"],
+            "passed": row["grade"]["passed"],
+            "stage": row["grade"]["stage"],
+            "reason": row["grade"]["reason"],
+            "cases_total": row["grade"]["cases_total"],
+            "cases_passed": row["grade"]["cases_passed"],
+            "success_rate": row["grade"]["success_rate"],
+            "tokens": _ledger_value(row["ledger"], "tokens"),
+            "metered_tokens": _ledger_value(row.get("metering") or {},
+                                            "total_tokens"),
+            "metered_requests": _ledger_value(row.get("metering") or {},
+                                              "requests"),
+            "tool_calls": _ledger_value(row["ledger"], "tool_calls"),
+            "ledger_source": row["ledger"].get("ledger_source", ""),
+            "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
+            "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
+            "artifact_text": row.get("artifact", {}).get("text_bytes", ""),
+            "adapter_timeout": row.get("budgets", {}).get(
+                "enforcement", {}).get("adapter_timeout", ""),
+            "oracle_queries": row.get("oracle", {}).get("queries", ""),
+            "oracle_refused": row.get("oracle", {}).get("refused", ""),
+            "oracle_budget": row.get("budgets", {}).get(
+                "oracle_queries", ""),
+            "task_calibration": (row.get("calibration", {}) or {}).get(
+                row.get("access", ""), {}).get("status", ""),
+            "private": row.get("private", False),
+            "commit": row["environment"].get("commit", ""),
+            "commit_dirty": row["environment"].get("commit_dirty", ""),
+        })
+    atomic_write_text(Path(path), buffer.getvalue(), newline="")
 
 
 def _metered(record: RunRecord) -> Any:
@@ -231,7 +268,7 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
 
     if not records:
         lines.append("_No runs recorded._")
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        atomic_write_text(Path(path), "\n".join(lines) + "\n", newline="\n")
         return
 
     env = records[0].environment
@@ -255,6 +292,16 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
     versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
                        for r in records})
     lines += ["- Adapters: " + ", ".join(f"`{v}`" for v in versions), ""]
+    campaigns = sorted({
+        (r.campaign.get("id", ""), r.campaign.get("manifest_sha256", ""),
+         r.campaign.get("purpose", ""))
+        for r in records if r.campaign and r.campaign.get("id")
+    })
+    if campaigns:
+        rendered = ", ".join(
+            f"`{name}` ({purpose or 'purpose unset'}, manifest "
+            f"`{digest[:12] or '?'}`)" for name, digest, purpose in campaigns)
+        lines += ["- Campaigns: " + rendered, ""]
     # Rows written before access modes existed put the shim in the workspace,
     # i.e. oracle access; label them with the fact, not with "?".
     accesses = sorted({r.access or ("oracle" if r.artifact else "n/a")
@@ -452,7 +499,7 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
             lines.append(f"| {record.agent} | {record.task_id} | "
                          f"{record.grade.stage} | {record.grade.reason} |")
 
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    atomic_write_text(Path(path), "\n".join(lines) + "\n", newline="\n")
 
 
 def write_reports(records: list[RunRecord], out_dir: Path,

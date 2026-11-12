@@ -1,8 +1,10 @@
 """Command-line entry point for Aegis-Bench.
 
-    python -m aegis_bench hash  <task-dir>
-    python -m aegis_bench check <task-dir>... [--tasks-root DIR]
-    python -m aegis_bench run   --tasks-root DIR --profile NAME [options]
+    python -m aegis_bench hash     <task-dir>
+    python -m aegis_bench check    <task-dir>... [--tasks-root DIR]
+    python -m aegis_bench run      --tasks-root DIR --profile NAME [options]
+    python -m aegis_bench campaign --config EXPERIMENT.json [options]
+    python -m aegis_bench audit    REPORT_DIR [--experiment EXPERIMENT.json]
 
 ``run`` requires an adapter chosen by ``--adapter``. Only offline adapters
 ship in this repository; a real-model adapter is passed as
@@ -13,14 +15,16 @@ access out of the repo and out of CI.
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import sys
 from pathlib import Path
 
 from .schema import TaskError, discover_tasks, load_task
-from .agent import Agent, AdapterError
+from .agent import create_agent, AdapterError
 from .artifact import ArtifactError
+from .audit import audit_path
+from .campaign import (
+    ExperimentError, load_experiment, run_campaign)
 from .runner import ACCESS_MODES, ACCESS_ORACLE, Runner
 from .report import write_reports
 
@@ -28,25 +32,6 @@ from .report import write_reports
 def _repo_root() -> Path:
     # .../aegis-ir/tools/aegis-bench/aegis_bench/cli.py
     return Path(__file__).resolve().parents[3]
-
-
-def _adapter(spec: str) -> Agent:
-    """Resolve ``module:Class`` (or a built-in short name) to an adapter."""
-    builtins = {
-        "stub": "aegis_bench.adapters.fake:StubAgent",
-        "broken": "aegis_bench.adapters.fake:BrokenAgent",
-        "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
-        "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",
-    }
-    spec = builtins.get(spec, spec)
-    if ":" not in spec:
-        raise AdapterError(f"adapter must be 'module:Class', got {spec!r}")
-    module_name, class_name = spec.split(":", 1)
-    module = importlib.import_module(module_name)
-    cls = getattr(module, class_name)
-    if not issubclass(cls, Agent):
-        raise AdapterError(f"{spec} is not an Agent subclass")
-    return cls()
 
 
 def cmd_hash(args: argparse.Namespace) -> int:
@@ -88,7 +73,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     try:
         tasks = discover_tasks(args.tasks_root,
                                allow_private=args.allow_private)
-        agent = _adapter(args.adapter)
+        agent = create_agent(args.adapter)
     except (TaskError, AdapterError, ImportError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -115,6 +100,60 @@ def cmd_run(args: argparse.Namespace) -> int:
     for kind, path in paths.items():
         print(f"{kind}: {path}")
     return 0 if all(r.grade.passed for r in records) else 1
+
+
+def cmd_campaign(args: argparse.Namespace) -> int:
+    try:
+        experiment = load_experiment(args.config)
+        result = run_campaign(
+            experiment,
+            repo_root=_repo_root(),
+            out_dir=args.out,
+            allow_private=args.allow_private,
+            cxx=args.cxx,
+            plugin=args.plugin,
+            clang=args.clang,
+            opt=args.opt,
+            artifact_cache=(Path(args.artifact_cache)
+                            if args.artifact_cache else None),
+            adapter_timeout=args.adapter_timeout,
+            keep_workspaces=args.keep_workspaces,
+            meter_upstream=args.meter_upstream)
+    except (ExperimentError, TaskError, AdapterError, ArtifactError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(
+        f"campaign {experiment.name}: {len(result.records)}/"
+        f"{len(result.cells)} cells complete "
+        f"({'resumed' if result.resumed else 'new'}) -> {result.out_dir}")
+    print(f"raw rows: {result.out_dir / 'aegis-bench.jsonl'}")
+    return 0 if result.complete else 1
+
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    try:
+        experiment = load_experiment(args.experiment) \
+            if args.experiment else None
+        report = audit_path(
+            args.path, experiment=experiment,
+            allow_private=args.allow_private)
+    except ExperimentError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report.to_dict(strict=args.strict),
+                         indent=2, sort_keys=True))
+    else:
+        status = "OK" if report.ok(strict=args.strict) else "FAIL"
+        print(
+            f"{status} {report.path}: {len(report.rows)} row(s), "
+            f"{len(report.errors)} error(s), {len(report.warnings)} "
+            f"warning(s)")
+        for issue in report.issues:
+            location = f" [{issue.run_id}]" if issue.run_id else ""
+            print(f"{issue.severity.upper():7} {issue.code}{location}: "
+                  f"{issue.message}")
+    return 0 if report.ok(strict=args.strict) else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -174,6 +213,43 @@ def build_parser() -> argparse.ArgumentParser:
                             "adapter's own arithmetic")
     p_run.add_argument("--keep-workspaces", action="store_true")
     p_run.set_defaults(func=cmd_run)
+
+    p_campaign = sub.add_parser(
+        "campaign", help="run or resume an experiment matrix")
+    p_campaign.add_argument("--config", required=True,
+                            help="experiment manifest JSON")
+    p_campaign.add_argument("--out", default=None,
+                            help="override the manifest's output directory")
+    p_campaign.add_argument("--allow-private", action="store_true",
+                            help="allow tasks marked private")
+    p_campaign.add_argument("--cxx", default=None)
+    p_campaign.add_argument("--clang", default=None,
+                            help="C++ frontend for probe builds")
+    p_campaign.add_argument("--opt", default=None,
+                            help="LLVM opt for probe builds")
+    p_campaign.add_argument("--plugin", default=None,
+                            help="AegisPass plugin for level>=1 profiles")
+    p_campaign.add_argument("--artifact-cache", default=None,
+                            help="directory for built probes")
+    p_campaign.add_argument("--adapter-timeout", type=int, default=600,
+                            help="wall-clock seconds per adapter call")
+    p_campaign.add_argument("--meter-upstream", default=None, metavar="URL",
+                            help="model endpoint for the harness meter")
+    p_campaign.add_argument("--keep-workspaces", action="store_true")
+    p_campaign.set_defaults(func=cmd_campaign)
+
+    p_audit = sub.add_parser(
+        "audit", help="validate campaign JSONL and report provenance")
+    p_audit.add_argument("path",
+                         help="report directory or aegis-bench.jsonl")
+    p_audit.add_argument("--experiment", default=None,
+                         help="experiment manifest to check the matrix against")
+    p_audit.add_argument("--allow-private", action="store_true")
+    p_audit.add_argument("--strict", action="store_true",
+                         help="treat warnings as failures")
+    p_audit.add_argument("--json", action="store_true",
+                         help="emit a machine-readable audit result")
+    p_audit.set_defaults(func=cmd_audit)
     return ap
 
 

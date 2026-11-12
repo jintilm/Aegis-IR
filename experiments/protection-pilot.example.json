@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "name": "protection-pilot",
+  "purpose": "pilot",
+  "primary_metric": "tokens",
+  "tasks_root": "../benchmarks/tasks-public",
+  "tasks": [
+    "packed-record-v1",
+    "lane-shift-v1"
+  ],
+  "agents": [
+    {
+      "id": "replace-with-adapter-name",
+      "adapter": "replace_with_adapter_module:AgentClass",
+      "expected_version": "replace-with-source-hash"
+    }
+  ],
+  "profiles": [
+    "baseline",
+    "aegis-level1",
+    "aegis-level2",
+    "aegis-level3"
+  ],
+  "repetitions": 5,
+  "repetition_start": 0,
+  "access": "binary",
+  "order": "interleaved",
+  "seed": 20261112,
+  "require_clean": true,
+  "require_meter": true,
+  "allow_oracle_comparison": false,
+  "out": "../bench-out/protection-pilot",
+  "notes": "Copy outside the tree or edit the placeholders. Real adapters stay out-of-tree; the example is not runnable unchanged."
+}

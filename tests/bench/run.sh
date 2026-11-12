@@ -91,6 +91,16 @@ if [ -z "$BPROBE" ] || \
   exit 1
 fi
 
+echo "== campaign, resume and audit =="
+CAMPAIGN_OUT="$OUT/campaign"
+CAMPAIGN_CFG="$REPO_ROOT/experiments/offline-smoke.json"
+(cd "$BENCH_ROOT" && python3 -m aegis_bench campaign \
+  --config "$CAMPAIGN_CFG" --out "$CAMPAIGN_OUT")
+(cd "$BENCH_ROOT" && python3 -m aegis_bench campaign \
+  --config "$CAMPAIGN_CFG" --out "$CAMPAIGN_OUT")
+(cd "$BENCH_ROOT" && python3 -m aegis_bench audit "$CAMPAIGN_OUT" \
+  --experiment "$CAMPAIGN_CFG")
+
 python3 - "$OUT" <<'PY'
 import json
 import sys
@@ -129,6 +139,14 @@ queries = row("oracle")
 assert queries["oracle"]["queries"] == 3, queries["oracle"]
 assert queries["oracle"]["refused"] == 0, queries["oracle"]
 assert queries["oracle"]["failed"] == 0, queries["oracle"]
+campaign = row("campaign")
+assert campaign["campaign"]["id"] == "offline-harness-smoke", campaign
+assert campaign["campaign"]["cell_key"] == (
+    "rolling-token-v1|baseline|ground-truth-replay|0"), campaign
+with open(f"{root}/campaign/campaign-state.json", encoding="utf-8") as fh:
+    state = json.load(fh)
+assert state["complete"] is True, state
+assert state["cells_completed"] == 1, state
 # No host or user name may reach a committed report.
 assert "host" not in base["environment"] and "user" not in base["environment"]
 assert base["environment"]["machine"]

@@ -24,6 +24,13 @@ The workspace path is the only path the tools may touch. Every file access is
 resolved and rejected if it escapes the workspace, because a protected task's
 ground truth sits outside it.
 
+Task schema v2 declares the same tool surface in `tool_policy.allowed_tools`
+and records it in every row as `task_protocol.tool_policy`. Today this is a
+declaration the harness records, not enforcement against an in-process
+adapter. The harness-owned tool broker in
+[`isolation.md`](isolation.md) is the enforcement design; a published result
+must not describe the current adapter process as sandboxed.
+
 ## Tools exposed to the model
 
 | Tool | Arguments | Notes |
@@ -72,9 +79,16 @@ Every published row must state:
   it as `adapter_version` in every row);
 - date, harness commit, task content hash, repetition index.
 
-Token and tool-call figures are self-reported by the adapter unless the run
-went through the harness metering proxy. Oracle queries are counted by the
-harness. Reports label the kinds separately and never mix them.
+Token figures are self-reported by the adapter unless the run went through the
+harness metering proxy; tool-call figures are always adapter self-reports.
+Oracle queries are counted by the harness. Reports label the kinds separately
+and never mix them.
+
+Adapters used in a campaign must expose a stable non-empty `version` (normally
+a source hash). The campaign preflights that value and every run row records
+it as `adapter_version`. A fresh adapter instance is created for each cell, so
+counters, notes, cached listings and conversation state cannot cross
+repetitions.
 
 ## Metering: `AEGIS_METER_BASE_URL`
 
@@ -150,6 +164,18 @@ change are not comparable at the profile level; rerun both cells.
 5. Compare pass rates and oracle-query distributions; token figures also depend
    on how much reasoning the provider replays, which is why the adapter hash and
    endpoint kind are recorded.
+
+For a multi-cell run use `scripts`-free harness orchestration:
+
+```bash
+PYTHONPATH=/path/to/adapters python3 -m aegis_bench campaign \
+  --config experiment.json --plugin build/lib/AegisPass.so \
+  --meter-upstream https://relay.example/v1
+python3 -m aegis_bench audit report-dir --experiment experiment.json --strict
+```
+
+The campaign manifest, resume and audit contract are in
+[`campaigns.md`](campaigns.md).
 
 A model result is only a claim once it has N >= 5 repetitions per cell, the
 matrix in [`benchmark-protocol.md`](benchmark-protocol.md) is covered, and the

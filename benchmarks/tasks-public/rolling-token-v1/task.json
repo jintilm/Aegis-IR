@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "rolling-token-v1",
   "title": "Recover a rolling hash, adler checksum and token predicate",
   "description": "task.md",
@@ -31,6 +31,23 @@
   "protectability": {
     "domain_size": "small",
     "rating": "high"
+  },
+  "experiment_use": "harness-validation",
+  "difficulty": "small",
+  "tool_policy": {
+    "allowed_tools": [
+      "list_files",
+      "read_file",
+      "run_probe",
+      "disassemble",
+      "submit_solution"
+    ],
+    "network": "metered_model",
+    "workspace_writable": true
+  },
+  "input_domain": {
+    "kind": "bytes",
+    "summary": "arbitrary byte strings supplied through the target interface"
   },
   "content_hash": "sha256:ce72ce07e5c6c966eddbbca46eb5eaad340e181395a911225cade2d95f62046f"
 }

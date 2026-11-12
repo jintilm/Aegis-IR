@@ -22,6 +22,7 @@ class ReplayAgent(Agent):
 
     name = "replay"
     adversary = "n/a (test double)"
+    version = "builtin-test-double-v1"
 
     def __init__(self, sources: dict[str, str]):
         self._sources = dict(sources)
@@ -45,6 +46,7 @@ class GroundTruthAgent(Agent):
 
     name = "ground-truth-replay"
     adversary = "n/a (harness self-check, not a solver)"
+    version = "builtin-test-double-v1"
 
     def solve(self, task: Any, workspace: Path) -> AgentResult:
         truth = task.path(task.ground_truth).read_text(encoding="utf-8")
@@ -63,6 +65,7 @@ class StubAgent(Agent):
 
     name = "stub"
     adversary = "n/a (negative control)"
+    version = "builtin-test-double-v1"
 
     def __init__(self, body: str | None = None):
         self._body = body or (
@@ -84,6 +87,7 @@ class StubAgent(Agent):
 class BrokenAgent(Agent):
     name = "broken"
     adversary = "n/a (fault injection)"
+    version = "builtin-test-double-v1"
 
     def solve(self, task: Any, workspace: Path) -> AgentResult:
         raise AdapterError("simulated adapter failure")

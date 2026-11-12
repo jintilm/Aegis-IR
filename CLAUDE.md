@@ -45,6 +45,11 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --plugin ../../build/lib/AegisPass.so --out /tmp/bench
 # protection comparisons need the binary in the workspace, not the shim:
 python3 -m aegis_bench run ... --access binary
+
+# multi-cell runs use the harness-owned campaign, then audit the raw JSONL
+python3 -m aegis_bench campaign --config ../../experiments/offline-smoke.json
+python3 -m aegis_bench audit ../../bench-out/offline-smoke \
+    --experiment ../../experiments/offline-smoke.json
 ```
 
 Reports are generated, never hand-edited:
@@ -121,6 +126,17 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   `benchmarks/tasks-private/`, and produce a do-not-publish report banner.
 - **Adapters live outside this repository** by design (no credentials/network in tree or CI).
   The contract a published result must satisfy is `docs/reference-adapter.md`.
+- **Campaigns own the matrix.** A campaign manifest pins tasks, profiles, agent versions,
+  repetitions, access, ordering seed, clean-tree and meter requirements. One fresh adapter
+  instance runs each cell; rows carry a unique campaign cell key. Do not reintroduce a
+  bespoke adapter-side report/checkpoint loop.
+- **Resume reads the raw JSONL, not memory.** Reports are atomically replaced after every
+  completed cell and an exclusive output lock prevents concurrent writers. `campaign-state.json`
+  is a checkpoint; `aegis-bench audit` is the independent gate for duplicate/missing cells,
+  commit/hash/version drift, mixed metering and dirty provenance.
+- **Task schema v2** records `tool_policy`, `input_domain`, `experiment_use`, `difficulty` and
+  `protectability` in every run row as `task_protocol`. The tool policy is declared metadata,
+  not enforcement; process isolation and broker-owned tool counts remain a publishability gate.
 
 ## Reports and provenance
 
@@ -151,6 +167,10 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   fewer runaways than straight-line code). Tokens are the cost signal; wall clock is a
   latency-contaminated second opinion, and the report must say so rather than report a
   negative delta as if protection made the agent faster.
+- `scripts/pilot-report.sh` runs the campaign inside gitignored `bench-out/`, then copies rows
+  into `docs/reports/`; this keeps `require_clean=true` from seeing its own output directory.
+- `aegis-lint` is read-only and advisory. It uses the same eligibility predicates as the
+  transforms, but only the transforms and `aegis-verify` fail a build.
 
 ## Where to read next
 

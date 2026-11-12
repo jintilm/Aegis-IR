@@ -119,6 +119,19 @@ class SchemaTests(unittest.TestCase):
                 load_task(copy, verify_hash=False)
             self.assertIn("driver", str(ctx.exception))
 
+    def test_task_id_must_be_stable_ascii_slug(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(REIMPLEMENT_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["id"] = "task|with|pipes"
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("invalid task id", str(ctx.exception))
+
     def test_path_traversal_rejected(self):
         task = load_task(REIMPLEMENT_DIR)
         with self.assertRaises(TaskError):
@@ -171,6 +184,48 @@ class SchemaTests(unittest.TestCase):
             calibrated = load_task(copy, verify_hash=False)
             calibrated_hash = calibrated.computed_hash()
         self.assertEqual(plain.computed_hash(), calibrated_hash)
+
+    def test_schema_v2_requires_policy_and_input_domain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(REIMPLEMENT_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            del manifest["tool_policy"]
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("tool_policy", str(ctx.exception))
+
+    def test_schema_v2_rejects_unknown_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(REIMPLEMENT_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["tool_policy"]["allowed_tools"].append("shell")
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("unknown tool", str(ctx.exception))
+
+    def test_schema_v1_remains_readable_as_legacy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(REIMPLEMENT_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["schema_version"] = 1
+            for key in ("tool_policy", "input_domain", "experiment_use",
+                        "difficulty"):
+                manifest.pop(key, None)
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            task = load_task(copy, verify_hash=False)
+        self.assertEqual(task.schema_version, 1)
+        self.assertEqual(task.tool_policy.network, "legacy-unspecified")
 
     def test_hash_is_line_ending_stable(self):
         """A CRLF checkout must hash the same as an LF checkout.
@@ -273,13 +328,18 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             row = rows[0]
             for key in ("task_hash", "profile", "agent", "adapter_version",
-                        "environment", "budgets", "grade", "artifact"):
+                        "environment", "budgets", "grade", "artifact",
+                        "task_protocol"):
                 self.assertIn(key, row)
             self.assertEqual(row["task_hash"], self.task.content_hash)
             self.assertIn("commit", row["environment"])
             self.assertEqual(row["artifact"]["level"], 0)
             self.assertEqual(len(row["artifact"]["sha256"]), 64)
             self.assertGreater(row["artifact"]["text_bytes"], 0)
+            self.assertEqual(row["task_protocol"]["schema_version"], 2)
+            self.assertEqual(
+                row["task_protocol"]["tool_policy"]["network"],
+                "metered_model")
             markdown = paths["markdown"].read_text(encoding="utf-8")
             self.assertIn("self-reported by the adapter", markdown)
 
@@ -298,6 +358,13 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(records[0].adapter_version, "abc123def456")
         self.assertEqual(row["adapter_version"], "abc123def456")
         self.assertIn("abc123def456", markdown)
+
+    def test_repetition_indices_can_be_offset_for_fresh_agents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record = self._runner(tmp).run(
+                [self.task], [StubAgent()], profile="baseline",
+                repetitions=1, repetition_start=2)[0]
+        self.assertEqual(record.repetition, 2)
 
     def test_unknown_artifact_profile_fails_fast(self):
         with tempfile.TemporaryDirectory() as tmp:

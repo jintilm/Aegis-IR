@@ -4,10 +4,10 @@ A task is a directory containing a ``task.json`` manifest plus the files it
 names. Everything the agent may see is listed under ``visible``; everything
 else (ground truth, property tests, hidden cases) stays out of the workspace.
 
-Manifest shape (schema_version 1)::
+Manifest shape (schema_version 2; version 1 remains readable)::
 
     {
-      "schema_version": 1,
+      "schema_version": 2,
       "id": "fnv-rolling-hash-v1",
       "title": "Recover a rolling hash and token predicate",
       "description": "task.md",
@@ -23,6 +23,15 @@ Manifest shape (schema_version 1)::
                   "max_output_tokens": 200000,
                   "oracle_queries": 200},   # optional; capped by the broker
       "protectability": {"domain_size": "small", "rating": "high"},
+      "experiment_use": "harness-validation",
+      "difficulty": "small",
+      "tool_policy": {
+        "allowed_tools": ["list_files", "read_file", "run_probe",
+                          "disassemble", "submit_solution"],
+        "network": "metered_model",
+        "workspace_writable": true
+      },
+      "input_domain": {"kind": "bytes", "summary": "..."},
       "content_hash": "sha256:...",
 
       # Optional. "reimplement" (default) gives the agent a brief and
@@ -50,8 +59,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+SUPPORTED_SCHEMA_VERSIONS = (1, 2)
 _PROFILE_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_TASK_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
 
 class TaskError(Exception):
@@ -99,6 +110,15 @@ class FuzzConfig:
 
 
 TASK_TYPES = ("reimplement", "binary-recovery")
+TASK_TOOLS = (
+    "list_files", "read_file", "run_probe", "disassemble", "submit_solution",
+)
+NETWORK_POLICIES = ("none", "metered_model", "legacy-unspecified")
+EXPERIMENT_USES = ("harness-validation", "pilot", "comparison")
+DIFFICULTIES = ("small", "medium", "large")
+INPUT_DOMAIN_KINDS = ("bytes", "structured")
+DOMAIN_SIZES = ("small", "medium", "large", "unbounded")
+PROTECTABILITY_RATINGS = ("low", "medium", "high")
 
 #: What a binary-recovery workspace gets. Defined here so both the manifest
 #: validation and the runner agree on the spelling; see the runner for what
@@ -106,6 +126,61 @@ TASK_TYPES = ("reimplement", "binary-recovery")
 ACCESS_MODES = ("oracle", "binary")
 
 CALIBRATION_STATUSES = ("uncalibrated", "floor", "ceiling", "comparison-ready")
+
+
+@dataclass(frozen=True)
+class ToolPolicy:
+    """Declared adapter tool surface for a task.
+
+    The harness records this contract but does not enforce it for an
+    in-process adapter. Process isolation and a harness-owned tool RPC are the
+    enforcement step; this schema makes the gap explicit and auditable rather
+    than implicit.
+    """
+
+    allowed_tools: tuple[str, ...]
+    network: str
+    workspace_writable: bool
+
+    @classmethod
+    def legacy(cls) -> "ToolPolicy":
+        return cls(allowed_tools=(), network="legacy-unspecified",
+                   workspace_writable=True)
+
+    @classmethod
+    def from_dict(cls, raw: Any, task_id: str) -> "ToolPolicy":
+        if not isinstance(raw, dict):
+            raise TaskError(f"{task_id}: tool_policy must be an object")
+        tools = raw.get("allowed_tools")
+        if (not isinstance(tools, list) or not tools
+                or not all(isinstance(tool, str) for tool in tools)):
+            raise TaskError(
+                f"{task_id}: tool_policy.allowed_tools must be a non-empty "
+                f"list of strings")
+        if len(set(tools)) != len(tools):
+            raise TaskError(
+                f"{task_id}: tool_policy.allowed_tools contains duplicates")
+        unknown = set(tools) - set(TASK_TOOLS)
+        if unknown:
+            raise TaskError(
+                f"{task_id}: unknown tool(s): {', '.join(sorted(unknown))}")
+        network = raw.get("network")
+        if network not in NETWORK_POLICIES[:-1]:
+            raise TaskError(
+                f"{task_id}: tool_policy.network must be one of "
+                f"{NETWORK_POLICIES[:-1]}")
+        writable = raw.get("workspace_writable")
+        if not isinstance(writable, bool):
+            raise TaskError(
+                f"{task_id}: tool_policy.workspace_writable must be boolean")
+        return cls(tuple(tools), network, writable)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "allowed_tools": list(self.allowed_tools),
+            "network": self.network,
+            "workspace_writable": self.workspace_writable,
+        }
 
 
 @dataclass(frozen=True)
@@ -243,6 +318,11 @@ class Task:
     artifact: ArtifactRecipe | None = None
     private: bool = False
     calibration: dict[str, Calibration] = field(default_factory=dict)
+    schema_version: int = 1
+    tool_policy: ToolPolicy = field(default_factory=ToolPolicy.legacy)
+    input_domain: dict[str, Any] = field(default_factory=dict)
+    experiment_use: str = "harness-validation"
+    difficulty: str = "small"
 
     # -- helpers ---------------------------------------------------------
 
@@ -256,6 +336,17 @@ class Task:
 
     def hidden_paths(self) -> list[Path]:
         return [self.path(c) for c in self.hidden_cases]
+
+    def protocol_dict(self) -> dict[str, Any]:
+        """Schema metadata copied into every run row for later audit."""
+        return {
+            "schema_version": self.schema_version,
+            "experiment_use": self.experiment_use,
+            "difficulty": self.difficulty,
+            "tool_policy": self.tool_policy.to_dict(),
+            "input_domain": dict(self.input_domain),
+            "protectability": dict(self.protectability),
+        }
 
     def computed_hash(self) -> str:
         """SHA-256 over every file the manifest names, in manifest order.
@@ -307,6 +398,36 @@ def _require(raw: dict[str, Any], key: str, kind: type) -> Any:
         raise TaskError(f"'{key}' must be {kind.__name__}, "
                         f"got {type(value).__name__}")
     return value
+
+
+def _parse_input_domain(raw: Any, task_id: str) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise TaskError(f"{task_id}: input_domain must be an object")
+    kind = raw.get("kind")
+    if kind not in INPUT_DOMAIN_KINDS:
+        raise TaskError(
+            f"{task_id}: input_domain.kind must be one of "
+            f"{INPUT_DOMAIN_KINDS}")
+    summary = raw.get("summary")
+    if not isinstance(summary, str) or not summary.strip():
+        raise TaskError(f"{task_id}: input_domain.summary is required")
+    return dict(raw)
+
+
+def _parse_protectability(raw: Any, task_id: str) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise TaskError(f"{task_id}: protectability must be an object")
+    size = raw.get("domain_size")
+    rating = raw.get("rating")
+    if size not in DOMAIN_SIZES:
+        raise TaskError(
+            f"{task_id}: protectability.domain_size must be one of "
+            f"{DOMAIN_SIZES}")
+    if rating not in PROTECTABILITY_RATINGS:
+        raise TaskError(
+            f"{task_id}: protectability.rating must be one of "
+            f"{PROTECTABILITY_RATINGS}")
+    return dict(raw)
 
 
 def _parse_artifact(raw: Any, task_id: str) -> ArtifactRecipe:
@@ -409,15 +530,18 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
         raise TaskError(f"{manifest_path}: top level must be an object")
 
     version = raw.get("schema_version")
-    if version != SCHEMA_VERSION:
+    if version not in SUPPORTED_SCHEMA_VERSIONS:
         raise TaskError(f"unsupported schema_version {version!r} "
-                        f"(expected {SCHEMA_VERSION})")
+                        f"(supported: {SUPPORTED_SCHEMA_VERSIONS})")
 
     sources = _require(raw, "candidate_sources", list)
     if not sources:
         raise TaskError("candidate_sources must not be empty")
 
     task_id = _require(raw, "id", str)
+    if not _TASK_ID.match(task_id):
+        raise TaskError(
+            f"invalid task id {task_id!r} (use [a-z0-9][a-z0-9._-]*)")
     task_type = raw.get("task_type", "reimplement")
     if task_type not in TASK_TYPES:
         raise TaskError(f"{task_id}: task_type must be one of {TASK_TYPES}, "
@@ -430,6 +554,36 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
             raise TaskError(f"{task_id}: 'artifact' is only valid for "
                             f"task_type 'binary-recovery'")
         artifact = None
+
+    if version == 2:
+        if "tool_policy" not in raw:
+            raise TaskError(f"{task_id}: schema_version 2 requires tool_policy")
+        if "input_domain" not in raw:
+            raise TaskError(
+                f"{task_id}: schema_version 2 requires input_domain")
+        if "experiment_use" not in raw:
+            raise TaskError(
+                f"{task_id}: schema_version 2 requires experiment_use")
+        if "protectability" not in raw:
+            raise TaskError(
+                f"{task_id}: schema_version 2 requires protectability")
+    tool_policy = (
+        ToolPolicy.from_dict(raw["tool_policy"], task_id)
+        if version == 2 else ToolPolicy.legacy())
+    input_domain = (
+        _parse_input_domain(raw["input_domain"], task_id)
+        if version == 2 else {})
+    protectability = (
+        _parse_protectability(raw["protectability"], task_id)
+        if version == 2 else dict(raw.get("protectability", {})))
+    experiment_use = raw.get("experiment_use", "harness-validation")
+    if experiment_use not in EXPERIMENT_USES:
+        raise TaskError(
+            f"{task_id}: experiment_use must be one of {EXPERIMENT_USES}")
+    difficulty = raw.get("difficulty", "small")
+    if difficulty not in DIFFICULTIES:
+        raise TaskError(
+            f"{task_id}: difficulty must be one of {DIFFICULTIES}")
 
     task = Task(
         root=root,
@@ -445,12 +599,17 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
         hidden_cases=tuple(_require(raw, "hidden_cases", list)),
         fuzz=FuzzConfig.from_dict(raw.get("fuzz", {})),
         budgets=Budget.from_dict(raw.get("budgets", {})),
-        protectability=raw.get("protectability", {}),
+        protectability=protectability,
         content_hash=str(raw.get("content_hash", "")),
         task_type=task_type,
         artifact=artifact,
         private=_require(raw, "private", bool) if "private" in raw else False,
         calibration=_calibrations(raw.get("calibration"), task_id),
+        schema_version=version,
+        tool_policy=tool_policy,
+        input_domain=input_domain,
+        experiment_use=experiment_use,
+        difficulty=difficulty,
     )
 
     # Private tasks live outside the public tree and their results are never

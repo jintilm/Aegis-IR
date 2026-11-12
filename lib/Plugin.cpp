@@ -14,6 +14,7 @@
 #include "AegisAuditPass.h"
 #include "AegisControlFlowPass.h"
 #include "AegisDecoysPass.h"
+#include "AegisLintPass.h"
 #include "AegisPolicyPass.h"
 #include "AegisVerifyPass.h"
 #include "aegis/AegisVersion.h"
@@ -45,6 +46,10 @@ extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
                   }
                   if (Name == "aegis-decoys") {
                     MPM.addPass(aegis::AegisDecoysPass());
+                    return true;
+                  }
+                  if (Name == "aegis-lint") {
+                    MPM.addPass(aegis::AegisLintPass());
                     return true;
                   }
                   if (Name == "aegis-cff") {

@@ -95,6 +95,18 @@ aegis-policy<policy=...>,aegis-decoys,aegis-cff,default<O2>,aegis-verify
 `aegis-cff` reads the same attributes and refuses to run without the decoy
 guard it builds on. See [`controlflow.md`](controlflow.md).
 
+Before a transform pipeline, `aegis-lint` can be run directly after policy
+resolution. It is read-only and applies the same eligibility rules:
+
+```bash
+opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+  -passes='aegis-policy<policy=policy.json>,aegis-lint' \
+  -disable-output frontend.ll
+```
+
+The report names every selected function and any construct that would make a
+level-2/3 build fail closed.
+
 ## Selection report
 
 Written to stderr on every run:

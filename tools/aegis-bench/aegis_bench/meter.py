@@ -373,7 +373,10 @@ class MeterProxy:
                     pending = bytearray(rest)
                     for line in lines:
                         usage = _usage_from_sse_line(line)
-                        if usage is not None:
+                        # Some relays repeat the terminal usage block. One
+                        # request has one bill; count the first block and
+                        # ignore duplicates rather than doubling the run.
+                        if usage is not None and not found_usage:
                             self.stats.note_usage(usage)
                             found_usage = True
                 else:

@@ -33,12 +33,13 @@ from typing import Any
 
 from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
-from .grader import Grade, Grader
+from .grader import CaseOutcome, Grade, Grader
 from .meter import MeterProxy, ledger_source_for
 from .oracle import OracleBroker, OracleError, install_shim
 from .schema import ACCESS_MODES, Task
 
 DEFAULT_ADAPTER_TIMEOUT = 600
+RECORD_SCHEMA_VERSION = 2
 
 #: What the agent is given for a binary-recovery task.
 #:
@@ -226,11 +227,21 @@ class RunRecord:
     #: request that passed through the run's proxy. Empty when the run had no
     #: meter.
     metering: dict[str, Any] = field(default_factory=dict)
+    #: Experiment-level provenance added by the campaign driver. Empty for a
+    #: standalone ``aegis-bench run``.
+    campaign: dict[str, Any] = field(default_factory=dict)
+    #: Version of the JSONL row contract itself. Rows written before this
+    #: field existed are treated as version 1 when loaded.
+    record_schema_version: int = RECORD_SCHEMA_VERSION
+    #: Task-schema metadata in force for this row (tool policy, input domain,
+    #: experiment use, difficulty and protectability).
+    task_protocol: dict[str, Any] = field(default_factory=dict)
     private: bool = False
     error: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "record_schema_version": self.record_schema_version,
             "run_id": self.run_id,
             "task_id": self.task_id,
             "task_hash": self.task_hash,
@@ -250,9 +261,67 @@ class RunRecord:
             "artifact": self.artifact,
             "oracle": self.oracle,
             "metering": self.metering,
+            "campaign": self.campaign,
+            "task_protocol": self.task_protocol,
             "private": self.private,
             "error": self.error,
         }
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "RunRecord":
+        """Load a JSONL row for resume and audit.
+
+        This deliberately accepts rows written before campaign/schema fields
+        existed. Unknown keys are ignored so a newer report remains readable by
+        older tooling, while required measurement fields still fail loudly.
+        """
+        if not isinstance(raw, dict):
+            raise ValueError("run row must be a JSON object")
+        grade_raw = raw.get("grade")
+        if not isinstance(grade_raw, dict):
+            raise ValueError("run row is missing the grade object")
+        failures = []
+        for entry in grade_raw.get("failures", []):
+            if isinstance(entry, dict):
+                failures.append(CaseOutcome(
+                    name=str(entry.get("case", "")),
+                    ok=False,
+                    detail=str(entry.get("detail", ""))))
+        grade = Grade(
+            passed=bool(grade_raw.get("passed", False)),
+            stage=str(grade_raw.get("stage", "")),
+            reason=str(grade_raw.get("reason", "")),
+            cases_total=int(grade_raw.get("cases_total", 0)),
+            cases_passed=int(grade_raw.get("cases_passed", 0)),
+            failures=failures,
+            stderr_excerpt=str(grade_raw.get("stderr_excerpt", "")),
+        )
+        return cls(
+            run_id=str(raw["run_id"]),
+            task_id=str(raw["task_id"]),
+            task_hash=str(raw.get("task_hash", "")),
+            agent=str(raw["agent"]),
+            adversary=str(raw.get("adversary", "")),
+            adapter_version=str(raw.get("adapter_version", "")),
+            access=str(raw.get("access", "")),
+            calibration=dict(raw.get("calibration") or {}),
+            profile=str(raw["profile"]),
+            repetition=int(raw["repetition"]),
+            started_utc=str(raw["started_utc"]),
+            duration_seconds=float(raw["duration_seconds"]),
+            grade=grade,
+            ledger=dict(raw.get("ledger") or {}),
+            budgets=dict(raw.get("budgets") or {}),
+            environment=dict(raw.get("environment") or {}),
+            artifact=dict(raw.get("artifact") or {}),
+            oracle=dict(raw.get("oracle") or {}),
+            metering=dict(raw.get("metering") or {}),
+            campaign=dict(raw.get("campaign") or {}),
+            record_schema_version=int(raw.get("record_schema_version", 1)),
+            task_protocol=dict(raw.get("task_protocol") or {}),
+            private=bool(raw.get("private", False)),
+            error=str(raw.get("error", "")),
+        )
 
 
 class Runner:
@@ -476,13 +545,19 @@ class Runner:
             artifact=artifact.to_dict() if artifact is not None else {},
             oracle=oracle,
             metering=metering,
+            task_protocol=task.protocol_dict(),
             private=task.private,
             error=error)
 
     # -- a whole matrix --------------------------------------------------
 
     def run(self, tasks: list[Task], agents: list[Agent], *, profile: str,
-            repetitions: int = 1) -> list[RunRecord]:
+            repetitions: int = 1,
+            repetition_start: int = 0) -> list[RunRecord]:
+        if repetitions < 0:
+            raise ValueError("repetitions must be non-negative")
+        if repetition_start < 0:
+            raise ValueError("repetition_start must be non-negative")
         for task in tasks:
             if task.artifact is not None and profile not in task.artifact.profiles:
                 available = ", ".join(sorted(task.artifact.profiles))
@@ -495,7 +570,7 @@ class Runner:
             for agent in agents:
                 for rep in range(repetitions):
                     record = self.run_once(task, agent, profile=profile,
-                                           repetition=rep)
+                                           repetition=repetition_start + rep)
                     records.append(record)
                     status = "PASS" if record.grade.passed else "FAIL"
                     print(f"[{status}] {task.id} / {agent.name} "

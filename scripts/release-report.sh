@@ -19,22 +19,24 @@ set -euo pipefail
 NAME="${1:-harness-validation}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$REPO_ROOT/docs/reports/$NAME"
+WORK="$REPO_ROOT/bench-out/release-$NAME"
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
 
-mkdir -p "$OUT"
+rm -rf "$WORK"
+mkdir -p "$WORK"
 
 run_in_container() {
   MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src "$IMAGE" bash -c "$1"
 }
 
-echo "== build + test suite ==" | tee "$OUT/ctest.log"
+echo "== build + test suite ==" | tee "$WORK/ctest.log"
 run_in_container '
 set -e
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm
 cmake --build build -j
 cd build && ctest --output-on-failure
-' 2>&1 | tee -a "$OUT/ctest.log"
+' 2>&1 | tee -a "$WORK/ctest.log"
 
 echo "== bench: ground-truth replay (positive control) =="
 echo "== bench: stub (negative control) =="
@@ -53,13 +55,37 @@ bench ground-truth ground-truth > /tmp/ground-truth.log 2>&1 || true
 grep -q '^\[PASS\]' /tmp/ground-truth.log
 bench stub stub > /tmp/stub.log 2>&1 || true
 grep -q '^\[FAIL\]' /tmp/stub.log
-cp /tmp/ground-truth.log /src/docs/reports/$NAME/bench-ground-truth.log
-cp /tmp/stub.log /src/docs/reports/$NAME/bench-stub.log
-rm -rf /src/docs/reports/$NAME/bench-ground-truth /src/docs/reports/$NAME/bench-stub
-cp -r /tmp/bench-ground-truth /tmp/bench-stub /src/docs/reports/$NAME/
+cp /tmp/ground-truth.log /src/bench-out/release-$NAME/bench-ground-truth.log
+cp /tmp/stub.log /src/bench-out/release-$NAME/bench-stub.log
+rm -rf /src/bench-out/release-$NAME/bench-ground-truth \
+  /src/bench-out/release-$NAME/bench-stub
+cp -r /tmp/bench-ground-truth /tmp/bench-stub /src/bench-out/release-$NAME/
 cat /tmp/ground-truth.log /tmp/stub.log
 "
 
+echo "== bench: campaign, resume and audit =="
+run_in_container "
+set -e
+cd tools/aegis-bench
+CFG=/src/experiments/offline-smoke.json
+OUT=/tmp/bench-campaign
+rm -rf \"\$OUT\"
+python3 -m aegis_bench campaign --config \"\$CFG\" --out \"\$OUT\" \
+  > /tmp/campaign.log 2>&1
+python3 -m aegis_bench campaign --config \"\$CFG\" --out \"\$OUT\" \
+  >> /tmp/campaign.log 2>&1
+python3 -m aegis_bench audit \"\$OUT\" --experiment \"\$CFG\" --json \
+  > /tmp/campaign-audit.json
+rm -rf /src/bench-out/release-$NAME/bench-campaign
+cp -r \"\$OUT\" /src/bench-out/release-$NAME/bench-campaign
+cp /tmp/campaign.log /src/bench-out/release-$NAME/bench-campaign.log
+cp /tmp/campaign-audit.json /src/bench-out/release-$NAME/bench-campaign-audit.json
+cat /tmp/campaign.log
+cat /tmp/campaign-audit.json
+"
+
+mkdir -p "$OUT"
+cp -r "$WORK"/. "$OUT"/
 cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
 
 cat > "$OUT/README.md" <<EOF
@@ -82,7 +108,10 @@ scripts/release-report.sh $NAME
   a known-correct solution at 100% and a compiling-but-wrong one at ~0%
   (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end to
   end; CTest additionally builds the level-1/2/3 probes and scores the frozen
-  reimplementation task (\`rolling-token-v1\`).
+  reimplementation task (\`rolling-token-v1\`);
+- the offline campaign writes a row, checkpoints it, resumes without rerunning
+  the cell, and passes the campaign-aware audit
+  (\`bench-campaign/\`, \`bench-campaign-audit.json\`).
 
 ## What this does **not** show
 

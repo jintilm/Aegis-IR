@@ -4,7 +4,8 @@
 # Unlike release-report.sh this needs an out-of-tree adapter directory and an
 # API key, so it is never part of CI. It refuses to run on a dirty tree and
 # writes the machine-generated rows plus a README that states exactly what the
-# numbers do and do not show.
+# numbers do and do not show. The model run executes the harness-owned campaign
+# in gitignored bench-out/, then copies the finished rows into docs/reports/.
 #
 # Usage:
 #   ADAPTERS_DIR=/path/to/adapters LLM_API_KEY=... \
@@ -14,7 +15,9 @@
 # (oracle|binary; use binary for anything that compares protection levels),
 # BENCH_METER (1 to measure tokens with the harness proxy, 0 for the older
 # self-reported shape), ADAPTER_TIMEOUT (binary access at 30 steps needs more
-# than the 1800 s an earlier run was cut off at), and LLM_* variables.
+# than the 1800 s an earlier run was cut off at), BENCH_CAMPAIGN_NAME,
+# RESUME=1 (continue the gitignored campaign after an interruption), and
+# LLM_* variables.
 set -euo pipefail
 
 NAME="${1:-pilot}"
@@ -45,9 +48,8 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
 fi
 COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 
-mkdir -p "$OUT"
-
 if [ -n "${REUSE_DATA:-}" ]; then
+  mkdir -p "$OUT"
   # Regenerate the report from a run produced by this same script/command
   # without spending the model budget again. The run.log is not recreated.
   echo "reusing existing run data from $REUSE_DATA" >&2
@@ -70,8 +72,15 @@ if [ -n "${REUSE_DATA:-}" ]; then
   fi
   [ -s "$OUT/run.log" ] || : > "$OUT/run.log"
 else
-  # A fresh run replaces whatever is there; a regeneration stages first.
-  rm -rf "$DATA"
+  # Run inside the gitignored bench-out tree so creating the output does not
+  # make the clean worktree dirty before the campaign's preflight. Copy the
+  # finished rows into docs/reports only after the model run has ended.
+  RUN_ROOT="$REPO_ROOT/bench-out/pilots/$NAME"
+  RUN_DATA="$RUN_ROOT/data"
+  if [ "${RESUME:-0}" != "1" ]; then
+    rm -rf "$RUN_ROOT"
+  fi
+  mkdir -p "$RUN_DATA"
   MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$REPO_ROOT:/src" \
     -v "$ADAPTERS_DIR:/adapters" \
@@ -86,10 +95,15 @@ else
     -e LLM_SAVE_DIR=/tmp/submissions \
     -e BENCH_ACCESS="$ACCESS" \
     -e BENCH_METER="${BENCH_METER:-1}" \
+    -e BENCH_CAMPAIGN_NAME="$NAME" \
     -e ADAPTER_TIMEOUT="${ADAPTER_TIMEOUT:-3000}" \
     "$IMAGE" bash -c \
-    "python3 /adapters/run_pilot.py '$TASKS' '$REPS' '/src/docs/reports/$NAME/data' '$PROFILES'" \
-    2>&1 | tee "$OUT/run.log"
+    "python3 /adapters/run_pilot.py '$TASKS' '$REPS' '/src/bench-out/pilots/$NAME/data' '$PROFILES'" \
+    2>&1 | tee "$RUN_ROOT/run.log"
+  rm -rf "$DATA"
+  mkdir -p "$OUT" "$DATA"
+  cp -r "$RUN_DATA"/. "$DATA"/
+  cp "$RUN_ROOT/run.log" "$OUT/run.log"
 fi
 
 python3 - "$DATA/aegis-bench.jsonl" "$OUT/README.md" "$NAME" "$COMMIT" \
@@ -410,6 +424,8 @@ lines += [
     "- `data/aegis-bench.csv` — spreadsheet view;",
     "- `data/aegis-bench.md` — harness-generated report with Wilson intervals "
     "and the baseline cost delta;",
+    "- `data/campaign-audit.json` — campaign-aware checks for duplicate or "
+    "missing cells, mixed metering, stale task metadata and dirty provenance;",
     "- `run.log` — adapter/runner console output (contains no credentials).",
     "",
 ]

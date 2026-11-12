@@ -13,6 +13,7 @@ grader never trusts it beyond "this is the candidate source".
 from __future__ import annotations
 
 import abc
+import importlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,14 @@ from typing import Any
 
 class AdapterError(Exception):
     """The adapter failed to produce a candidate (crash, budget, config)."""
+
+
+BUILTIN_ADAPTERS = {
+    "stub": "aegis_bench.adapters.fake:StubAgent",
+    "broken": "aegis_bench.adapters.fake:BrokenAgent",
+    "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
+    "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",
+}
 
 
 @dataclass
@@ -55,3 +64,33 @@ class Agent(abc.ABC):
     @abc.abstractmethod
     def solve(self, task: Any, workspace: Path) -> AgentResult:
         """Produce a candidate for ``task``, reading only ``workspace``."""
+
+
+def create_agent(spec: str) -> Agent:
+    """Resolve ``module:Class`` or a built-in short name to a fresh adapter.
+
+    A fresh instance per cell is important: counters, cached disassembly and
+    conversation state must not leak from one repetition into another.
+    """
+    resolved = BUILTIN_ADAPTERS.get(spec, spec)
+    if ":" not in resolved:
+        raise AdapterError(
+            f"adapter must be 'module:Class' or a built-in "
+            f"({', '.join(sorted(BUILTIN_ADAPTERS))}), got {spec!r}")
+    module_name, class_name = resolved.split(":", 1)
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise AdapterError(f"cannot import adapter {resolved}: {exc}") from exc
+    try:
+        cls = getattr(module, class_name)
+    except AttributeError as exc:
+        raise AdapterError(
+            f"adapter module {module_name} has no attribute {class_name}") from exc
+    if not isinstance(cls, type) or not issubclass(cls, Agent):
+        raise AdapterError(f"{resolved} is not an Agent subclass")
+    try:
+        return cls()
+    except TypeError as exc:
+        raise AdapterError(
+            f"{resolved} must be constructible with no arguments: {exc}") from exc

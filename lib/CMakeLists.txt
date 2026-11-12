@@ -1,6 +1,7 @@
 add_llvm_pass_plugin(AegisPass
   Plugin.cpp
   AegisAuditPass.cpp
+  AegisLintPass.cpp
   AegisPolicyPass.cpp
   AegisDecoysPass.cpp
   AegisControlFlowPass.cpp

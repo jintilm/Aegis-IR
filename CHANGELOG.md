@@ -3,10 +3,50 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
-## [Unreleased]
+## [0.2.0-alpha] - 2026-11-12
 
 ### Added
 
+- **Campaign orchestration, resume and audit** — `aegis-bench campaign` expands
+  an experiment manifest into uniquely keyed cells, creates a fresh adapter per
+  cell, interleaves profiles within each repetition, fingerprints the manifest,
+  takes an exclusive output lock, and writes atomic reports plus
+  `campaign-state.json` after every completed cell. Re-running the same command
+  skips already-recorded cells; duplicate,
+  foreign or missing cells are rejected. `aegis-bench audit` independently
+  checks raw JSONL rows for duplicate/missing cells, commit and adapter-version
+  drift, stale task hashes, mixed meter provenance, dirty worktrees,
+  infrastructure failures and binary-access oracle mislabelling. The shipped
+  offline campaign is covered by unit and CTest integration tests. See
+  [`docs/campaigns.md`](docs/campaigns.md).
+- **Task schema v2 and campaign provenance** — task manifests now declare
+  `experiment_use`, `difficulty`, `input_domain`, `protectability` and a
+  `tool_policy` (`allowed_tools`, `network`, `workspace_writable`). Every run row
+  carries the protocol snapshot as `task_protocol`; campaign rows additionally
+  carry the campaign id, purpose, primary metric, manifest SHA-256, cell key and
+  global order index. Schema v1 remains readable and is labelled as a legacy,
+  unspecified tool policy. The declaration is measurement metadata, not
+  enforcement: the in-process adapter still does not have a sandbox.
+- **`aegis-lint`** — a read-only New-PM pass that applies the same eligibility
+  rules as the decoy and flattening transforms and reports selected, eligible,
+  ineligible and unsupported functions before a transform pipeline runs. It
+  names the fail-closed reason (`indirectbr`, EH, coroutine, inline assembly,
+  convergent call, and so on) without changing IR. Covered by the
+  `aegis-controlflow` CTest and a CI smoke test.
+- **Isolation and tool-accounting design** — [`docs/isolation.md`](docs/isolation.md)
+  specifies one disposable worker per cell, a workspace-only mount, metered-only
+  egress, a harness-owned tool broker with authoritative counters, a separate
+  grader process, and the isolation acceptance tests required before a
+  protection-effect claim. This is explicitly design, not an implemented
+  sandbox.
+- **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
+  temporary file, fsynced and atomically replaced. A killed campaign therefore
+  resumes from the previous complete report rather than parsing a truncated
+  file.
+- **Repeated provider usage chunks are counted once** — some relays repeat the
+  terminal SSE usage block. The meter now accepts the first block for a
+  request and ignores duplicates, preventing a silent 2x token charge; an
+  offline regression test covers it.
 - **Harness-owned token metering** — `--meter-upstream <relay-url>` (or
   `Runner(meter_upstream=...)`) starts a per-run loopback reverse proxy in front
   of the model endpoint and exports it to the adapter as
@@ -23,7 +63,7 @@ versions follow SemVer once past alpha.
   `requests: 0`), a provider may ignore `include_usage` (`total_tokens` is then
   `null`, never `0`), and the two measurements are kept side by side so an
   adapter claiming more than the proxy saw is flagged
-  (`metering.adapter_exceeds_metered`). 19 offline tests cover injection,
+  (`metering.adapter_exceeds_metered`). 20 offline tests cover injection,
   byte-exact streaming pass-through, absent usage, forwarded 5xx, per-run
   attribution, and the runner path; **the published pilots remain
   self-reported**, since metering did not exist when they ran.
@@ -159,6 +199,15 @@ versions follow SemVer once past alpha.
 
 ### Changed
 
+- `Runner.run` accepts a `repetition_start`, so a caller that deliberately
+  creates a fresh adapter for every cell can still preserve the real
+  repetition index in each row. The out-of-tree pilot driver now uses it;
+  without this, every cell in a multi-repetition pilot was stamped `0`.
+- The control-flow transform and verifier use LLVM 23's `CondBrInst` and
+  `UncondBrInst` instead of the deprecated generic `BranchInst` interface.
+  Generated IR and eligibility checks are unchanged.
+- Protocol and task-set docs now reflect the four public tasks and four
+  published real-model pilots instead of describing the pre-pilot state.
 - **Binary-recovery access modes** — `--access {oracle,binary}` decides what a
   binary-recovery workspace receives and is stamped in every row. `oracle`
   (default, behaviour unchanged) puts a counted shim in the workspace and keeps
@@ -273,5 +322,5 @@ No effectiveness claim of any kind. The decoys are structurally ineffective
 against an analyst with the source; no model has been run against this
 release.
 
-[Unreleased]: https://github.com/jintilm/Aegis-IR/compare/v0.1.0-alpha...HEAD
+[0.2.0-alpha]: https://github.com/jintilm/Aegis-IR/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/jintilm/Aegis-IR/releases/tag/v0.1.0-alpha

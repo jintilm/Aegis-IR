@@ -18,11 +18,14 @@ aegis_bench/
 ├── agent.py     adapter contract (no network, no credentials in-tree)
 ├── grader.py    independent grader: compile + differential execution
 ├── runner.py    workspace isolation, artifact injection, provenance
+├── campaign.py  experiment matrix, interleaving, checkpoint/resume
+├── audit.py     JSONL/matrix/provenance audit
 ├── report.py    JSONL / CSV / Markdown reports
 ├── adapters/    offline deterministic adapters (test doubles)
-└── cli.py       `hash`, `check`, `run`
+└── cli.py       `hash`, `check`, `run`, `campaign`, `audit`
 tests/
-└── test_harness.py   offline tests; no model, no network, no keys
+├── test_harness.py   offline harness tests
+└── test_campaign.py  campaign, resume and audit tests
 ```
 
 ## Usage
@@ -35,6 +38,11 @@ python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
 
 # after editing a task, re-record its hash
 python3 -m aegis_bench hash ../../benchmarks/tasks-public/rolling-token-v1
+
+# run or resume the shipped offline smoke campaign
+python3 -m aegis_bench campaign --config ../../experiments/offline-smoke.json
+python3 -m aegis_bench audit ../../bench-out/offline-smoke \
+    --experiment ../../experiments/offline-smoke.json
 
 # smoke-run the offline negative control (baseline artifact build)
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
@@ -51,20 +59,25 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --plugin ../../build/lib/AegisPass.so --out /tmp/bench-l3-binary
 ```
 
-A real run passes an adapter that lives **outside** this repository:
+A real matrix uses a campaign manifest. The adapter still lives **outside**
+this repository:
 
 ```bash
-python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
-    --adapter my_adapters.claude:C1Static --profile aegis-level2 \
+PYTHONPATH=/path/to/adapters python3 -m aegis_bench campaign \
+    --config ../../experiments/protection-pilot.example.json \
     --plugin build/lib/AegisPass.so \
-    --repetitions 5 --out bench-out/v0.2
+    --meter-upstream https://relay.example/v1
 ```
 
 Credentials are read by that external adapter; nothing in this tree imports a
-vendor SDK, opens a socket, or reads an API key. The adapter must be run in an
-environment whose filesystem view contains only the workspace; the harness
-enforces workspace isolation, not process sandboxing. `adapter.solve` is
+vendor SDK or reads an API key. The optional metering proxy is the only
+harness-owned network path, and it exists only when `--meter-upstream` is
+explicitly given. The adapter must be run in an environment whose filesystem
+view contains only the workspace; the harness enforces workspace isolation,
+not process sandboxing. `adapter.solve` is
 bounded by `--adapter-timeout` (default 600 s, SIGALRM on POSIX).
+Campaigns create a fresh adapter instance for every cell, require a non-empty
+adapter version, and record the manifest fingerprint and cell key in each row.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1
@@ -175,6 +188,17 @@ for binary-recovery tasks — the probe's SHA-256, file and `.text` sizes,
 toolchain, and build log. A task edited after its hash was recorded fails
 `check`, so a result cannot silently refer to a different task than the one
 that was run.
+
+Rows also carry `record_schema_version`, `task_protocol` (schema version, tool
+policy, input domain, experiment use, difficulty, protectability) and a
+`campaign` block with campaign id, purpose, primary metric, manifest SHA-256,
+cell key and order index. `aegis-bench audit` checks duplicates, missing
+cells, commit/hash/version drift, mixed meter provenance and campaign
+fingerprint consistency. See [`docs/campaigns.md`](../../docs/campaigns.md).
+
+The adapter is still in-process. Campaign/resume does not enforce process
+isolation, and tool calls remain self-reported. The worker/tool-broker design
+and its acceptance tests are in [`docs/isolation.md`](../../docs/isolation.md).
 
 ## Deliberate limits
 

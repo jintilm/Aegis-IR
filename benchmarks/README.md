@@ -21,10 +21,13 @@ tasks-private/   # layout notes only; actual content stored separately
 | Task | Domain | What it asks | Status |
 |---|---|---|---|
 | [`rolling-token-v1`](tasks-public/rolling-token-v1/task.md) | small | recover FNV-1a hash, Adler-32 checksum, and a `hash % 97` token predicate from sample I/O | harness validation only |
+| [`rolling-token-v2`](tasks-public/rolling-token-v2/task.md) | small | recover the same standard constructions from a binary probe | binary-recovery, but memorizable; not suitable for a protection comparison |
+| [`packed-record-v1`](tasks-public/packed-record-v1/task.md) | small | recover bit-field extraction, a nibble-substitution fold, and a length-dependent rule from a binary probe | comparison-ready under `binary` access after calibration |
+| [`lane-shift-v1`](tasks-public/lane-shift-v1/task.md) | small | recover a deliberately non-standard lane transformation from a binary probe | binary-recovery; no published comparison pilot yet |
 
-One task is not a benchmark. These exist so the harness has something
-end-to-end to run and so the *format* is exercised; published cost-delta
-numbers require the full matrix described in the protocol.
+Four tasks are still not a benchmark. They exist so the harness has enough
+end-to-end material to exercise both task shapes; published cost-delta numbers
+require the full matrix described in the protocol.
 
 ## Harness
 
@@ -44,7 +47,8 @@ together with the edit.
 
 1. Write the interface, brief and real sample I/O that the agent may see.
 2. Write ground truth, a driver, property tests and hidden cases.
-3. Fill in `task.json`, including budgets and protectability metadata.
+3. Fill in the schema-v2 `task.json`: budgets, protectability, experiment use,
+   difficulty, input domain and the declared `tool_policy`.
 4. `python3 -m aegis_bench hash <task-dir>`, then `check`.
 5. Confirm the ground truth scores 100% and a deliberately wrong but
    compiling candidate scores ~0% — the harness test does both for the

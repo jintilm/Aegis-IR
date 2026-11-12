@@ -112,6 +112,13 @@ class _Upstream:
                     chunks.append(
                         b'data: {"choices":[],"usage":{"prompt_tokens":11,'
                         b'"completion_tokens":5}}\n\n')
+                elif upstream.mode == "double_usage" and wants_usage:
+                    chunks.append(
+                        b'data: {"choices":[],"usage":{"prompt_tokens":11,'
+                        b'"completion_tokens":5}}\n\n')
+                    chunks.append(
+                        b'data: {"choices":[],"usage":{"prompt_tokens":11,'
+                        b'"completion_tokens":5}}\n\n')
                 chunks.append(b"data: [DONE]\n\n")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
@@ -228,6 +235,11 @@ class MeterProxyTests(unittest.TestCase):
         self.assertEqual(stats["requests_with_usage"], 0)
         self.assertIsNone(stats["total_tokens"])
         self.assertIn("no usage", stats["usage_source"])
+
+    def test_repeated_usage_block_is_counted_once(self):
+        _, stats = _proxied(self, "double_usage")
+        self.assertEqual(stats["requests_with_usage"], 1)
+        self.assertEqual(stats["total_tokens"], 16)
 
     def test_non_streaming_usage_is_read_from_the_json_body(self):
         _, stats = _proxied(self, "json", stream=False)

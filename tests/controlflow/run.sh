@@ -51,6 +51,26 @@ BASE_CODE=$?
 PIPE2="aegis-policy<policy=$POL2>,aegis-decoys,aegis-cff,default<O2>,aegis-verify"
 PIPE3="aegis-policy<policy=$POL3>,aegis-decoys,aegis-cff,default<O2>,aegis-verify"
 
+echo "== lint: policy selection before transforms =="
+run_opt /dev/null "aegis-policy<policy=$POL3>,aegis-lint"
+if [ "$CODE" -eq 0 ] && \
+   printf '%s\n' "$OUT" | grep -q 'eligible=yes' && \
+   printf '%s\n' "$OUT" | grep -q '\[aegis-lint\] summary:'; then
+  pass_case "lint reports eligible level-3 selections"
+else
+  fail_case "lint reports eligible level-3 selections (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
+fi
+run_opt /dev/null "aegis-policy<policy=$POLBAD>,aegis-lint"
+if [ "$CODE" -eq 0 ] && \
+   printf '%s\n' "$OUT" | grep -q 'eligible=no' && \
+   printf '%s\n' "$OUT" | grep -q 'indirectbr'; then
+  pass_case "lint names the flattening-ineligible construct"
+else
+  fail_case "lint names the flattening-ineligible construct (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
+fi
+
 echo "== level 2: pipeline and structural survival =="
 run_opt "$TMP/l2.ll" "$PIPE2"
 if [ "$CODE" -eq 0 ] && printf '%s\n' "$OUT" | grep -q '\[aegis-verify\] OK'; then

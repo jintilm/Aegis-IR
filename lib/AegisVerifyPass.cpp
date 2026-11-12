@@ -96,8 +96,8 @@ bool hasLiveOpaqueEdge(const Function &F, const GlobalVariable *Salt) {
       HasSaltLoad |= isVolatileLoadOf(I, Salt);
     if (!HasSaltLoad)
       continue;
-    const auto *BI = dyn_cast<BranchInst>(BB.getTerminator());
-    if (!BI || BI->isUnconditional())
+    const auto *BI = dyn_cast<CondBrInst>(BB.getTerminator());
+    if (!BI)
       continue;
     for (unsigned I = 0; I < 2; ++I) {
       const BasicBlock *Arm = BI->getSuccessor(I);
@@ -105,9 +105,8 @@ bool hasLiveOpaqueEdge(const Function &F, const GlobalVariable *Salt) {
       // returning to the live path.
       if (isa<UnreachableInst>(Arm->getTerminator()))
         return true;
-      if (const auto *Inner = dyn_cast<BranchInst>(Arm->getTerminator()))
-        if (Inner->isUnconditional() &&
-            isa<UnreachableInst>(Inner->getSuccessor(0)->getTerminator()))
+      if (const auto *Inner = dyn_cast<UncondBrInst>(Arm->getTerminator()))
+        if (isa<UnreachableInst>(Inner->getSuccessor(0)->getTerminator()))
           return true;
     }
   }

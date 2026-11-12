@@ -15,6 +15,10 @@ Design constraints (see docs/benchmark-protocol.md):
 
 from .schema import Task, TaskError, load_task
 from .agent import Agent, AgentResult, AdapterError
+from .audit import AuditReport, audit_path
+from .campaign import (
+    CampaignResult, Cell, Experiment, ExperimentError, load_experiment,
+    plan_cells, run_campaign)
 from .grader import Grade, Grader
 from .runner import Runner, RunRecord
 from .report import write_reports
@@ -23,14 +27,23 @@ __all__ = [
     "Agent",
     "AgentResult",
     "AdapterError",
+    "AuditReport",
+    "CampaignResult",
+    "Cell",
+    "Experiment",
+    "ExperimentError",
     "Grade",
     "Grader",
     "RunRecord",
     "Runner",
     "Task",
     "TaskError",
+    "audit_path",
     "load_task",
+    "load_experiment",
+    "plan_cells",
+    "run_campaign",
     "write_reports",
 ]
 
-__version__ = "0.1.0-alpha"
+__version__ = "0.2.0-alpha"

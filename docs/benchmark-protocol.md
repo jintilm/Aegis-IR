@@ -3,8 +3,9 @@
 Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
 artifact profiles are implemented and tested offline; four public tasks
 (`rolling-token-v1`, `rolling-token-v2`, `packed-record-v1`,
-`lane-shift-v1`), no run against a real model published yet. Every number in future reports must be
-traceable to a commit, a model version, and a date.
+`lane-shift-v1`); four real-model pilots are published under `docs/reports/`.
+They are pilots, not effectiveness claims. Every number in future reports must
+be traceable to a commit, a model version, and a date.
 
 ## Unit of analysis
 
@@ -22,7 +23,14 @@ Each task declares:
 - executable property tests (the success criterion);
 - hidden edge cases and a differential-fuzz input set;
 - domain size and a protectability rating (same rules as `aegis-lint`);
+- an experiment-use class, difficulty, input domain and declared tool policy;
 - a unique ID and content hash.
+
+Task manifests use schema version 2. The loader still accepts version 1 for
+frozen historical tasks and labels those rows with a legacy tool policy.
+Schema version 2 requires `experiment_use`, `protectability`, `tool_policy` and
+`input_domain`; these fields are copied into every run row as `task_protocol`
+so a report can be audited without reopening a possibly changed manifest.
 
 ### Task types
 
@@ -70,8 +78,9 @@ semantic answer). Scoring:
 Implementation status: (1) and (2) are implemented and tested; (3) is not,
 and descriptive tasks are therefore not accepted yet. Binary-recovery artifact
 building is implemented for levels 0–3, tested offline with deterministic
-adapters and a harness self-check. One real-model pilot has been run; it used
-**oracle access**, which cannot show a protection effect — see below.
+adapters and a harness self-check. Four real-model pilots are published under
+`docs/reports/`; all are pilots, and the oracle-access run cannot show a
+protection effect — see below.
 
 ### Access modes
 
@@ -370,6 +379,18 @@ made from the pilot counts, where every run carries a ledger and, under
 `--meter-upstream`, the token total comes from the provider rather than the
 adapter. A matrix row that mixes metered and self-reported runs cannot report a
 headline ratio.
+
+Use `aegis-bench campaign` rather than a bespoke adapter loop. The campaign
+manifest pins the matrix, ordering seed, access mode, meter requirement and
+clean-tree requirement; `campaign-state.json` makes the run resumable after a
+kill, and `aegis-bench audit` checks the raw JSONL against the planned cells.
+See [`campaigns.md`](campaigns.md).
+
+Campaign orchestration is not process isolation. The current adapter still
+runs in-process, tool calls are self-reported, and binary-access probe
+executions are uncounted. The worker/broker boundary that closes those gaps is
+specified in [`isolation.md`](isolation.md); protection-effect claims require
+it.
 
 ## Oracle-budget curve
 

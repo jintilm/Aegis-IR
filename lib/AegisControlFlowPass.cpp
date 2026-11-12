@@ -61,11 +61,11 @@ bool isVolatileLoadOf(const Instruction &I, const GlobalVariable *GV) {
 
 // Locate the decoy guard branch inserted by aegis-decoys. Returns false when
 // the pass ordering is wrong; the caller treats that as a build error.
-bool findGuardBranch(Function &F, const GlobalVariable *Guard, BranchInst *&Br,
+bool findGuardBranch(Function &F, const GlobalVariable *Guard, CondBrInst *&Br,
                      unsigned &BodyIdx) {
   for (BasicBlock &BB : F) {
-    auto *BI = dyn_cast<BranchInst>(BB.getTerminator());
-    if (!BI || BI->isUnconditional())
+    auto *BI = dyn_cast<CondBrInst>(BB.getTerminator());
+    if (!BI)
       continue;
     bool HasGuardLoad = false;
     for (const Instruction &I : BB)
@@ -93,7 +93,7 @@ void injectLiveSplit(Function &F, GlobalVariable *Guard, GlobalVariable *Salt) {
   LLVMContext &Ctx = F.getContext();
   Type *I32 = Type::getInt32Ty(Ctx);
 
-  BranchInst *GuardBr = nullptr;
+  CondBrInst *GuardBr = nullptr;
   unsigned BodyIdx = 0;
   if (!findGuardBranch(F, Guard, GuardBr, BodyIdx)) {
     std::string Msg = "[aegis-cff] no decoy guard branch in '" +
@@ -342,18 +342,21 @@ bool flattenFunction(Function &F, GlobalVariable *Salt, uint32_t Key) {
     if (isa<ReturnInst>(T) || isa<UnreachableInst>(T))
       continue;
 
-    if (auto *BI = dyn_cast<BranchInst>(T)) {
+    if (auto *BI = dyn_cast<UncondBrInst>(T)) {
       IRBuilder<> B(BI);
-      if (BI->isUnconditional()) {
-        volatileStoreState(
-            B, ConstantInt::get(I32, Enc(Num[BI->getSuccessor(0)])));
-      } else {
-        Value *Sel = B.CreateSelect(
-            BI->getCondition(),
-            ConstantInt::get(I32, Enc(Num[BI->getSuccessor(0)])),
-            ConstantInt::get(I32, Enc(Num[BI->getSuccessor(1)])), "aegis.next");
-        volatileStoreState(B, Sel);
-      }
+      volatileStoreState(B,
+                         ConstantInt::get(I32, Enc(Num[BI->getSuccessor(0)])));
+      BI->eraseFromParent();
+      continue;
+    }
+
+    if (auto *BI = dyn_cast<CondBrInst>(T)) {
+      IRBuilder<> B(BI);
+      Value *Sel = B.CreateSelect(
+          BI->getCondition(),
+          ConstantInt::get(I32, Enc(Num[BI->getSuccessor(0)])),
+          ConstantInt::get(I32, Enc(Num[BI->getSuccessor(1)])), "aegis.next");
+      volatileStoreState(B, Sel);
       BI->eraseFromParent();
       continue;
     }

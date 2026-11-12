@@ -7,7 +7,8 @@ a blocker, and a box checked without evidence is worse.
 ## Build and tests
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
-      Verified for `v0.1.0-alpha` by `scripts/release-report.sh` (`ctest.log`).
+      Verified for `v0.2.0-alpha` in the pinned container (`5/5` CTest,
+      292.02 s).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
@@ -28,6 +29,16 @@ a blocker, and a box checked without evidence is worse.
       ledger (C-001/C-003/C-004) rather than hiding it.
 - [x] At least one reproducible report linked from release notes:
       `docs/reports/harness-validation/`.
+- [x] Campaign orchestration is covered end to end: the offline manifest runs,
+      resumes without duplicating its cell, and passes `aegis-bench audit`
+      (`tests/bench/run.sh` + `test_campaign.py`).
+- [x] Task schema v2 is accepted, v1 remains readable as legacy, and every run
+      row carries `task_protocol` plus campaign provenance.
+- [x] `aegis-lint` reports eligible and ineligible selections without changing
+      IR (`aegis-controlflow` + CI smoke test).
+- [ ] Generate a clean-tree `v0.2.0-alpha` validation report after committing
+      the release changes. A dirty-tree report may be used locally but must
+      not be presented as published evidence.
 
 ## Claims and honesty
 
@@ -61,7 +72,7 @@ a blocker, and a box checked without evidence is worse.
 
 ## Packaging
 
-- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.1.0-alpha) and
+- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.2.0-alpha) and
       `CHANGELOG.md` written.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
       writes `SHA256SUMS`).

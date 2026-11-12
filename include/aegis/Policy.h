@@ -27,7 +27,8 @@ struct PolicyFunction {
   /// Symbol name as it appears in the IR (mangled for C++), or a demangled
   /// name compared against `llvm::demangle()` output (see docs/policy.md).
   std::string Name;
-  /// Protection tier: 0 = explicitly unprotected, 1..3 = Tier 1..3.
+  /// Transform strength: 0 = explicitly unprotected, 1..3 increase local
+  /// protection cost. These are policy levels, not threat-model tiers.
   int Level = 0;
   /// Free-form justification recorded in selection reports.
   std::string Reason;

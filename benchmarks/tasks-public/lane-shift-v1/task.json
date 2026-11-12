@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "lane-shift-v1",
   "title": "Recover a lane mixer and windowed rotation",
   "description": "task.md",
@@ -56,6 +56,23 @@
   "protectability": {
     "domain_size": "small",
     "rating": "medium"
+  },
+  "experiment_use": "harness-validation",
+  "difficulty": "small",
+  "tool_policy": {
+    "allowed_tools": [
+      "list_files",
+      "read_file",
+      "run_probe",
+      "disassemble",
+      "submit_solution"
+    ],
+    "network": "metered_model",
+    "workspace_writable": true
+  },
+  "input_domain": {
+    "kind": "bytes",
+    "summary": "arbitrary byte strings passed to a lane mixer"
   },
   "content_hash": "sha256:d0e33948d17bb5599b93d057b9405b078ef39919d05b015cb0d2822ce06658cb"
 }

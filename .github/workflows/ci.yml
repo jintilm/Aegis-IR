@@ -83,6 +83,15 @@ jobs:
           grep -q "switch i32 %aegis.keyed" build/demo.cff.ll
           grep -q "load volatile i32, ptr %aegis.state" build/demo.cff.ll
 
+      - name: Smoke test (policy lint)
+        run: |
+          opt-23 -load-pass-plugin=build/lib/AegisPass.so \
+            -passes='aegis-policy<policy=examples/aegis-policy.json>,aegis-lint' \
+            -disable-output build/demo.frontend.ll 2> build/lint.log
+          cat build/lint.log
+          grep -q "\[aegis-lint\] summary:" build/lint.log
+          grep -q "eligible=yes" build/lint.log
+
       # Fail-closed behaviour must be tested, not assumed: a protected build
       # whose decoys were skipped has to break, not warn.
       - name: Smoke test (verify gate fails closed)
@@ -113,9 +122,7 @@ jobs:
             lib/*.cpp lib/*.h include/aegis/*.h \
             tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h \
             tests/decoys/fixtures/*.cpp \
-            tests/controlflow/fixtures/*.cpp \
-            benchmarks/tasks-public/*/ground_truth/*.cpp \
-            benchmarks/tasks-public/*/grader/*.cpp
+            tests/controlflow/fixtures/*.cpp
 
       # Repository hygiene: no private material, no large binaries, no
       # credentials. A benchmark repo that accidentally ships hidden answers

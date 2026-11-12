@@ -1,6 +1,6 @@
 # Architecture
 
-Status: working draft. The audit, policy, decoy, control-flow and verify
+Status: working draft. The audit, lint, policy, decoy, control-flow and verify
 passes exist in code; further transforms are sketches.
 
 ## Components
@@ -43,7 +43,8 @@ entries fail the build. Details: [`policy.md`](policy.md).
   the job of the compatibility matrix (to be written).
 - The current transform set is policy selection, Tier-1 decoys (`aegis-decoys`)
   and the level 2/3 control-flow transforms (`aegis-cff`: bogus flow, live
-  split, flattening), all gated by `aegis-verify`. See
+  split, flattening), all gated by `aegis-verify`. `aegis-lint` is the
+  read-only preflight for the same eligibility rules. See
   [`decoys.md`](decoys.md) and [`controlflow.md`](controlflow.md).
 
 ## Build profiles
@@ -68,8 +69,10 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 ## Aegis-Bench
 
 - **Harness** (`tools/aegis-bench/`): Python; agent adapters, task runner,
-  independent grader, report generator. Fixed budgets (model version, prompt,
-  tool set, timeouts, token caps) are recorded per run.
+  resumable campaign planner, independent JSONL auditor, grader and report
+  generator. Fixed budgets (model version, prompt, tool set, timeouts, token
+  caps) are recorded per run. Task schema v2 records the declared tool policy,
+  input domain, experiment use and difficulty in every row.
 - **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Tasks are
   either `reimplement` (brief + examples) or `binary-recovery` (a stripped
   probe built from ground truth at protection levels 0–3). Each task has
@@ -82,6 +85,10 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 - **Red teams**: C1 static, C2 dynamic, C3 symbolic-assisted, plus a
   *white-box* attacker holding this source code and training decoy filters.
   The white-box attacker is the honest control.
+- **Campaign boundary**: the campaign and atomic checkpoint are implemented.
+  The adapter still runs in-process; process isolation and harness-owned tool
+  counting are specified in [`isolation.md`](isolation.md) and are required
+  before a protection-effect claim.
 
 ## Boundaries
 

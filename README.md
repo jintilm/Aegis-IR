@@ -21,9 +21,12 @@ numbers too.
 
 ## Status
 
-`v0.1.0-alpha` — research prototype, not a hardened protector.
+`v0.2.0-alpha` — reproducible measurement prototype, not a hardened
+protector. The campaign/resume/audit layer is implemented; process isolation
+and harness-owned tool counting remain a documented design gate.
 
-Present in the tree: `aegis-audit` (read-only summary), `aegis-policy`
+Present in the tree: `aegis-audit` (read-only summary), `aegis-lint`
+(read-only protectability preflight), `aegis-policy`
 (JSON → IR attributes), `aegis-decoys` (level-1 transform), `aegis-cff`
 (level 2/3 control-flow transforms), `aegis-verify` (post-optimization build
 gate that fails closed), the Aegis-Bench harness with binary-recovery tasks,
@@ -179,18 +182,29 @@ python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
 python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --task rolling-token-v2 --adapter ground-truth --profile baseline \
     --out /tmp/bench
+# multi-cell model runs:
+python3 -m aegis_bench campaign --config ../../experiments/offline-smoke.json
+python3 -m aegis_bench audit ../../bench-out/offline-smoke \
+    --experiment ../../experiments/offline-smoke.json
 ```
 
 Real runs pass an adapter from outside this repository, so no vendor SDK or API
 key enters the tree or CI; run it with only the workspace mounted, since the
-harness isolates the workspace but does not sandbox the process. Token and
-tool-call columns are adapter self-reports; oracle queries are counted by the
-harness broker (and capped when a task sets `budgets.oracle_queries`); budget
-enforcement is recorded per row. Report pass rates carry Wilson 95% intervals,
-and cost deltas get an interval only when both sides have at least two runs.
+harness isolates the workspace but does not sandbox the process.
+`aegis-bench campaign` owns the matrix, interleaves repetitions, writes
+atomically after every cell and resumes from the raw JSONL. `aegis-bench
+audit` checks duplicate/missing cells, stale task hashes, mixed meter
+provenance and campaign fingerprints. Tokens are provider-measured when
+`--meter-upstream` is used and otherwise adapter self-reports; tool-call
+columns are always self-reports; oracle queries are counted by the harness
+broker (and capped when a task sets `budgets.oracle_queries`). Report pass
+rates carry Wilson 95% intervals, and cost deltas get an interval only when
+both sides have at least two runs.
 Protocol:
 [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md); harness:
-[`tools/aegis-bench/README.md`](tools/aegis-bench/README.md).
+[`tools/aegis-bench/README.md`](tools/aegis-bench/README.md); campaign and
+audit contract: [`docs/campaigns.md`](docs/campaigns.md); process/tool
+isolation design: [`docs/isolation.md`](docs/isolation.md).
 
 ## Cost and known limits
 
@@ -222,9 +236,10 @@ Known limits, stated so they are not discovered as surprises:
   (semantics removal); the state encoding key derives from the shipped seed;
 - flattening costs a volatile load and store per basic block; it is not
   recommended for hot paths;
-- benchmark token and tool-call columns are adapter self-reports,
-  unverifiable by the harness; oracle queries are counted by the broker, which
-  is accounting rather than a sandbox;
+- benchmark tool-call columns are adapter self-reports; tokens are
+  provider-measured only when the meter is used, and otherwise self-reported.
+  Oracle queries are counted by the broker, which is accounting rather than a
+  sandbox; process isolation and broker-owned tool counts are not implemented;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 
@@ -236,6 +251,7 @@ aegis-ir/
 ├── lib/                  # LLVM pass plugin sources
 ├── tools/aegis-bench/    # benchmark harness (main product)
 ├── benchmarks/           # self-authored benchmark tasks
+├── experiments/          # campaign manifests and offline smoke configuration
 ├── tests/                # policy / decoy / differential / bench suites
 ├── docs/                 # threat model, architecture, CI, reports, ledgers
 ├── examples/             # tiny programs used in docs and smoke tests
