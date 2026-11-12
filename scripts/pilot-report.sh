@@ -49,7 +49,11 @@ if [ -n "${REUSE_DATA:-}" ]; then
   echo "reusing existing run data from $REUSE_DATA" >&2
   cp -r "$REUSE_DATA" "$DATA"
   # The console log from the run that produced this data is evidence. A
-  # regeneration succeeds it rather than truncating it.
+  # regeneration succeeds it rather than truncating it, and carries it over
+  # when the run directory kept its own copy.
+  if [ ! -s "$OUT/run.log" ] && [ -s "$REUSE_DATA/run.log" ]; then
+    cp "$REUSE_DATA/run.log" "$OUT/run.log"
+  fi
   [ -s "$OUT/run.log" ] || : > "$OUT/run.log"
 else
   MSYS_NO_PATHCONV=1 docker run --rm \
