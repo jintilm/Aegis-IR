@@ -12,7 +12,9 @@
 #
 # Optional: TASKS (comma-separated), PROFILES, REPS, STEPS, ACCESS
 # (oracle|binary; use binary for anything that compares protection levels),
-# and LLM_* variables.
+# BENCH_METER (1 to measure tokens with the harness proxy, 0 for the older
+# self-reported shape), ADAPTER_TIMEOUT (binary access at 30 steps needs more
+# than the 1800 s an earlier run was cut off at), and LLM_* variables.
 set -euo pipefail
 
 NAME="${1:-pilot}"
@@ -80,6 +82,8 @@ else
     -e LLM_REASONING_LIMIT="${LLM_REASONING_LIMIT:-12000}" \
     -e LLM_SAVE_DIR=/tmp/submissions \
     -e BENCH_ACCESS="$ACCESS" \
+    -e BENCH_METER="${BENCH_METER:-1}" \
+    -e ADAPTER_TIMEOUT="${ADAPTER_TIMEOUT:-3000}" \
     "$IMAGE" bash -c \
     "python3 /adapters/run_pilot.py '$TASKS' '$REPS' '/src/docs/reports/$NAME/data' '$PROFILES'" \
     2>&1 | tee "$OUT/run.log"
