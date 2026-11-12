@@ -112,6 +112,7 @@ else
   rm -rf "$DATA"
   mkdir -p "$OUT" "$DATA"
   cp -r "$RUN_DATA"/. "$DATA"/
+  rm -f "$DATA/.campaign.lock"
   cp "$RUN_ROOT/run.log" "$OUT/run.log"
 fi
 
