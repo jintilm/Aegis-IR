@@ -21,12 +21,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$REPO_ROOT/docs/reports/$NAME"
 WORK="$REPO_ROOT/bench-out/release-$NAME"
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
+if command -v cygpath >/dev/null 2>&1; then
+  MOUNT_ROOT="$(cygpath -w "$REPO_ROOT")"
+else
+  MOUNT_ROOT="$REPO_ROOT"
+fi
 
 rm -rf "$WORK"
 mkdir -p "$WORK"
 
 run_in_container() {
-  MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src "$IMAGE" bash -c "$1"
+  MSYS_NO_PATHCONV=1 docker run --rm -v "$MOUNT_ROOT:/src" -w /src \
+    "$IMAGE" bash -c "$1"
 }
 
 echo "== build + test suite ==" | tee "$WORK/ctest.log"

@@ -41,6 +41,15 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$REPO_ROOT/docs/reports/$NAME"
 DATA="$OUT/data"
+if command -v cygpath >/dev/null 2>&1; then
+  MOUNT_ROOT="$(cygpath -w "$REPO_ROOT")"
+  if [ -n "${ADAPTERS_DIR:-}" ]; then
+    MOUNT_ADAPTERS="$(cygpath -w "$ADAPTERS_DIR")"
+  fi
+else
+  MOUNT_ROOT="$REPO_ROOT"
+  MOUNT_ADAPTERS="${ADAPTERS_DIR:-}"
+fi
 
 if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
   echo "error: working tree is dirty; commit before generating a report" >&2
@@ -82,8 +91,8 @@ else
   fi
   mkdir -p "$RUN_DATA"
   MSYS_NO_PATHCONV=1 docker run --rm \
-    -v "$REPO_ROOT:/src" \
-    -v "$ADAPTERS_DIR:/adapters" \
+    -v "$MOUNT_ROOT:/src" \
+    -v "$MOUNT_ADAPTERS:/adapters" \
     -w /src/tools/aegis-bench \
     -e LLM_API_KEY \
     -e LLM_BASE_URL="${LLM_BASE_URL:-https://jpn.cdn.moxuna.com/v1}" \
