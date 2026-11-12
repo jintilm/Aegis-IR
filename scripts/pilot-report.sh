@@ -358,7 +358,7 @@ lines += [
     "- `run.log` — adapter/runner console output (contains no credentials).",
     "",
 ]
-Path(readme).write_text("\n".join(lines), encoding="utf-8")
+Path(readme).write_text("\n".join(lines), encoding="utf-8", newline="\n")
 print(f"wrote {readme}")
 PY
 
