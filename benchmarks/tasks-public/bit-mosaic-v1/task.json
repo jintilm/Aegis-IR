@@ -78,10 +78,16 @@
     "binary": {
       "models": {
         "deepseek-flash": {
-          "status": "uncalibrated"
+          "status": "ceiling",
+          "baseline_pass_rate": 1.0,
+          "runs": 1,
+          "date": "2026-11-13"
         },
         "deepseek-v4-pro": {
-          "status": "uncalibrated"
+          "status": "floor",
+          "baseline_pass_rate": 0.0,
+          "runs": 1,
+          "date": "2026-11-13"
         }
       }
     }
