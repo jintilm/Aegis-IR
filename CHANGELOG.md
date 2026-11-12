@@ -7,6 +7,12 @@ versions follow SemVer once past alpha.
 
 ### Added
 
+- **Four additional public task families** - `window-parser-v1`,
+  `state-fold-v1`, `ring-drain-v1` and `grid-route-v1` expand the public set
+  from four to eight tasks. Each has real sample I/O, ground truth, property
+  tests, hidden cases, seeded fuzz coverage, schema-v2 metadata and all four
+  artifact profiles. Ground truth and every protected artifact build are
+  covered by the harness test suite; the tasks remain uncalibrated for models.
 - **Campaign orchestration, resume and audit** — `aegis-bench campaign` expands
   an experiment manifest into uniquely keyed cells, creates a fresh adapter per
   cell, interleaves profiles within each repetition, fingerprints the manifest,

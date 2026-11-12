@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261121,
+  "functions": [
+    {
+      "name": "wp_parse",
+      "level": 2,
+      "reason": "window-parser-v1: level-2 artifact"
+    },
+    {
+      "name": "wp_accept",
+      "level": 2,
+      "reason": "window-parser-v1: level-2 artifact"
+    }
+  ]
+}

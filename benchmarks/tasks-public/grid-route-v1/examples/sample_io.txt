@@ -1,0 +1,11 @@
+# Sample observations
+
+```text
+input=""                         -> route=3787321499 accept=0
+input=hex:0000000000000000       -> route=1424921480 accept=1
+input=hex:ffffffffffffffff       -> route=1819622773 accept=0
+input=hex:deadbeefcafebabe       -> route=1484436574 accept=0
+input=hex:7f80ff00aa55cc33       -> route=1476626862 accept=0
+```
+
+Matching these observations is necessary, not sufficient.

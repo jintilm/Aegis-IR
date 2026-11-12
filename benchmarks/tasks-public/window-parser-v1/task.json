@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "id": "window-parser-v1",
+  "title": "Recover a tagged rolling-window parser",
+  "description": "task.md",
+  "interface": "include/target.h",
+  "candidate_sources": [
+    "target.cpp"
+  ],
+  "task_type": "binary-recovery",
+  "artifact": {
+    "source": "ground_truth/target.cpp",
+    "probe": "grader/driver.cpp",
+    "include_dirs": [
+      "include"
+    ],
+    "profiles": {
+      "baseline": {
+        "level": 0
+      },
+      "aegis-level1": {
+        "level": 1,
+        "policy": "grader/policies/level1.json"
+      },
+      "aegis-level2": {
+        "level": 2,
+        "policy": "grader/policies/level2.json"
+      },
+      "aegis-level3": {
+        "level": 3,
+        "policy": "grader/policies/level3.json"
+      }
+    }
+  },
+  "visible": [
+    "task.md",
+    "include/",
+    "examples/"
+  ],
+  "ground_truth": "ground_truth/target.cpp",
+  "properties": "grader/properties.cpp",
+  "driver": "grader/driver.cpp",
+  "hidden_cases": [
+    "grader/hidden/cases.json"
+  ],
+  "fuzz": {
+    "cases": 64,
+    "seed": 5151,
+    "max_len": 2048
+  },
+  "budgets": {
+    "max_tool_calls": 200,
+    "timeout_seconds": 600,
+    "max_output_tokens": 200000
+  },
+  "protectability": {
+    "domain_size": "small",
+    "rating": "medium"
+  },
+  "experiment_use": "harness-validation",
+  "difficulty": "medium",
+  "tool_policy": {
+    "allowed_tools": [
+      "list_files",
+      "read_file",
+      "run_probe",
+      "disassemble",
+      "submit_solution"
+    ],
+    "network": "metered_model",
+    "workspace_writable": true
+  },
+  "input_domain": {
+    "kind": "bytes",
+    "summary": "length-tagged binary records with malformed and truncated tails"
+  },
+  "content_hash": "sha256:e5852b8597cfe386b15c6dde7e9114e8be4c8ce38563eb4bdb8a1eca2843d229"
+}

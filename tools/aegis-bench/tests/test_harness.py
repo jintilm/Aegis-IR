@@ -515,18 +515,41 @@ class PublicTaskSetTests(unittest.TestCase):
     def test_all_public_tasks_load(self):
         tasks = discover_tasks(TASKS_ROOT)
         ids = {t.id for t in tasks}
-        self.assertGreaterEqual(len(ids), 4, ids)
+        self.assertGreaterEqual(len(ids), 8, ids)
         for expected in ("rolling-token-v1", "rolling-token-v2",
-                         "packed-record-v1", "lane-shift-v1"):
+                         "packed-record-v1", "lane-shift-v1",
+                         "window-parser-v1", "state-fold-v1",
+                         "ring-drain-v1", "grid-route-v1"):
             self.assertIn(expected, ids)
 
     def test_new_tasks_ground_truth_passes(self):
-        for task_id in ("packed-record-v1", "lane-shift-v1"):
+        for task_id in ("packed-record-v1", "lane-shift-v1",
+                        "window-parser-v1", "state-fold-v1",
+                        "ring-drain-v1", "grid-route-v1"):
             task = load_task(TASKS_ROOT / task_id)
             with Grader(task) as grader:
                 grade = grader.grade(_ground_truth_source(task))
             self.assertTrue(grade.passed, f"{task_id}: {grade.reason}")
             self.assertGreater(grade.cases_total, 0)
+
+    @unittest.skipUnless(AEGIS_PLUGIN, "AEGIS_PLUGIN not set")
+    def test_new_tasks_build_all_protection_profiles(self):
+        for task_id in ("window-parser-v1", "state-fold-v1",
+                        "ring-drain-v1", "grid-route-v1"):
+            task = load_task(TASKS_ROOT / task_id)
+            with tempfile.TemporaryDirectory() as tmp:
+                runner = Runner(
+                    repo_root=REPO_ROOT, out_dir=Path(tmp),
+                    plugin=AEGIS_PLUGIN)
+                artifacts = [
+                    runner.artifact_for(task, profile)
+                    for profile in ("baseline", "aegis-level1",
+                                    "aegis-level2", "aegis-level3")
+                ]
+            self.assertTrue(all(artifact is not None
+                                for artifact in artifacts), task_id)
+            self.assertNotEqual(artifacts[0].sha256, artifacts[-1].sha256,
+                                task_id)
 
 
 class PrivateTaskTests(unittest.TestCase):

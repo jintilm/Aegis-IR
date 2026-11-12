@@ -24,10 +24,14 @@ tasks-private/   # layout notes only; actual content stored separately
 | [`rolling-token-v2`](tasks-public/rolling-token-v2/task.md) | small | recover the same standard constructions from a binary probe | binary-recovery, but memorizable; not suitable for a protection comparison |
 | [`packed-record-v1`](tasks-public/packed-record-v1/task.md) | small | recover bit-field extraction, a nibble-substitution fold, and a length-dependent rule from a binary probe | comparison-ready under `binary` access after calibration |
 | [`lane-shift-v1`](tasks-public/lane-shift-v1/task.md) | small | recover a deliberately non-standard lane transformation from a binary probe | binary-recovery; no published comparison pilot yet |
+| [`window-parser-v1`](tasks-public/window-parser-v1/task.md) | small | recover a tagged rolling parser with truncation and early termination | binary-recovery; needs model calibration |
+| [`state-fold-v1`](tasks-public/state-fold-v1/task.md) | small | recover a token-dependent 64-bit state transition and rolling digest | binary-recovery; needs model calibration |
+| [`ring-drain-v1`](tasks-public/ring-drain-v1/task.md) | small | recover command-driven ring-buffer overwrite, drain and reset semantics | binary-recovery; needs model calibration |
+| [`grid-route-v1`](tasks-public/grid-route-v1/task.md) | small | recover an input-derived 8x8 reachability and route encoding | binary-recovery; needs model calibration |
 
-Four tasks are still not a benchmark. They exist so the harness has enough
-end-to-end material to exercise both task shapes; published cost-delta numbers
-require the full matrix described in the protocol.
+Eight tasks are still not a benchmark. They now cover parser, state-machine,
+data-structure and graph-routing families, but published cost-delta numbers
+still require model calibration and the full matrix described in the protocol.
 
 ## Harness
 

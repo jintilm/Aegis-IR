@@ -1,0 +1,11 @@
+# Sample observations
+
+```text
+input=""                                     -> ring=2166136261 accept=0
+input=hex:00                                 -> ring=3690605171 accept=0
+input=hex:00010203                           -> ring=4021458741 accept=0
+input=hex:c1c2c3c4c5c6c7c8                   -> ring=4042814644 accept=0
+input=hex:00112233445566778899aabbccddeeff   -> ring=3840280784 accept=0
+```
+
+Matching these observations is necessary, not sufficient.

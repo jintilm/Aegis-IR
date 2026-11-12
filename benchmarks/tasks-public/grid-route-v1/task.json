@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "id": "grid-route-v1",
+  "title": "Recover an input-derived grid reachability summary",
+  "description": "task.md",
+  "interface": "include/target.h",
+  "candidate_sources": [
+    "target.cpp"
+  ],
+  "task_type": "binary-recovery",
+  "artifact": {
+    "source": "ground_truth/target.cpp",
+    "probe": "grader/driver.cpp",
+    "include_dirs": [
+      "include"
+    ],
+    "profiles": {
+      "baseline": {
+        "level": 0
+      },
+      "aegis-level1": {
+        "level": 1,
+        "policy": "grader/policies/level1.json"
+      },
+      "aegis-level2": {
+        "level": 2,
+        "policy": "grader/policies/level2.json"
+      },
+      "aegis-level3": {
+        "level": 3,
+        "policy": "grader/policies/level3.json"
+      }
+    }
+  },
+  "visible": [
+    "task.md",
+    "include/",
+    "examples/"
+  ],
+  "ground_truth": "ground_truth/target.cpp",
+  "properties": "grader/properties.cpp",
+  "driver": "grader/driver.cpp",
+  "hidden_cases": [
+    "grader/hidden/cases.json"
+  ],
+  "fuzz": {
+    "cases": 64,
+    "seed": 8181,
+    "max_len": 2048
+  },
+  "budgets": {
+    "max_tool_calls": 200,
+    "timeout_seconds": 600,
+    "max_output_tokens": 200000
+  },
+  "protectability": {
+    "domain_size": "small",
+    "rating": "medium"
+  },
+  "experiment_use": "harness-validation",
+  "difficulty": "medium",
+  "tool_policy": {
+    "allowed_tools": [
+      "list_files",
+      "read_file",
+      "run_probe",
+      "disassemble",
+      "submit_solution"
+    ],
+    "network": "metered_model",
+    "workspace_writable": true
+  },
+  "input_domain": {
+    "kind": "bytes",
+    "summary": "byte-derived masks over a fixed 8x8 reachability grid"
+  },
+  "content_hash": "sha256:bdd03fdbf240c9862b99e5f9a9200d423dc3df3f85bb9fbb21238bdf5ac7d68c"
+}

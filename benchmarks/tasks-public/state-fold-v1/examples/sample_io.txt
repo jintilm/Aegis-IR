@@ -1,0 +1,11 @@
+# Sample observations
+
+```text
+input=""                                     -> step=2809921733912617028 digest=2578788206 accept=0
+input=hex:01                                 -> step=9104758719116337544 digest=2109111796 accept=0
+input=hex:00010203040506070809               -> step=2809921733912617028 digest=729608154 accept=0
+input=hex:ffffffffffffffffffff               -> step=15436142902232949155 digest=3828926460 accept=0
+input=hex:0123456789abcdef0011223344556677   -> step=9104758719116337544 digest=2602563937 accept=0
+```
+
+Matching these observations is necessary, not sufficient.

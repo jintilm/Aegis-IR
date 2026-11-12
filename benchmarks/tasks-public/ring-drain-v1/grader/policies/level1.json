@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261123,
+  "functions": [
+    {
+      "name": "rd_ring",
+      "level": 1,
+      "reason": "ring-drain-v1: level-1 artifact"
+    },
+    {
+      "name": "rd_accept",
+      "level": 1,
+      "reason": "ring-drain-v1: level-1 artifact"
+    }
+  ]
+}

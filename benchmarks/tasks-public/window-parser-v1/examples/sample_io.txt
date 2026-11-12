@@ -1,0 +1,12 @@
+# Sample observations
+
+```text
+input=""                         -> parse=2784084891 accept=0
+input=hex:00                     -> parse=3315559349 accept=0
+input=hex:21a2e012               -> parse=57574616 accept=0
+input=hex:7fff001122334455       -> parse=3044988314 accept=0
+input=hex:e0aa                   -> parse=1419906101 accept=0
+input="aegis-ir"                 -> parse=3401664847 accept=0
+```
+
+Matching these observations is necessary, not sufficient.

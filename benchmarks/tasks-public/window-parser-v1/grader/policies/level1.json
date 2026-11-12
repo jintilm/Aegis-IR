@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261121,
+  "functions": [
+    {
+      "name": "wp_parse",
+      "level": 1,
+      "reason": "window-parser-v1: level-1 artifact"
+    },
+    {
+      "name": "wp_accept",
+      "level": 1,
+      "reason": "window-parser-v1: level-1 artifact"
+    }
+  ]
+}

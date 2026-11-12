@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261122,
+  "functions": [
+    {
+      "name": "sf_step",
+      "level": 1,
+      "reason": "state-fold-v1: level-1 artifact"
+    },
+    {
+      "name": "sf_digest",
+      "level": 1,
+      "reason": "state-fold-v1: level-1 artifact"
+    },
+    {
+      "name": "sf_accept",
+      "level": 1,
+      "reason": "state-fold-v1: level-1 artifact"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261124,
+  "functions": [
+    {
+      "name": "gr_route",
+      "level": 2,
+      "reason": "grid-route-v1: level-2 artifact"
+    },
+    {
+      "name": "gr_accept",
+      "level": 2,
+      "reason": "grid-route-v1: level-2 artifact"
+    }
+  ]
+}
