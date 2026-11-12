@@ -71,6 +71,7 @@ if [ -n "${REUSE_DATA:-}" ]; then
   mkdir -p "$DATA"
   cp -r "$STAGE"/. "$DATA"/
   rm -rf "$STAGE"
+  rm -f "$DATA/.campaign.lock"
   # The console log belongs at the report root, not inside data/.
   rm -f "$DATA/run.log"
   # The console log from the run that produced this data is evidence. A
