@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. Two real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and one under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. Both are pilots, and **no effectiveness claim is drawn from either**.
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token metering, independent grader, runner, report generator) exists and is tested offline. Four real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and three under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. All are pilots, and **no effectiveness claim is drawn from any of them**.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -52,7 +52,17 @@ budget is still graded and costed. Nine of ten runs then produced a candidate
 and a token ledger, and the cost ratio is the one number that replicates:
 level 3 over baseline was **1.91×, 2.06×, 2.12×** tokens across three 30-step
 runs, 2.05× on the pooled means (457 k vs 935 k). That is the benchmark's
-deliverable, and it is a magnitude, not a success-rate result.
+deliverable, and it is a magnitude, not a success-rate result. Those runs
+predate the metering proxy described below, so their tokens are **adapter
+self-reports** and every published report says so next to the number.
+
+Token cost is now a measured quantity rather than a trusted one:
+`--meter-upstream` puts a harness-owned loopback proxy in front of the model
+endpoint, asks the provider for `usage` on the adapter's behalf, and records
+the provider's own totals in the run row. A run that bypasses the proxy stays
+visibly self-reported (`metering.requests: 0`) instead of looking measured. The
+proxy is accounting, not a sandbox — an adapter that reaches the relay directly
+is undetected.
 
 The success rate does **not** resolve: pooled, baseline 3/12 vs level 3 2/11
 (Fisher p = 0.55), and pooling the 45-step arm instead moves the estimate nine

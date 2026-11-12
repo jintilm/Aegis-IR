@@ -52,6 +52,14 @@ describe protection as reducing recovery success. The cost ratio is reported as
 a magnitude on one task, one model, one attacker class, and a linear
 disassembler without a decompiler — not as an effectiveness result.
 
+Those pilots also predate harness-owned token metering, so their token figures
+are adapter self-reports. `--meter-upstream` now puts a loopback proxy in front
+of the model endpoint and records the provider's own `usage` report, which is
+what a published cost figure has to rest on
+([protocol](benchmark-protocol.md#token-metering)). Any future ratio is quoted
+from metered rows; a ratio pooled across metered and self-reported rows is not
+admissible.
+
 Rules:
 
 1. Claims are about **cost deltas at a fixed success criterion**, never about
