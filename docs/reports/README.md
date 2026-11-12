@@ -30,16 +30,20 @@ Rules:
 | [`harness-validation/`](harness-validation/README.md) | CI suites pass; the differential matrix shows zero mismatches across levels 0–3; binary-recovery probes build and are scored; the grader scores a known-correct solution 100% and a wrong one 0% | C-001–C-005 (supporting artifacts) |
 | [`pilot-2026-11-11/`](pilot-2026-11-11/README.md) | a real model (`deepseek-v4.1-flash`) can be driven end to end through a binary-recovery task and graded; run under `oracle` access, where both profiles sit at the same floor, so it measures the *floor* and cannot show a protection effect | none — pilot, not cited |
 | [`pilot-2026-11-12-binary/`](pilot-2026-11-12-binary/README.md) | under `binary` access `deepseek-v4-pro` solved the task in both profiles (2/2 each, N=2) and level 3 used ~90% more tokens — **superseded by the N=5 run below: the 2/2 was a small-sample draw** | none — pilot, not cited |
-| [`pilot-2026-11-12-binary-n5/`](pilot-2026-11-12-binary-n5/README.md) | the same configuration at N=5: baseline 1/5, level 3 0/5, both 2/5 submissions, 6/10 runs never submitted within 30 steps. Pass rates overlap; among submitted runs level 3 used ~2× the tokens (n=2 each). The binding constraint is producing a submission, and the protection did not move it | none — pilot, not cited |
+| [`pilot-2026-11-12-binary-n5/`](pilot-2026-11-12-binary-n5/README.md) | the same configuration at N=5: baseline 1/5, level 3 0/5, both 2/5 submissions, 6/10 runs never submitted within 30 steps. Pass rates overlap; among submitted runs level 3 used ~2× the tokens (n=2 each). **Superseded by the report below**, which removes the non-submission failure mode | none — pilot, not cited |
+| [`pilot-2026-11-12-binary-cost/`](pilot-2026-11-12-binary-cost/README.md) | the same configuration with a tool-free final turn, so an exhausted step budget still yields a candidate: 9 of 10 runs are graded and costed, baseline 0/5 vs level 3 0/5, and level 3 costs **2.12×** the tokens (1,008 k vs 475 k). Across the three 30-step runs the ratio is 1.91×, 2.06×, 2.12× — the replicable result. The pass-rate difference is inside the interval (pooled 3/12 vs 2/11; ~540 runs per arm would be needed to resolve it) | none — pilot, not cited |
 
 Still missing, and therefore unclaimed: any effectiveness measurement, any
-adversarial cost-delta number, any statement about attacker difficulty. The
-pilots are listed above to document what the pipeline can and cannot measure;
-none of them is evidence that protection changed an outcome, and none may be
-cited as such.
+statement about attacker difficulty, and any success-rate effect. The pilots are
+listed above to document what the pipeline can and cannot measure; none of them
+is evidence that protection changed an outcome, and none may be cited as such.
+What they do establish is a **cost** magnitude: level 3 costs about twice the
+tokens of the baseline under `binary` access, unconditionally across graded
+runs, in three independent runs at one step budget.
 
-The N=5 run also corrects the N=2 pilot that precedes it, which is the reason
-both are kept: a two-run cell cannot distinguish a protection effect from the
-agent's own variance, and one of these tasks is bimodal — the agent either
-solves it or never submits. Cost figures must be read as conditioned on
-submission, and the submission rate reported next to them.
+The N=5 runs also correct the N=2 pilot that precedes them, which is the reason
+all are kept: a two-run cell cannot distinguish a protection effect from the
+agent's own variance, and these tasks are bimodal — the agent either solves one
+or produces almost nothing. Earlier cost figures were conditioned on submission;
+the newest run gives every non-infrastructure run a ledger, which is why its
+ratio is unconditional.

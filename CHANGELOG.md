@@ -7,6 +7,23 @@ versions follow SemVer once past alpha.
 
 ### Added
 
+- **Statistical-power rules for the benchmark's metrics** — the protocol now
+  states which number can carry a result at which N, from measured data rather
+  than convention. Success is a Bernoulli per run; the observed level-3 vs
+  baseline difference is 3/12 vs 2/11 (Fisher p = 0.55) and resolving it needs
+  ~540 runs per arm, so `N >= 5` is a **reporting floor**, not sufficiency, and
+  no success-rate effect may be asserted at pilot counts. A case-level secondary
+  metric adds no resolution (per-run `success_rate` is 0.0, ≈0.03 or 1.0 — the
+  tasks are bimodal). The token-cost ratio is the metric that resolves: 1.91×,
+  2.06×, 2.12× across three runs. Wall clock is recorded as latency, never cost,
+  because it moves opposite to tokens under `binary` access.
+- **Pilot reports distinguish submit calls from graded runs.** A run rescued by
+  the final-answer turn has a candidate, a score and a token ledger but no
+  `submit_solution` call, and a candidate that fails to compile is graded at
+  stage `build`; counting only submit calls made the cost-conditioning warning
+  describe runs that did have a cost. Reports now print both, take the cost
+  means over graded runs, and print the baseline-relative token ratio as the
+  headline number.
 - **Task calibration record** — binary-recovery manifests may carry a
   `calibration` object **keyed by access mode** (`oracle`/`binary`), each with
   `status`, `model`, `baseline_pass_rate`, `runs`, `date`. One record per mode
@@ -161,8 +178,13 @@ listed as pilots: `pilot-2026-11-11` shows the pipeline runs against a real
 model under an access mode that cannot measure protection;
 `pilot-2026-11-12-binary` and its N=5 rerun show that this task's binding
 constraint is producing a submission at all, with a conditioned token cost
-(~2×, n=2 per arm) and no reproducible success-rate difference. None of it
-establishes anything about other tasks, models or attacker classes.
+(~2×, n=2 per arm) and no reproducible success-rate difference;
+`pilot-2026-11-12-binary-cost` removes that failure mode and gives the
+unconditional ratio (level 3 = 2.12× baseline tokens; 1.91×, 2.06×, 2.12× over
+three 30-step runs). None of it establishes anything about other tasks, models
+or attacker classes. In particular the **absence** of a success-rate signal is
+not a null result: at the measured effect size it would take roughly 100–540
+runs per arm to detect one, so it is unmeasured, not absent.
 
 ## [0.1.0-alpha] — 2026-10-29
 

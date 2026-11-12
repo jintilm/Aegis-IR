@@ -36,11 +36,21 @@ The second pilots use `binary` access and do find a cost signal, but not a
 stable success signal: at N=2 both profiles passed, and the N=5 rerun
 ([`reports/pilot-2026-11-12-binary-n5/`](reports/pilot-2026-11-12-binary-n5/README.md))
 did not reproduce that — baseline 1/5, level 3 0/5, with the binding
-constraint being whether the agent submits at all. Among the four runs that
-submitted, level 3 used about twice the tokens. None of this is a claim: one
-task, one model, overlapping success intervals, and a conditioned cost over
-two runs per arm. It is the shape of the measurement the project exists to
-make; it is not evidence until the matrix in the protocol says so.
+constraint being whether the agent submits at all. A fourth run
+([`reports/pilot-2026-11-12-binary-cost/`](reports/pilot-2026-11-12-binary-cost/README.md))
+gave every run a cost by adding a tool-free final turn, and the cost ratio then
+replicated: level 3 over baseline **1.91×, 2.06×, 2.12×** tokens in three
+30-step runs, 2.05× pooled (457 k vs 935 k).
+
+The ratio is not a claim, and the protocol now says why in numbers: success is
+a Bernoulli per run, the pooled difference is 3/12 vs 2/11 (Fisher p = 0.55),
+and resolving it would take ~540 runs per arm — or ~100 if the 45-step arm is
+pooled instead, which is itself the reason no direction is asserted. Pooling
+runs that differ only in step budget moves the estimate nine points. **The
+success-rate effect is therefore unmeasured, not absent**, and no report may
+describe protection as reducing recovery success. The cost ratio is reported as
+a magnitude on one task, one model, one attacker class, and a linear
+disassembler without a decompiler — not as an effectiveness result.
 
 Rules:
 
