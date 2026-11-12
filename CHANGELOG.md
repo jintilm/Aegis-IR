@@ -59,7 +59,7 @@ versions follow SemVer once past alpha.
   terminal SSE usage block. The meter now accepts the first block for a
   request and ignores duplicates, preventing a silent 2x token charge; an
   offline regression test covers it.
-- **Clean-tree v0.2 validation evidence** — commit `4782ea7` produced
+- **Clean-tree v0.2 validation evidence** — commit `114cd4f` produced
   [`docs/reports/harness-validation-v0.2.0-alpha/`](docs/reports/harness-validation-v0.2.0-alpha/README.md)
   with `commit_dirty: no`, 5/5 CTest, the eight-profile differential matrix,
   positive and negative grader controls, and a campaign execute/resume/audit

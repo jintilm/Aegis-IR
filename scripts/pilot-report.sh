@@ -114,6 +114,7 @@ else
   cp -r "$RUN_DATA"/. "$DATA"/
   rm -f "$DATA/.campaign.lock"
   cp "$RUN_ROOT/run.log" "$OUT/run.log"
+  sed -E -i 's/[[:space:]]+$//' "$OUT/run.log"
 fi
 
 python3 - "$DATA/aegis-bench.jsonl" "$OUT/README.md" "$NAME" "$COMMIT" \

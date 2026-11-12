@@ -1,12 +1,14 @@
 # Aegis-Bench run report
 
-- Commit: `4782ea7cd5c58148c01a1a4ebfc0926d0829b1a8` (dirty: no)
+- Commit: `114cd4f4f7e2b31ba17289b791ee087525cbb1d6` (dirty: no)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
 - Runs: 1
 
 Token and tool-call figures are **self-reported by the adapter**; the harness cannot corroborate them.
+
+Tool calls are **brokered for 0 of 1 runs with a broker block**. Rows with `requests: 0` bypassed the broker and retain the adapter's self-report; do not treat the two as equivalent.
 
 Pass/fail, case counts, wall clock and oracle queries are always measured by the harness. Pass rates carry a Wilson 95% interval; cost deltas carry an interval only when both groups have at least two runs. A run row states which budgets were enforced.
 
@@ -30,13 +32,13 @@ A binary-recovery row records an **access mode**. Under `oracle` the workspace h
 
 | profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | stub | rolling-token-v2 | 1 | 0/1 | 0% [0%-79%] | 4.35±0.00 | n/a | 0.0 |
+| baseline | stub | rolling-token-v2 | 1 | 0/1 | 0% [0%-79%] | 4.03±0.00 | n/a | 0.0 |
 
 ## By (agent, profile), across tasks
 
 | agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (total) |
 |---|---|---|---|---|---|---|---|---|
-| stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.35±0.00 | n/a | 0 |
+| stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.03±0.00 | n/a | 0 |
 
 
 ## Failures

@@ -99,6 +99,8 @@ cat /tmp/campaign-audit.json
 mkdir -p "$OUT"
 cp -r "$WORK"/. "$OUT"/
 cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
+find "$OUT" -type f -name '*.log' -exec \
+  sed -E -i 's/[[:space:]]+$//' {} +
 
 cat > "$OUT/README.md" <<EOF
 # Report: $NAME
