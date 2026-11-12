@@ -182,15 +182,25 @@ lines = [
     f"replies; conversation cap recorded per row",
     "",
     "## Results", "",
-    "| profile | runs | submitted | passed | passed/runs | oracle queries "
-    "(mean) | wall s (mean) | tokens (mean, submitted runs) | tool calls "
+    "| profile | runs | submit calls | graded | passed | passed/runs | oracle "
+    "queries (mean) | wall s (mean) | tokens (mean, graded runs) | tool calls "
     "(mean) |",
-    "|---|---|---|---|---|---|---|---|---|",
+    "|---|---|---|---|---|---|---|---|---|---|",
 ]
 
-for profile in sorted(groups):
+# baseline first: it is the reference every delta is read against.
+order = sorted(groups, key=lambda p: (p != "baseline", p))
+
+for profile in order:
     group = groups[profile]
+    # Two different things, and conflating them misreports the run: a *submit
+    # call* is the agent choosing to deliver, while a *graded* attempt is one
+    # that produced a candidate at all -- including one the final-answer turn
+    # rescued, and including one that failed to compile. Only the second has a
+    # cost, and only the second is what the pass column is computed over.
     submitted = sum(1 for r in group if r["ledger"].get("stop_reason") == "submitted")
+    graded = sum(1 for r in group
+                 if isinstance(r["ledger"].get("tokens"), (int, float)))
     passed = sum(1 for r in group if r["grade"]["passed"])
     oracle = [r["oracle"]["queries"] for r in group
               if r.get("oracle")
@@ -206,15 +216,17 @@ for profile in sorted(groups):
              if isinstance(r["ledger"].get("tool_calls"), (int, float))]
     tools_cell = f"{statistics.mean(tools):.0f}" if tools else "n/a"
     lines.append(
-        f"| {profile} | {len(group)} | {submitted} | {passed} | "
+        f"| {profile} | {len(group)} | {submitted} | {graded} | {passed} | "
         f"{passed}/{len(group)} | {oracle_cell} | "
         f"{statistics.mean(wall):.1f} | {tokens_cell} | {tools_cell} |")
 
 lines += [
     "",
-    "Rows with `agent` as the failure stage are attempts that produced no "
-    "submission within the step budget; they may carry an oracle count under "
-    "`oracle` access, but never a token ledger. They are reported, not dropped.",
+    "**submit calls** counts runs where the agent chose `submit_solution`; "
+    "**graded** counts runs that produced a candidate at all, which includes "
+    "final-answer turns and candidates that failed to compile. A run is only "
+    "costed and scored if it is graded, so the last two cost columns are over "
+    "graded runs.",
 ]
 
 incomplete = {p: len(g) - sum(1 for r in g
@@ -253,13 +265,41 @@ if any(incomplete.values()):
                       for profile, n in sorted(incomplete.items()) if n)
     lines += [
         "",
-        f"**Cost is conditioned on submission.** {parts} run(s) never "
-        "submitted and therefore have no token ledger; every mean above is "
-        "over the runs that did. Where submission rates differ between "
+        f"**{parts} run(s) have no ledger.** They produced no candidate at "
+        "all, so they carry neither a score nor a cost; every mean above is "
+        "over the runs that did produce one. Where those counts differ between "
         "profiles, part of any cost difference is a capability difference "
-        "rather than a protection cost, and a pass-rate difference on this "
-        "few runs is inside the interval.",
+        "rather than a protection cost.",
     ]
+
+# The headline number. Token ratio between the protected arm and the baseline,
+# computed only when both sides have graded runs.
+if "baseline" in groups and len(groups) > 1:
+    def tok_mean(rows):
+        vals = [r["ledger"]["tokens"] for r in rows
+                if isinstance(r["ledger"].get("tokens"), (int, float))]
+        return statistics.mean(vals) if vals else None
+
+    base = tok_mean(groups["baseline"])
+    ratios = []
+    for profile in sorted(groups):
+        if profile == "baseline":
+            continue
+        other = tok_mean(groups[profile])
+        if base and other:
+            ratios.append(f"{profile} **{other / base:.2f}×** baseline "
+                          f"({other:.0f} vs {base:.0f} tokens)")
+    if ratios:
+        lines += [
+            "",
+            "**Cost delta (self-reported tokens, all graded runs).** "
+            + "; ".join(ratios) + ". This is the number the harness exists to "
+            "measure. Read it as a magnitude, not as a success-rate result: at "
+            "this N a pass-rate difference is inside the interval, and the "
+            "protocol's [statistical power]"
+            "(../benchmark-protocol.md#statistical-power-which-number-carries-the-result) "
+            "section says how many runs a success-rate claim would need.",
+        ]
 
 lines += [
     "",

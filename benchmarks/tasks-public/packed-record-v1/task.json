@@ -68,8 +68,8 @@
     "binary": {
       "status": "comparison-ready",
       "model": "deepseek-v4-pro",
-      "baseline_pass_rate": 0.2,
-      "runs": 5,
+      "baseline_pass_rate": 0.25,
+      "runs": 12,
       "date": "2026-11-12"
     }
   },

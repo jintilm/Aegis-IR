@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. Two real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and one under binary access, where the N=5 result is baseline 1/5 vs level 3 0/5 with both arms at 2/5 submissions and ~2× tokens among submitted runs. Both are pilots, and **no effectiveness claim is drawn from either**.
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, independent grader, runner, report generator) exists and is tested offline. Two real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and one under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. Both are pilots, and **no effectiveness claim is drawn from either**.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -37,21 +37,33 @@ bogus edges, volatile-state flattening) raise *static* reconstruction cost and
 are off by default; they are not the threat model's Tier 2/3. **No protection
 effectiveness has been measured, and none is claimed.**
 
-Three real-model pilots are published, and what they establish is mostly
+Four real-model pilots are published, and what they establish is mostly
 methodological. Under **`oracle` access** (`deepseek-v4.1-flash`, N=3) the
 agent received a counted oracle shim, never the binary: every profile
 presented the same black box, so the delta was zero by construction — 0/3 in
 both. Under **`binary` access** (`deepseek-v4-pro`) the probe is in the
-workspace and the task becomes solvable, but the first N=2 pilot (both
-profiles 2/2, level 3 ~90% more tokens) **did not survive its own N=5 rerun**:
-baseline 1/5, level 3 0/5, and 6 of 10 runs never submitted within 30 steps.
-What replicates is the conditioned cost — among the four runs that did submit,
-level 3 used about twice the tokens — and the failure mode: on this task the
-binding constraint is producing a submission at all, and the protection did
-not move it. **No protection effect is claimed.** The durable output is that
-the harness now records what a testable claim requires (access mode, task
-calibration, submission rate, adapter hash, commit) and that the earlier null
-result was a property of the access mode, not of the protection.
+workspace and the task becomes solvable, but the first N=2 pilot (both profiles
+2/2, level 3 ~90% more tokens) **did not survive its own N=5 rerun**: baseline
+1/5, level 3 0/5, and 6 of 10 runs never submitted within 30 steps — a missing
+measurement, not a result.
+
+The fourth pilot added a tool-free final turn so a run that exhausts its step
+budget is still graded and costed. Nine of ten runs then produced a candidate
+and a token ledger, and the cost ratio is the one number that replicates:
+level 3 over baseline was **1.91×, 2.06×, 2.12×** tokens across three 30-step
+runs, 2.05× on the pooled means (457 k vs 935 k). That is the benchmark's
+deliverable, and it is a magnitude, not a success-rate result.
+
+The success rate does **not** resolve: pooled, baseline 3/12 vs level 3 2/11
+(Fisher p = 0.55), and pooling the 45-step arm instead moves the estimate nine
+points, which is exactly why no direction is claimed. Reaching 80% power
+against the measured difference would take ~540 runs per arm. **No protection
+effect is claimed.** The durable output is that the harness now records what a
+testable claim requires (access mode, task calibration, submission rate,
+adapter hash, commit), that the earlier null result was a property of the
+access mode rather than of the protection, and that
+[`docs/benchmark-protocol.md`](docs/benchmark-protocol.md) now states which
+metric can carry a result at which N.
 
 ## Honest expectations
 
