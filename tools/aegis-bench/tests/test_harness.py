@@ -329,7 +329,7 @@ class RunnerTests(unittest.TestCase):
             row = rows[0]
             for key in ("task_hash", "profile", "agent", "adapter_version",
                         "environment", "budgets", "grade", "artifact",
-                        "task_protocol"):
+                        "task_protocol", "tools", "isolation"):
                 self.assertIn(key, row)
             self.assertEqual(row["task_hash"], self.task.content_hash)
             self.assertIn("commit", row["environment"])
@@ -906,6 +906,21 @@ class ReportStatisticsTests(unittest.TestCase):
             write_markdown(records, path)
             text = path.read_text(encoding="utf-8")
         self.assertIn("(n<2)", text)
+
+    def test_markdown_reports_broker_tool_provenance(self):
+        record = self._record("baseline", 1.0)
+        record.tools = {
+            "requests": 3,
+            "allowed": 3,
+            "denied": 0,
+            "source": "harness tool broker",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.md"
+            write_markdown([record], path)
+            text = path.read_text(encoding="utf-8")
+        self.assertIn("measured by the harness-owned broker", text)
+        self.assertIn("every costed run that used tools", text)
 
 
 if __name__ == "__main__":

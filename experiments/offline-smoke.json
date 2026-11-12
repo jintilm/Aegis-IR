@@ -24,6 +24,7 @@
   "seed": 17,
   "require_clean": false,
   "require_meter": false,
+  "require_broker_tools": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/offline-smoke"
 }

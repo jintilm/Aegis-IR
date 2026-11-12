@@ -65,6 +65,7 @@ class _FakeRunner:
                         oracle={},
                         metering={},
                         task_protocol=task.protocol_dict(),
+                        isolation={"adapter": "in-process", "sandbox": False},
                     ))
         return records
 
@@ -76,6 +77,8 @@ def _manifest(
         profiles: list[str] | None = None,
         repetitions: int = 1,
         access: str = "oracle",
+        require_broker_tools: bool = False,
+        adapter_isolation: str = "in-process",
         ) -> Path:
     raw = {
         "schema_version": 1,
@@ -96,6 +99,8 @@ def _manifest(
         "seed": 17,
         "require_clean": False,
         "require_meter": False,
+        "require_broker_tools": require_broker_tools,
+        "adapter_isolation": adapter_isolation,
     }
     path = Path(tmp) / "experiment.json"
     path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
@@ -169,7 +174,7 @@ class CampaignResumeTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["campaign"]["cell_key"],
                          "rolling-token-v1|baseline|stub|0")
-        self.assertEqual(rows[0]["record_schema_version"], 2)
+        self.assertEqual(rows[0]["record_schema_version"], 3)
         self.assertEqual(leftovers, [])
 
     def test_changed_manifest_cannot_resume_same_output(self):
@@ -292,6 +297,30 @@ class AuditTests(unittest.TestCase):
             report = audit_path(out, experiment=experiment)
         self.assertEqual(report.path, data / "aegis-bench.jsonl")
         self.assertTrue(report.ok(), report.issues)
+
+    def test_required_tool_broker_traffic_is_audited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            experiment = load_experiment(_manifest(
+                tmp, require_broker_tools=True))
+            out = Path(tmp) / "out"
+            run_campaign(
+                experiment, repo_root=REPO_ROOT, out_dir=out,
+                runner_factory=_FakeRunner)
+            report = audit_path(out, experiment=experiment)
+        self.assertTrue(any(issue.code == "tool-broker"
+                            for issue in report.errors))
+
+    def test_adapter_isolation_mismatch_is_audited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            experiment = load_experiment(_manifest(
+                tmp, adapter_isolation="process"))
+            out = Path(tmp) / "out"
+            run_campaign(
+                experiment, repo_root=REPO_ROOT, out_dir=out,
+                runner_factory=_FakeRunner)
+            report = audit_path(out, experiment=experiment)
+        self.assertTrue(any(issue.code == "isolation"
+                            for issue in report.errors))
 
 
 if __name__ == "__main__":

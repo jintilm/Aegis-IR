@@ -25,6 +25,7 @@ class AdapterError(Exception):
 
 BUILTIN_ADAPTERS = {
     "stub": "aegis_bench.adapters.fake:StubAgent",
+    "broker-stub": "aegis_bench.adapters.fake:BrokerStubAgent",
     "broken": "aegis_bench.adapters.fake:BrokenAgent",
     "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",
@@ -58,6 +59,10 @@ class Agent(abc.ABC):
     #: name a threat-model class (C0-C4) or the white-box control.
     adversary: str = "unspecified"
 
+    #: ``module:Class`` spec attached by ``create_agent`` so the runner can
+    #: re-import the adapter inside a process-isolated worker.
+    adapter_spec: str = ""
+
     def prepare(self, task: Any, workspace: Path) -> None:
         """Called once before ``solve``; workspace is the visible-only copy."""
 
@@ -90,7 +95,9 @@ def create_agent(spec: str) -> Agent:
     if not isinstance(cls, type) or not issubclass(cls, Agent):
         raise AdapterError(f"{resolved} is not an Agent subclass")
     try:
-        return cls()
+        agent = cls()
     except TypeError as exc:
         raise AdapterError(
             f"{resolved} must be constructible with no arguments: {exc}") from exc
+    agent.adapter_spec = resolved
+    return agent

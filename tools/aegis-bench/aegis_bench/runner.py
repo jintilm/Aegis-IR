@@ -37,9 +37,13 @@ from .grader import CaseOutcome, Grade, Grader
 from .meter import MeterProxy, ledger_source_for
 from .oracle import OracleBroker, OracleError, install_shim
 from .schema import ACCESS_MODES, Task
+from .toolbroker import (
+    BROKER_ENV_TOKEN, BROKER_ENV_URL, ToolBroker)
+from .worker import ProcessIsolatedAgent
 
 DEFAULT_ADAPTER_TIMEOUT = 600
-RECORD_SCHEMA_VERSION = 2
+RECORD_SCHEMA_VERSION = 3
+ADAPTER_ISOLATION_MODES = ("in-process", "process")
 
 #: What the agent is given for a binary-recovery task.
 #:
@@ -117,6 +121,29 @@ def _metered_endpoint(meter: MeterProxy | None):
             os.environ.pop(METER_ENV, None)
         else:
             os.environ[METER_ENV] = previous
+
+
+@contextlib.contextmanager
+def _tool_broker_endpoint(broker: ToolBroker | None):
+    """Publish the run's tool broker endpoint to the adapter."""
+    if broker is None:
+        yield
+        return
+    old_url = os.environ.get(BROKER_ENV_URL)
+    old_token = os.environ.get(BROKER_ENV_TOKEN)
+    os.environ[BROKER_ENV_URL] = broker.url
+    os.environ[BROKER_ENV_TOKEN] = broker.token
+    try:
+        yield
+    finally:
+        if old_url is None:
+            os.environ.pop(BROKER_ENV_URL, None)
+        else:
+            os.environ[BROKER_ENV_URL] = old_url
+        if old_token is None:
+            os.environ.pop(BROKER_ENV_TOKEN, None)
+        else:
+            os.environ[BROKER_ENV_TOKEN] = old_token
 
 
 def _call_with_deadline(fn: Any, seconds: int) -> tuple[Any, bool]:
@@ -227,6 +254,11 @@ class RunRecord:
     #: request that passed through the run's proxy. Empty when the run had no
     #: meter.
     metering: dict[str, Any] = field(default_factory=dict)
+    #: Harness-owned tool broker counters. Empty when the broker was disabled
+    #: or could not start. ``requests == 0`` means the adapter bypassed it.
+    tools: dict[str, Any] = field(default_factory=dict)
+    #: Execution boundary and whether it is a security sandbox.
+    isolation: dict[str, Any] = field(default_factory=dict)
     #: Experiment-level provenance added by the campaign driver. Empty for a
     #: standalone ``aegis-bench run``.
     campaign: dict[str, Any] = field(default_factory=dict)
@@ -261,6 +293,8 @@ class RunRecord:
             "artifact": self.artifact,
             "oracle": self.oracle,
             "metering": self.metering,
+            "tools": self.tools,
+            "isolation": self.isolation,
             "campaign": self.campaign,
             "task_protocol": self.task_protocol,
             "private": self.private,
@@ -316,6 +350,8 @@ class RunRecord:
             artifact=dict(raw.get("artifact") or {}),
             oracle=dict(raw.get("oracle") or {}),
             metering=dict(raw.get("metering") or {}),
+            tools=dict(raw.get("tools") or {}),
+            isolation=dict(raw.get("isolation") or {}),
             campaign=dict(raw.get("campaign") or {}),
             record_schema_version=int(raw.get("record_schema_version", 1)),
             task_protocol=dict(raw.get("task_protocol") or {}),
@@ -332,10 +368,16 @@ class Runner:
                  adapter_timeout: int = DEFAULT_ADAPTER_TIMEOUT,
                  keep_workspaces: bool = False,
                  access: str = ACCESS_ORACLE,
-                 meter_upstream: str | None = None):
+                 meter_upstream: str | None = None,
+                 enable_tool_broker: bool = True,
+                 adapter_isolation: str = "in-process"):
         if access not in ACCESS_MODES:
             raise ValueError(f"access must be one of {ACCESS_MODES}, "
                              f"got {access!r}")
+        if adapter_isolation not in ADAPTER_ISOLATION_MODES:
+            raise ValueError(
+                f"adapter_isolation must be one of "
+                f"{ADAPTER_ISOLATION_MODES}, got {adapter_isolation!r}")
         if meter_upstream is not None:
             # Validate now, not mid-cell: a bad URL should stop the run before
             # the first repetition is paid for.
@@ -347,6 +389,8 @@ class Runner:
         self.adapter_timeout = adapter_timeout
         self.keep_workspaces = keep_workspaces
         self.access = access
+        self.enable_tool_broker = enable_tool_broker
+        self.adapter_isolation = adapter_isolation
         self.environment = environment_stamp(self.repo_root)
         cache_root = (Path(artifact_cache) if artifact_cache
                       else self.out_dir / ".artifacts")
@@ -421,7 +465,15 @@ class Runner:
         artifact: BuiltArtifact | None = None
         broker: OracleBroker | None = None
         meter: MeterProxy | None = None
+        tool_broker: ToolBroker | None = None
         metering: dict[str, Any] = {}
+        tools: dict[str, Any] = {}
+        isolation = {
+            "adapter": self.adapter_isolation,
+            "sandbox": False,
+            "filesystem": "workspace-only by contract; host filesystem reachable",
+            "network": "not restricted",
+        }
         oracle: dict[str, Any] = {}
         access = self.access if task.artifact is not None else "n/a"
         budgets: dict[str, Any] = {
@@ -432,7 +484,9 @@ class Runner:
             "oracle_queries": task.budgets.oracle_queries,
             "enforcement": {
                 "adapter_timeout": "unset",
-                "max_tool_calls": "not enforced (adapter self-report)",
+                "max_tool_calls": (
+                    "not enforced (adapter self-report)"
+                    if not self.enable_tool_broker else "broker not started"),
                 "max_output_tokens": "not enforced (adapter self-report)",
                 "oracle_queries": ("n/a (no probe)" if task.artifact is None
                                    else "not enforced (no broker)"
@@ -473,14 +527,26 @@ class Runner:
                     "measured by harness (provider usage via proxy)"
             else:
                 budgets["enforcement"]["tokens"] = "not metered (no proxy)"
+            if self.enable_tool_broker:
+                tool_broker = ToolBroker(
+                    workspace=workspace, task=task, access=access,
+                    max_calls=task.budgets.max_tool_calls,
+                    enable_disassembly=access == ACCESS_BINARY).start()
+                budgets["enforcement"]["max_tool_calls"] = (
+                    "measured and capped by harness broker")
             timeout = self.adapter_timeout or task.budgets.timeout_seconds
             budgets["enforcement"]["adapter_timeout"] = _deadline_mode(timeout)
-            with _metered_endpoint(meter):
+            budgets["enforcement"]["adapter_isolation"] = self.adapter_isolation
+            run_agent: Agent = agent
+            if self.adapter_isolation == "process":
+                run_agent = ProcessIsolatedAgent(
+                    agent, timeout_seconds=timeout)
+            with _metered_endpoint(meter), _tool_broker_endpoint(tool_broker):
                 # Inside the block, so an adapter that reads its endpoint in
                 # ``prepare`` sees the meter too.
-                agent.prepare(task, workspace)
+                run_agent.prepare(task, workspace)
                 result, _enforced = _call_with_deadline(
-                    lambda: agent.solve(task, workspace), timeout)
+                    lambda: run_agent.solve(task, workspace), timeout)
             ledger = dict(result.ledger)
             ledger["ledger_source"] = "self-reported by adapter"
             if result.notes:
@@ -515,6 +581,10 @@ class Runner:
             if broker is not None:
                 broker.stop()
                 oracle = broker.stats.to_dict()
+            if tool_broker is not None:
+                tools = tool_broker.stop(
+                    reported_by_adapter=ledger.get("tool_calls"))
+                tool_broker = None
             if oracle:
                 oracle["access"] = access
             if self.keep_workspaces:
@@ -545,6 +615,8 @@ class Runner:
             artifact=artifact.to_dict() if artifact is not None else {},
             oracle=oracle,
             metering=metering,
+            tools=tools,
+            isolation=isolation,
             task_protocol=task.protocol_dict(),
             private=task.private,
             error=error)

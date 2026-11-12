@@ -39,6 +39,18 @@ versions follow SemVer once past alpha.
   grader process, and the isolation acceptance tests required before a
   protection-effect claim. This is explicitly design, not an implemented
   sandbox.
+- **Harness-owned loopback tool broker** — each run starts a token-authenticated
+  broker and exports `AEGIS_TOOL_BROKER_URL` / `AEGIS_TOOL_BROKER_TOKEN`.
+  Mediated workspace reads, probe execution, disassembly and submission are
+  checked against `tool_policy`, confined to the workspace, capped by
+  `budgets.max_tool_calls`, and recorded in the row's `tools` block. The
+  reference OpenAI-compatible adapter now prefers the broker. A bypass remains
+  possible until process isolation; `tools.requests: 0` makes it visible.
+- **Optional adapter process boundary** — campaigns can set
+  `adapter_isolation: "process"`. The harness re-imports the adapter in a fresh
+  child process and passes a workspace-only `TaskView`; the repository task
+  root, grader material and object state stay in the parent. This is not yet a
+  filesystem/network sandbox, and every row records that distinction.
 - **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
   temporary file, fsynced and atomically replaced. A killed campaign therefore
   resumes from the previous complete report rather than parsing a truncated

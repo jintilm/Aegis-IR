@@ -28,6 +28,8 @@
   "seed": 20261112,
   "require_clean": true,
   "require_meter": true,
+  "require_broker_tools": true,
+  "adapter_isolation": "process",
   "allow_oracle_comparison": false,
   "out": "../bench-out/protection-pilot",
   "notes": "Copy outside the tree or edit the placeholders. Real adapters stay out-of-tree; the example is not runnable unchanged."

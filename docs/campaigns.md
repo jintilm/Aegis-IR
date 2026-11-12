@@ -47,6 +47,8 @@ things that a multi-hour comparison needs:
   "seed": 20261112,
   "require_clean": true,
   "require_meter": true,
+  "require_broker_tools": true,
+  "adapter_isolation": "process",
   "allow_oracle_comparison": false,
   "out": "../bench-out/packed-record-protection-pilot"
 }
@@ -71,6 +73,8 @@ things that a multi-hour comparison needs:
 | `seed` | deterministic order seed |
 | `require_clean` | reject a dirty worktree before the first paid cell |
 | `require_meter` | reject a campaign with no model metering proxy |
+| `require_broker_tools` | fail audit if any run has no harness-broker tool traffic |
+| `adapter_isolation` | `in-process` or `process`; `process` is a subprocess boundary, not a filesystem/network sandbox |
 
 All adapters must expose a non-empty `version`. A campaign preflights every
 adapter once, checks its identity and version, and then creates a fresh
@@ -80,6 +84,12 @@ between repetitions.
 `require_clean=true` and `require_meter=true` are the defaults for a
 publishable campaign. Set them to `false` only for an offline smoke run, and do
 not cite that output as a model result.
+
+`adapter_isolation: "process"` imports a fresh adapter inside a child process
+and passes it a workspace-only `TaskView`, not the repository task root.
+The parent still owns brokered tools and grading. This closes object-state and
+crash coupling; it does not yet stop the child from reading arbitrary host
+paths or opening network connections.
 
 ## Commands
 
@@ -182,6 +192,7 @@ It warns on:
 
 - a dirty worktree;
 - missing adapter versions or mixed versions for one adapter id;
+- adapter tool counts that exceed broker-observed calls;
 - partial provider usage or abandoned calls;
 - adapter traffic that may have bypassed the meter;
 - repetition gaps in a standalone file;
@@ -194,7 +205,8 @@ Use `--strict` in CI or before publication to turn warnings into failure.
 ## Current boundary
 
 Campaigns orchestrate work but do not sandbox the adapter. The adapter still
-runs in-process and can reach paths outside the workspace. The target process
-and tool-RPC design is in [`isolation.md`](isolation.md); until it is
-implemented, tool counts remain self-reported and a protection-effect claim
+runs in-process and can reach paths outside the workspace. Mediated requests
+through the loopback tool broker are measured and capped, while direct file or
+subprocess access bypasses it and shows `tools.requests: 0`. The worker
+boundary is in [`isolation.md`](isolation.md); a protection-effect claim
 requires process isolation as well as a passing audit.

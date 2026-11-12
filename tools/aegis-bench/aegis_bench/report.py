@@ -48,7 +48,9 @@ CSV_FIELDS = [
     "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
-    "tokens", "metered_tokens", "metered_requests", "tool_calls", "ledger_source",
+    "tokens", "metered_tokens", "metered_requests", "tool_calls",
+    "broker_tool_calls", "broker_tool_denied", "broker_tool_source",
+    "adapter_isolation", "ledger_source",
     "artifact_sha256",
     "artifact_bytes", "artifact_text", "adapter_timeout", "oracle_queries",
     "oracle_refused", "oracle_budget", "task_calibration", "private", "commit",
@@ -184,6 +186,14 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
             "metered_requests": _ledger_value(row.get("metering") or {},
                                               "requests"),
             "tool_calls": _ledger_value(row["ledger"], "tool_calls"),
+            "broker_tool_calls": _ledger_value(
+                row.get("tools") or {}, "requests"),
+            "broker_tool_denied": _ledger_value(
+                row.get("tools") or {}, "denied"),
+            "broker_tool_source": (row.get("tools") or {}).get(
+                "source", ""),
+            "adapter_isolation": (row.get("isolation") or {}).get(
+                "adapter", ""),
             "ledger_source": row["ledger"].get("ledger_source", ""),
             "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
             "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
@@ -262,6 +272,24 @@ def _token_provenance(records: list[RunRecord]) -> str:
             f"self-reported.")
 
 
+def _tool_provenance(records: list[RunRecord]) -> str:
+    observed = [record for record in records if record.tools]
+    brokered = [record for record in observed
+                if record.tools.get("requests", 0) > 0]
+    if not observed:
+        return ("Tool-call figures are **self-reported by the adapter**; no "
+                "harness-owned tool broker block is present.")
+    if len(brokered) == len(observed):
+        return ("Tool calls are **measured by the harness-owned broker** for "
+                "every costed run that used tools; workspace reads, probe "
+                "executions, disassembly and submissions pass through its "
+                "policy and budget checks.")
+    return (f"Tool calls are **brokered for {len(brokered)} of "
+            f"{len(observed)} runs with a broker block**. Rows with "
+            f"`requests: 0` bypassed the broker and retain the adapter's "
+            f"self-report; do not treat the two as equivalent.")
+
+
 def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
     records = list(records)
     lines: list[str] = ["# Aegis-Bench run report", ""]
@@ -282,6 +310,8 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         f"- Runs: {len(records)}",
         "",
         _token_provenance(records),
+        "",
+        _tool_provenance(records),
         "",
         "Pass/fail, case counts, wall clock and oracle queries are always "
         "measured by the harness. Pass rates carry a Wilson 95% interval; "

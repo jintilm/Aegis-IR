@@ -22,6 +22,8 @@ from .campaign import (
 from .grader import Grade, Grader
 from .runner import Runner, RunRecord
 from .report import write_reports
+from .toolbroker import ToolBroker, ToolDenied, ToolError, call_tool
+from .worker import ProcessIsolatedAgent, TaskView
 
 __all__ = [
     "Agent",
@@ -37,8 +39,14 @@ __all__ = [
     "RunRecord",
     "Runner",
     "Task",
+    "TaskView",
     "TaskError",
+    "ToolBroker",
+    "ToolDenied",
+    "ToolError",
+    "ProcessIsolatedAgent",
     "audit_path",
+    "call_tool",
     "load_task",
     "load_experiment",
     "plan_cells",

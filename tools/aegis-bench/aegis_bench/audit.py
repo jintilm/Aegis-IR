@@ -221,6 +221,12 @@ def _audit_campaign(
                 "error", "access",
                 f"row access {record.access!r} does not match expected "
                 f"{expected_access!r}", record.run_id))
+        isolation = (record.isolation or {}).get("adapter")
+        if isolation != experiment.adapter_isolation:
+            issues.append(AuditIssue(
+                "error", "isolation",
+                f"row adapter isolation {isolation!r} does not match "
+                f"{experiment.adapter_isolation!r}", record.run_id))
         task_hash = current_hashes.get(record.task_id)
         if task_hash and record.task_hash != task_hash:
             issues.append(AuditIssue(
@@ -239,6 +245,23 @@ def _audit_campaign(
                 "error", "adapter-version",
                 f"adapter version {record.adapter_version!r} does not match "
                 f"expected {expected_version!r}", record.run_id))
+        broker = record.tools or {}
+        if experiment.require_broker_tools and not broker.get("requests"):
+            issues.append(AuditIssue(
+                "error", "tool-broker",
+                "experiment requires harness-broker tool traffic but this "
+                "row has none", record.run_id))
+        if broker.get("adapter_exceeds_broker"):
+            issues.append(AuditIssue(
+                "warning", "tool-broker",
+                "adapter reported more tool calls than the harness broker "
+                "observed; direct tool use may have bypassed the broker",
+                record.run_id))
+        if broker.get("denied"):
+            issues.append(AuditIssue(
+                "warning", "tool-broker",
+                f"broker denied {broker['denied']} tool request(s)",
+                record.run_id))
 
     for key in sorted(set(expected) - set(seen)):
         issues.append(AuditIssue(
@@ -336,6 +359,20 @@ def audit_path(
         token = _tokens(record)
         if token:
             token_kinds[token[0]].append(record)
+        tool_stats = record.tools or {}
+        if tool_stats.get("adapter_exceeds_broker"):
+            issues.append(AuditIssue(
+                "warning", "tool-broker",
+                "adapter reported more tool calls than the broker observed; "
+                "direct tool use may have bypassed the broker",
+                record.run_id))
+        reported_tools = (record.ledger or {}).get("tool_calls")
+        if (_numeric(reported_tools) and reported_tools > 0
+                and not tool_stats.get("requests")):
+            issues.append(AuditIssue(
+                "warning", "tool-broker",
+                "adapter reported tool calls but the broker saw no traffic",
+                record.run_id))
         metering = record.metering or {}
         if metering:
             requests = metering.get("requests")

@@ -245,6 +245,11 @@ powered count above.
   These are tripwires for oracle replay, not a sandbox: a malicious adapter
   can still open sockets or walk the filesystem, so real runs must execute the
   adapter and grader inside a container or namespace.
+- Reference-adapter tool calls go through a per-run loopback broker. It
+  enforces the task's declared tools, workspace-relative file access, call
+  budget, probe/disassembly limits and submission policy, then records
+  authoritative counters in `tools`. Bypass remains possible until the adapter
+  worker is isolated from the repository and network.
 - The workspace contains the task's visible files plus, for binary-recovery
   tasks, either the oracle **shim** (`oracle` access) or the stripped **probe**
   (`binary` access) — never ground truth, the grader, property tests or hidden
@@ -270,9 +275,11 @@ profiles are specified in
 
 The harness records the budget config and environment stamp in every row.
 Token figures are **self-reported** unless the run went through the harness
-metering proxy (§[Token metering](#token-metering)); tool-call figures are
-always adapter self-reports. The row's `ledger_source` says which, and the
-reports repeat it next to the numbers.
+metering proxy (§[Token metering](#token-metering)). Tool calls are
+**broker-measured** when the adapter uses the exported tool broker and remain
+adapter self-reports when `tools.requests` is zero. The row's
+`ledger_source` and `tools.source` say which, and reports repeat it next to
+the numbers.
 
 Oracle queries are different: the broker counts them on the harness side, so
 `oracle.queries` and `oracle.refused` are **measured**. When the manifest sets
@@ -301,7 +308,8 @@ Each run row records both the configured budget and whether it was enforced:
 | Candidate build/run time, address space, output size | enforced by the grader |
 | Oracle queries | counted by the harness broker; capped when `budgets.oracle_queries` is set |
 | Tokens | **measured** when `--meter-upstream` is given (provider `usage` via the harness proxy); otherwise adapter self-report |
-| Tool calls, output tokens | **not enforced**; adapter self-report only |
+| Tool calls | broker-measured and capped for mediated calls; direct tool use remains unobserved until process isolation |
+| Output tokens | **not enforced**; adapter self-report only |
 
 A report may quote enforced numbers. Unenforced ones are labelled
 `self-reported by adapter` and cannot support a cost claim on their own.

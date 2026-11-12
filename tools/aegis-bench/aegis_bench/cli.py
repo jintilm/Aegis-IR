@@ -25,7 +25,8 @@ from .artifact import ArtifactError
 from .audit import audit_path
 from .campaign import (
     ExperimentError, load_experiment, run_campaign)
-from .runner import ACCESS_MODES, ACCESS_ORACLE, Runner
+from .runner import (
+    ACCESS_MODES, ACCESS_ORACLE, ADAPTER_ISOLATION_MODES, Runner)
 from .report import write_reports
 
 
@@ -89,7 +90,9 @@ def cmd_run(args: argparse.Namespace) -> int:
                     adapter_timeout=args.adapter_timeout,
                     keep_workspaces=args.keep_workspaces,
                     access=args.access,
-                    meter_upstream=args.meter_upstream)
+                    meter_upstream=args.meter_upstream,
+                    enable_tool_broker=not args.no_tool_broker,
+                    adapter_isolation=args.adapter_isolation)
     try:
         records = runner.run(tasks, [agent], profile=args.profile,
                              repetitions=args.repetitions)
@@ -118,7 +121,8 @@ def cmd_campaign(args: argparse.Namespace) -> int:
                             if args.artifact_cache else None),
             adapter_timeout=args.adapter_timeout,
             keep_workspaces=args.keep_workspaces,
-            meter_upstream=args.meter_upstream)
+            meter_upstream=args.meter_upstream,
+            enable_tool_broker=not args.no_tool_broker)
     except (ExperimentError, TaskError, AdapterError, ArtifactError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -174,7 +178,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="run an adapter over tasks")
     p_run.add_argument("--tasks-root", required=True)
     p_run.add_argument("--adapter", required=True,
-                       help="'module:Class' or a built-in (stub, broken)")
+                       help="'module:Class' or a built-in (stub, "
+                            "broker-stub, broken, ground-truth, probe-query)")
     p_run.add_argument("--profile", required=True,
                        help="build profile label, e.g. baseline/release")
     p_run.add_argument("--task", action="append", default=[],
@@ -212,6 +217,13 @@ def build_parser() -> argparse.ArgumentParser:
                             "the provider's usage report instead of the "
                             "adapter's own arithmetic")
     p_run.add_argument("--keep-workspaces", action="store_true")
+    p_run.add_argument("--no-tool-broker", action="store_true",
+                       help="disable the harness-owned tool broker")
+    p_run.add_argument("--adapter-isolation",
+                       choices=list(ADAPTER_ISOLATION_MODES),
+                       default="in-process",
+                       help="adapter execution boundary (process is not a "
+                            "filesystem/network sandbox)")
     p_run.set_defaults(func=cmd_run)
 
     p_campaign = sub.add_parser(
@@ -236,6 +248,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_campaign.add_argument("--meter-upstream", default=None, metavar="URL",
                             help="model endpoint for the harness meter")
     p_campaign.add_argument("--keep-workspaces", action="store_true")
+    p_campaign.add_argument("--no-tool-broker", action="store_true",
+                            help="disable the harness-owned tool broker")
     p_campaign.set_defaults(func=cmd_campaign)
 
     p_audit = sub.add_parser(

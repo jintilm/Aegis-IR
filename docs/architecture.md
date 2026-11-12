@@ -86,9 +86,12 @@ production debugging": rebuild the same commit with it, reproduce, fix.
   *white-box* attacker holding this source code and training decoy filters.
   The white-box attacker is the honest control.
 - **Campaign boundary**: the campaign and atomic checkpoint are implemented.
-  The adapter still runs in-process; process isolation and harness-owned tool
-  counting are specified in [`isolation.md`](isolation.md) and are required
-  before a protection-effect claim.
+  A per-cell loopback tool broker enforces the declared tool surface, call
+  budget and workspace containment for mediated calls. Campaigns may run the
+  adapter in a fresh subprocess with a workspace-only TaskView. That process
+  boundary can still reach host paths and networks, so filesystem/network
+  isolation remains specified in [`isolation.md`](isolation.md) and is
+  required before a protection-effect claim.
 
 ## Boundaries
 

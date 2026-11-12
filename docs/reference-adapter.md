@@ -25,11 +25,13 @@ resolved and rejected if it escapes the workspace, because a protected task's
 ground truth sits outside it.
 
 Task schema v2 declares the same tool surface in `tool_policy.allowed_tools`
-and records it in every row as `task_protocol.tool_policy`. Today this is a
-declaration the harness records, not enforcement against an in-process
-adapter. The harness-owned tool broker in
-[`isolation.md`](isolation.md) is the enforcement design; a published result
-must not describe the current adapter process as sandboxed.
+and records it in every row as `task_protocol.tool_policy`. Runner exports a
+loopback tool broker as `AEGIS_TOOL_BROKER_URL` and
+`AEGIS_TOOL_BROKER_TOKEN`; the reference adapter prefers it over local tool
+implementations. The broker enforces the policy and call cap for mediated
+calls and writes measured counters to the row's `tools` block. An adapter can
+still bypass it while it remains in-process, so a published result must not
+describe the current adapter process as sandboxed.
 
 ## Tools exposed to the model
 
@@ -90,6 +92,30 @@ it as `adapter_version`. A fresh adapter instance is created for each cell, so
 counters, notes, cached listings and conversation state cannot cross
 repetitions.
 
+## Tool broker: `AEGIS_TOOL_BROKER_URL`
+
+When enabled (the default), the runner starts a loopback JSON broker with a
+per-cell random token. Adapter tool dispatch should call
+`aegis_bench.toolbroker.call_tool(name, args)`. The broker:
+
+- validates `name` against `task_protocol.tool_policy.allowed_tools`;
+- confines reads to the workspace and rejects escaping symlinks;
+- caps tool calls with `budgets.max_tool_calls`;
+- executes `run_probe` and, under `binary` access, `disassemble`;
+- applies the candidate-source policy to `submit_solution`;
+- records calls by tool, denials, failures and byte counts.
+
+The row also keeps `ledger.tool_calls`; `tools.adapter_exceeds_broker` becomes
+true if the adapter claims more calls than the harness observed. A campaign
+can set `require_broker_tools: true`, which makes audit fail when the adapter
+did not use the broker.
+
+With `adapter_isolation: "process"`, the harness imports the adapter in a
+fresh child process and passes a `TaskView` whose `path()` is restricted to
+workspace-visible files. The adapter receives the broker/meter environment but
+not the repository `Task` object. This is a process boundary, not a
+filesystem/network sandbox.
+
 ## Metering: `AEGIS_METER_BASE_URL`
 
 When the harness runs with `--meter-upstream`, it starts a loopback proxy in
@@ -149,7 +175,8 @@ Ledger fields: `tokens` (measured + estimated), `prompt_tokens`,
 `completion_tokens`, `tokens_source`, `aborted_calls`,
 `aborted_reasoning_chars`, `aborted_tokens_estimate`, `truncations`,
 `restarts`, `tool_calls`, `llm_calls`, `stop_reason`, `model`, `max_tokens`,
-`max_steps`, `temperature`, `thinking`.
+`max_steps`, `temperature`, `thinking`, `tool_broker_calls`,
+`tool_broker_used`.
 
 A change to any of these changes the agent, so results from before and after the
 change are not comparable at the profile level; rerun both cells.

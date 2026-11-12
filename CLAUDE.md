@@ -136,7 +136,8 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   commit/hash/version drift, mixed metering and dirty provenance.
 - **Task schema v2** records `tool_policy`, `input_domain`, `experiment_use`, `difficulty` and
   `protectability` in every run row as `task_protocol`. The tool policy is declared metadata,
-  not enforcement; process isolation and broker-owned tool counts remain a publishability gate.
+  enforced by the loopback tool broker for mediated calls. Direct in-process tool use can still
+  bypass it; process/network isolation remains a publishability gate.
 
 ## Reports and provenance
 

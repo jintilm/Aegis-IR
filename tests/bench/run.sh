@@ -143,6 +143,9 @@ campaign = row("campaign")
 assert campaign["campaign"]["id"] == "offline-harness-smoke", campaign
 assert campaign["campaign"]["cell_key"] == (
     "rolling-token-v1|baseline|ground-truth-replay|0"), campaign
+assert campaign["record_schema_version"] == 3, campaign
+assert campaign["tools"]["requests"] >= 3, campaign["tools"]
+assert campaign["tools"]["source"] == "harness tool broker", campaign["tools"]
 with open(f"{root}/campaign/campaign-state.json", encoding="utf-8") as fh:
     state = json.load(fh)
 assert state["complete"] is True, state

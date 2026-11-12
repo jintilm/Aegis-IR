@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..agent import AdapterError, Agent, AgentResult
+from ..toolbroker import BROKER_ENV_URL, ToolError, call_tool
 
 
 class ReplayAgent(Agent):
@@ -50,9 +51,23 @@ class GroundTruthAgent(Agent):
 
     def solve(self, task: Any, workspace: Path) -> AgentResult:
         truth = task.path(task.ground_truth).read_text(encoding="utf-8")
+        broker_calls = 0
+        if os.environ.get(BROKER_ENV_URL):
+            try:
+                call_tool("list_files", {})
+                call_tool("read_file", {"path": task.interface})
+                call_tool(
+                    "submit_solution",
+                    {"source": truth})
+                broker_calls = 3
+            except ToolError as exc:
+                raise AdapterError(
+                    f"harness self-check tool broker rejected a request: "
+                    f"{exc}") from exc
         return AgentResult(
             sources={task.candidate_sources[0]: truth},
-            ledger={"tokens": None, "tool_calls": 0,
+            ledger={"tokens": None, "tool_calls": broker_calls,
+                    "tool_broker_calls": broker_calls,
                     "note": "ground truth replayed; cost is not meaningful"})
 
 
@@ -82,6 +97,30 @@ class StubAgent(Agent):
         return AgentResult(
             sources={task.candidate_sources[0]: self._body},
             ledger={"tokens": None, "tool_calls": 1})
+
+
+class BrokerStubAgent(StubAgent):
+    """Negative control that exercises the harness tool broker."""
+
+    name = "broker-stub"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        calls = 0
+        if os.environ.get(BROKER_ENV_URL):
+            try:
+                call_tool("list_files", {})
+                call_tool("read_file", {"path": task.interface})
+                call_tool(
+                    "submit_solution",
+                    {"source": self._body})
+                calls = 3
+            except ToolError as exc:
+                raise AdapterError(
+                    f"broker stub rejected: {exc}") from exc
+        return AgentResult(
+            sources={task.candidate_sources[0]: self._body},
+            ledger={"tokens": None, "tool_calls": calls,
+                    "tool_broker_calls": calls})
 
 
 class BrokenAgent(Agent):

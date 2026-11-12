@@ -187,6 +187,11 @@ if disconnects:
     meter_line += (f"; {disconnects} call(s) were abandoned mid-stream and are "
                    f"therefore **not** in the metered totals (the adapter "
                    f"estimates those separately)")
+brokered_tools = sum(1 for r in rows
+                     if (r.get("tools") or {}).get("requests"))
+tool_line = (f"- tool accounting: {brokered_tools} of {len(rows)} runs used "
+             f"the harness-owned tool broker; broker counters enforce the "
+             f"declared tool set and call cap for mediated requests")
 
 # Repetitions come from the data, not from a default: regenerating a report
 # must not relabel a 2-repetition run as 3.
@@ -254,6 +259,7 @@ lines = [
     f"- step budget: {steps}",
     f"- access: {access}",
     meter_line,
+    tool_line,
     *cal_lines,
     "- adapter policy: streaming SSE, thinking enabled, reasoning watchdog, "
     "fresh conversation after repeated unproductive replies, repeated "
@@ -292,8 +298,14 @@ for profile in order:
                    ("not counted (binary access)" if mode == "binary"
                     else "n/a"))
     tokens_cell = f"{statistics.mean(tokens):.0f}" if tokens else "n/a"
-    tools = [r["ledger"]["tool_calls"] for r in group
-             if isinstance(r["ledger"].get("tool_calls"), (int, float))]
+    tools = [
+        (r.get("tools") or {}).get("requests")
+        if (r.get("tools") or {}).get("requests")
+        else r["ledger"].get("tool_calls")
+        for r in group
+        if ((r.get("tools") or {}).get("requests")
+            or isinstance(r["ledger"].get("tool_calls"), (int, float)))
+    ]
     tools_cell = f"{statistics.mean(tools):.0f}" if tools else "n/a"
     lines.append(
         f"| {profile} | {len(group)} | {submitted} | {graded} | {passed} | "
@@ -391,8 +403,8 @@ lines += [
     "## What this shows", "",
     "- whether a real model can produce a graded submission on a deliberately "
     "non-standard task, and at what measured cost (wall clock, and oracle "
-    "queries where the access mode counts them) and self-reported cost (tokens, "
-    "tool calls);",
+    "queries where the access mode counts them), provider-metered token cost "
+    "where available, and broker-measured tool calls for mediated requests;",
     "- whether the protected profile changes either, with the variance the "
     "repetitions actually exhibit;",
     "- the probe's artifact size difference between the two profiles.",
@@ -423,6 +435,9 @@ lines += [
     "were run; the pass column describes what this agent could do, not what a "
     "protection prevented.",
     "- No claim about other attacker classes or larger models.",
+    "- **The tool broker is not a process sandbox.** An adapter can still use "
+    "workspace tools directly; rows with `tools.requests: 0` retain the "
+    "adapter's self-reported tool count.",
     "- Token figures include an estimate for calls aborted by the reasoning "
     "watchdog (`tokens_source` and `aborted_tokens_estimate` in the JSONL mark "
     "the share).",

@@ -29,7 +29,9 @@ from typing import Any, Callable
 
 from .agent import Agent, AdapterError, create_agent
 from .report import atomic_write_text, write_reports
-from .runner import ACCESS_MODES, Runner, RunRecord, environment_stamp
+from .runner import (
+    ACCESS_MODES, ADAPTER_ISOLATION_MODES, Runner, RunRecord,
+    environment_stamp)
 from .schema import Task, TaskError, discover_tasks
 
 EXPERIMENT_SCHEMA_VERSION = 1
@@ -40,6 +42,7 @@ _ALLOWED_KEYS = {
     "schema_version", "name", "purpose", "primary_metric", "tasks_root",
     "tasks", "agents", "profiles", "repetitions", "repetition_start",
     "access", "order", "seed", "require_clean", "require_meter",
+    "require_broker_tools", "adapter_isolation",
     "allow_oracle_comparison", "out", "notes",
 }
 
@@ -114,6 +117,8 @@ class Experiment:
     seed: int
     require_clean: bool
     require_meter: bool
+    require_broker_tools: bool
+    adapter_isolation: str
     allow_oracle_comparison: bool
     out: Path | None
     notes: str
@@ -310,6 +315,11 @@ def load_experiment(path: str | Path) -> Experiment:
     if access not in ACCESS_MODES:
         raise ExperimentError(
             f"{path}: access must be one of {', '.join(ACCESS_MODES)}")
+    adapter_isolation = raw.get("adapter_isolation", "in-process")
+    if adapter_isolation not in ADAPTER_ISOLATION_MODES:
+        raise ExperimentError(
+            f"{path}: adapter_isolation must be one of "
+            f"{', '.join(ADAPTER_ISOLATION_MODES)}")
     order = raw.get("order", "interleaved")
     if order not in ORDERS:
         raise ExperimentError(
@@ -340,6 +350,9 @@ def load_experiment(path: str | Path) -> Experiment:
         seed=seed,
         require_clean=_bool(raw, "require_clean", True),
         require_meter=_bool(raw, "require_meter", True),
+        require_broker_tools=_bool(
+            raw, "require_broker_tools", False),
+        adapter_isolation=adapter_isolation,
         allow_oracle_comparison=_bool(
             raw, "allow_oracle_comparison", False),
         out=(path.parent / out_raw).resolve() if out_raw else None,
@@ -483,6 +496,7 @@ def run_campaign(
         adapter_timeout: int = 600,
         keep_workspaces: bool = False,
         meter_upstream: str | None = None,
+        enable_tool_broker: bool = True,
         adapter_factory: Callable[[str], Agent] = create_agent,
         runner_factory: Callable[..., Runner] = Runner,
         ) -> CampaignResult:
@@ -503,6 +517,7 @@ def run_campaign(
             adapter_timeout=adapter_timeout,
             keep_workspaces=keep_workspaces,
             meter_upstream=meter_upstream,
+            enable_tool_broker=enable_tool_broker,
             adapter_factory=adapter_factory,
             runner_factory=runner_factory)
 
@@ -521,6 +536,7 @@ def _run_campaign_unlocked(
         adapter_timeout: int = 600,
         keep_workspaces: bool = False,
         meter_upstream: str | None = None,
+        enable_tool_broker: bool = True,
         adapter_factory: Callable[[str], Agent] = create_agent,
         runner_factory: Callable[..., Runner] = Runner,
         ) -> CampaignResult:
@@ -538,6 +554,10 @@ def _run_campaign_unlocked(
         raise ExperimentError(
             f"{experiment.path}: require_meter=true but no meter_upstream "
             f"was supplied")
+    if experiment.require_broker_tools and not enable_tool_broker:
+        raise ExperimentError(
+            f"{experiment.path}: require_broker_tools=true but the tool "
+            f"broker was disabled")
 
     tasks = experiment.resolve_tasks(allow_private=allow_private)
     task_by_id = {task.id: task for task in tasks}
@@ -610,7 +630,9 @@ def _run_campaign_unlocked(
         repo_root=repo_root, out_dir=out, cxx=cxx, plugin=plugin,
         clang=clang, opt=opt, artifact_cache=artifact_cache,
         adapter_timeout=adapter_timeout, keep_workspaces=keep_workspaces,
-        access=experiment.access, meter_upstream=meter_upstream)
+        access=experiment.access, meter_upstream=meter_upstream,
+        enable_tool_broker=enable_tool_broker,
+        adapter_isolation=experiment.adapter_isolation)
 
     def state(complete: bool) -> dict[str, Any]:
         return {
@@ -624,6 +646,8 @@ def _run_campaign_unlocked(
             "cells_completed": len(completed),
             "complete": complete,
             "adapter_versions": preflight,
+            "require_broker_tools": experiment.require_broker_tools,
+            "adapter_isolation": experiment.adapter_isolation,
             "completed_cells": sorted(completed),
         }
 

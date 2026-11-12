@@ -20,12 +20,16 @@ aegis_bench/
 ├── runner.py    workspace isolation, artifact injection, provenance
 ├── campaign.py  experiment matrix, interleaving, checkpoint/resume
 ├── audit.py     JSONL/matrix/provenance audit
+├── toolbroker.py policy-checked workspace tools, counters and call budget
+├── worker.py    optional subprocess boundary + workspace-only TaskView
 ├── report.py    JSONL / CSV / Markdown reports
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`, `campaign`, `audit`
 tests/
 ├── test_harness.py   offline harness tests
-└── test_campaign.py  campaign, resume and audit tests
+├── test_campaign.py  campaign, resume and audit tests
+├── test_toolbroker.py broker policy, counting and runner injection
+└── test_worker.py    subprocess boundary and hidden-path exclusion
 ```
 
 ## Usage
@@ -71,13 +75,24 @@ PYTHONPATH=/path/to/adapters python3 -m aegis_bench campaign \
 
 Credentials are read by that external adapter; nothing in this tree imports a
 vendor SDK or reads an API key. The optional metering proxy is the only
-harness-owned network path, and it exists only when `--meter-upstream` is
-explicitly given. The adapter must be run in an environment whose filesystem
-view contains only the workspace; the harness enforces workspace isolation,
-not process sandboxing. `adapter.solve` is
+harness-owned path to the model endpoint, and it exists only when
+`--meter-upstream` is explicitly given. The tool broker is loopback-only. The
+adapter must be run in an environment whose filesystem view contains only the
+workspace; the harness enforces workspace isolation, not process sandboxing.
+`adapter.solve` is
 bounded by `--adapter-timeout` (default 600 s, SIGALRM on POSIX).
 Campaigns create a fresh adapter instance for every cell, require a non-empty
 adapter version, and record the manifest fingerprint and cell key in each row.
+Unless `--no-tool-broker` is given, each cell exports
+`AEGIS_TOOL_BROKER_URL` and `AEGIS_TOOL_BROKER_TOKEN`. Adapters use
+`aegis_bench.toolbroker.call_tool` for policy-checked workspace reads, probe
+execution, disassembly and submission.
+
+Campaign manifests can set `adapter_isolation: "process"` (or `run` can pass
+`--adapter-isolation process`). The adapter then executes in a fresh child with
+a workspace-only `TaskView`, not the repository task root. This is a process
+boundary for crash/object-state isolation; it does not yet restrict the child's
+filesystem or network access.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1
@@ -164,15 +179,18 @@ row's `metering` block. The proxy asks for usage on the adapter's behalf
 (`stream_options.include_usage`), so measurement does not depend on the
 measured party remembering to report. Without a meter the figures come from the
 adapter and are recorded with `ledger_source: "self-reported by adapter"`.
-Tool calls are always self-reported. The Markdown report repeats whichever
-caveat applies next to the numbers.
+Tool calls are measured by the harness broker when the adapter uses its
+exported endpoints. The broker applies the task's `tool_policy`, enforces
+`budgets.max_tool_calls`, records per-tool counts/denials/bytes, and compares
+its observed requests with the adapter's self-report. An adapter that bypasses
+the broker has `tools.requests: 0` and remains visibly self-reported.
 
-Both the broker and the meter are accounting, not sandboxes. An adapter that
+Both brokers and the meter are accounting, not sandboxes. An adapter that
 walks the filesystem can find the artifact cache and execute the probe
 directly; an adapter that calls the relay directly bypasses the meter (its row
-then shows `metering.requests: 0`). Reports say so. A future adapter protocol
-can add harness-visible counters for tool calls too (e.g. a sandboxed tool
-proxy).
+then shows `metering.requests: 0`). Reports say so. The tool broker becomes an
+enforcement boundary only after the adapter worker is mounted without direct
+repository or artifact-cache access.
 
 The Markdown report states a Wilson 95% interval on every pass rate, aggregates
 per (agent, profile), and shows cost deltas against the `baseline` profile with
@@ -196,9 +214,14 @@ cell key and order index. `aegis-bench audit` checks duplicates, missing
 cells, commit/hash/version drift, mixed meter provenance and campaign
 fingerprint consistency. See [`docs/campaigns.md`](../../docs/campaigns.md).
 
-The adapter is still in-process. Campaign/resume does not enforce process
-isolation, and tool calls remain self-reported. The worker/tool-broker design
-and its acceptance tests are in [`docs/isolation.md`](../../docs/isolation.md).
+The `tools` block records broker requests, allowed/denied/failed counts,
+per-tool calls, denials, bytes in/out, call cap, and the adapter's own
+tool-call figure. `adapter_exceeds_broker` is the detectable bypass signal.
+
+The adapter is still in-process. Campaign/resume and the tool broker do not
+enforce process or network isolation; an adapter can bypass the broker and the
+row will show no broker traffic. The worker boundary and its acceptance tests
+are in [`docs/isolation.md`](../../docs/isolation.md).
 
 ## Deliberate limits
 

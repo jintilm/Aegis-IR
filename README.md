@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token metering, independent grader, runner, report generator) exists and is tested offline. Four real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and three under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. All are pilots, and **no effectiveness claim is drawn from any of them**.
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token and tool brokers, independent grader, runner, report generator) exists and is tested offline. Four real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and three under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. All are pilots, and **no effectiveness claim is drawn from any of them**.
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -22,8 +22,9 @@ numbers too.
 ## Status
 
 `v0.2.0-alpha` — reproducible measurement prototype, not a hardened
-protector. The campaign/resume/audit layer is implemented; process isolation
-and harness-owned tool counting remain a documented design gate.
+protector. Campaign/resume/audit and harness-owned token/tool brokers are
+implemented, including an optional adapter subprocess boundary; filesystem and
+network isolation remain the publishability gate.
 
 Present in the tree: `aegis-audit` (read-only summary), `aegis-lint`
 (read-only protectability preflight), `aegis-policy`
@@ -195,11 +196,12 @@ harness isolates the workspace but does not sandbox the process.
 atomically after every cell and resumes from the raw JSONL. `aegis-bench
 audit` checks duplicate/missing cells, stale task hashes, mixed meter
 provenance and campaign fingerprints. Tokens are provider-measured when
-`--meter-upstream` is used and otherwise adapter self-reports; tool-call
-columns are always self-reports; oracle queries are counted by the harness
-broker (and capped when a task sets `budgets.oracle_queries`). Report pass
-rates carry Wilson 95% intervals, and cost deltas get an interval only when
-both sides have at least two runs.
+`--meter-upstream` is used and otherwise adapter self-reports. Tool calls are
+measured by the per-cell loopback broker when the adapter uses it; a bypass
+shows `tools.requests: 0`. Oracle queries are counted by the harness broker
+(and capped when a task sets `budgets.oracle_queries`). Report pass rates carry
+Wilson 95% intervals, and cost deltas get an interval only when both sides have
+at least two runs.
 Protocol:
 [`docs/benchmark-protocol.md`](docs/benchmark-protocol.md); harness:
 [`tools/aegis-bench/README.md`](tools/aegis-bench/README.md); campaign and
@@ -236,10 +238,11 @@ Known limits, stated so they are not discovered as surprises:
   (semantics removal); the state encoding key derives from the shipped seed;
 - flattening costs a volatile load and store per basic block; it is not
   recommended for hot paths;
-- benchmark tool-call columns are adapter self-reports; tokens are
-  provider-measured only when the meter is used, and otherwise self-reported.
-  Oracle queries are counted by the broker, which is accounting rather than a
-  sandbox; process isolation and broker-owned tool counts are not implemented;
+- benchmark tool calls are broker-measured for mediated requests, but an
+  in-process adapter can bypass the broker; tokens are provider-measured only
+  when the meter is used, and otherwise self-reported. Oracle queries are
+  counted by the broker, which is accounting rather than a sandbox; process
+  and network isolation are not implemented;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 

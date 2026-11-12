@@ -36,6 +36,14 @@ a blocker, and a box checked without evidence is worse.
       row carries `task_protocol` plus campaign provenance.
 - [x] `aegis-lint` reports eligible and ineligible selections without changing
       IR (`aegis-controlflow` + CI smoke test).
+- [x] Harness-owned loopback tool broker enforces the declared tool set,
+      workspace containment and call cap for mediated requests; covered by
+      `test_toolbroker.py`.
+- [x] Optional process-isolated adapter worker receives a workspace-only
+      `TaskView`, not the repository task root; covered by `test_worker.py`.
+- [ ] Filesystem/network isolation around the adapter worker. The broker
+      remains bypassable until the worker cannot directly read the repository
+      or open arbitrary network connections.
 - [x] Clean-tree `v0.2.0-alpha` validation report generated from commit
       `4782ea7`: `docs/reports/harness-validation-v0.2.0-alpha/`. The rows
       record `commit_dirty: no`; campaign audit reports 0 errors and 0
