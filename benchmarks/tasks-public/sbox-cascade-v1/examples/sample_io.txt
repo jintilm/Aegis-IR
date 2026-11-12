@@ -1,0 +1,5 @@
+# sample input bytes -> output
+input=""                         -> scrub=2851903372 accept=0
+input="00"                       -> scrub=1090593246 accept=0
+input="001f80aa55c37e11"         -> scrub=264361246 accept=0
+input="0123456789abcdef"         -> scrub=1528018713 accept=0

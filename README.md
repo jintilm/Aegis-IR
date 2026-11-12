@@ -23,21 +23,25 @@ numbers too.
 
 `v0.2.0-alpha` — reproducible measurement prototype, not a hardened
 protector. Campaign/resume/audit and harness-owned token/tool brokers are
-implemented, including an optional adapter subprocess boundary; filesystem and
-network isolation remain the publishability gate. Linux `require_sandbox`
+implemented, including an optional adapter subprocess boundary. Linux
+`require_sandbox`
 workers additionally use Landlock for workspace/runtime file access and
-broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. Full
-network namespaces and same-port IP targeting remain open.
+broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
+opt-in `require_network_namespace` path gives the worker a private loopback
+namespace and bridges broker/meter over per-run Unix sockets, removing direct
+host-network reachability.
 
 Present in the tree: `aegis-audit` (read-only summary), `aegis-lint`
 (read-only protectability preflight), `aegis-policy`
 (JSON → IR attributes), `aegis-decoys` (level-1 transform), `aegis-cff`
 (level 2/3 control-flow transforms), `aegis-verify` (post-optimization build
 gate that fails closed), the Aegis-Bench harness with binary-recovery tasks,
-and eight public benchmark tasks (`rolling-token-v1`, `rolling-token-v2`,
+and twelve public benchmark tasks (`rolling-token-v1`, `rolling-token-v2`,
 `packed-record-v1`, `lane-shift-v1`, `window-parser-v1`, `state-fold-v1`,
-`ring-drain-v1`, `grid-route-v1`). The newest four cover parser, state-machine,
-data-structure and graph-routing families and remain uncalibrated.
+`ring-drain-v1`, `grid-route-v1`, `delta-ledger-v1`, `sbox-cascade-v1`,
+`bit-mosaic-v1`, `packet-weave-v1`). The newest eight cover parser,
+state-machine, data-structure, graph-routing, tagged-ledger, S-box, bit-matrix
+and packet-framing families.
 
 Level 1 decoys are the default and remain deliberately weak: they slow down
 naive triage and give the benchmark ground truth, but they are ineffective
@@ -246,8 +250,8 @@ Known limits, stated so they are not discovered as surprises:
 - benchmark tool calls are broker-measured for mediated requests, but an
   in-process adapter can bypass the broker; tokens are provider-measured only
   when the meter is used, and otherwise self-reported. Oracle queries are
-  counted by the broker. Optional Linux worker sandboxes use Landlock and
-  seccomp, but full network-namespace isolation is not implemented;
+  counted by the broker. Optional Linux worker sandboxes use Landlock,
+  seccomp and a private network namespace;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 

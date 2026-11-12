@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 710402,
+  "functions": [
+    {
+      "name": "pw_weave",
+      "level": 2,
+      "reason": "packet-weave-v1: level-2 artifact"
+    },
+    {
+      "name": "pw_accept",
+      "level": 2,
+      "reason": "packet-weave-v1: level-2 artifact"
+    }
+  ]
+}

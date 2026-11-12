@@ -1,9 +1,10 @@
 # Isolation and tool accounting
 
 Status: the loopback tool broker, adapter subprocess, Linux Landlock
-filesystem/TCP-port boundary, and seccomp non-stream-socket block are
-implemented. A non-Linux or Landlock-disabled process is only a process
-boundary. Full network-namespace isolation remains open.
+filesystem/TCP-port boundary, seccomp non-stream-socket block, and private
+network-namespace worker path are implemented. A non-Linux or
+Landlock-disabled process is only a process boundary. The network namespace
+requires `unshare` permission (user namespaces or SYS_ADMIN/NET_ADMIN).
 
 ## What is implemented
 
@@ -22,11 +23,14 @@ boundary. Full network-namespace isolation remains open.
 | Adapter process | optional fresh child process with a workspace-only TaskView and no repository task root |
 | Landlock worker | Linux filesystem allowlist and TCP connect rules for broker/meter ports |
 | Seccomp worker | deny UDP/raw/RDM/SEQPACKET IP socket creation |
+| Network namespace | private loopback-only namespace; broker/meter reached through per-run Unix sockets |
 
-These controls stop accidental leakage and several replay tricks. They do not
-stop a malicious adapter from walking the host filesystem, reading the
-artifact cache, opening a direct socket, or executing subprocesses. Adapters
-are therefore trusted code until the worker boundary below exists.
+These controls stop accidental leakage and several replay tricks. With the
+publishable worker flags, host filesystem reads and direct host network
+connects fail. The adapter can still execute subprocesses inside that boundary,
+and the grader remains a separate trusted process rather than a fully
+container-isolated service. Adapters are still treated as trusted code for
+supply-chain and credential purposes.
 
 ## Target architecture
 
@@ -57,8 +61,9 @@ process, so a compromised adapter cannot observe the grader's file view.
 
 ## Worker boundary
 
-The implemented first stage is one fresh subprocess per cell, optionally
-sandboxed by Landlock. The stronger container boundary remains:
+The implemented worker is one fresh subprocess per cell, optionally sandboxed
+by Landlock, seccomp and a private network namespace. The remaining stronger
+container boundary would add a read-only adapter mount and host PID isolation:
 
 1. Create a fresh workspace with only the declared visible files.
 2. Start a disposable container or namespace with a read-only adapter mount.
@@ -77,8 +82,12 @@ the broker/meter endpoints in the child environment. On Linux with Landlock,
 the worker installs a filesystem allowlist and permits TCP connects only to the
 broker/meter ports. A narrow seccomp policy also denies UDP/raw/RDM/SEQPACKET
 IP socket creation. The tests verify that repo reads, unapproved TCP ports, and
-UDP sockets are denied. Same-port IP targeting and non-Linux hosts remain
-outside this boundary.
+UDP sockets are denied. With `require_network_namespace`, the worker runs under
+`unshare` in a namespace whose only interface is loopback. It cannot route to
+the host; the trusted broker and meter expose Unix sockets and the worker
+bridges them to loopback HTTP ports. The acceptance test starts a host
+listener at a reachable container address and verifies the worker cannot
+connect to it, while a brokered tool call still succeeds.
 
 ## Tool broker
 
@@ -156,14 +165,13 @@ A release must fail if any of these controls is missing:
 
 A campaign can be used as a **measurement** when reports are metered and
 auditable. A campaign can support a **protection-effect claim** only when
-`require_sandbox: true` rows pass audit and the remaining full-egress
-acceptance items are closed:
+`require_sandbox: true` and `require_network_namespace: true` rows pass audit:
 
 - token results may be cited only with the current meter caveat;
 - broker tool counts describe mediated calls, while `tools.requests: 0` means
   the adapter bypassed the broker;
 - oracle access is counted only because the workspace holds the shim;
 - binary access does not count local executions;
-- TCP is port-restricted rather than IP-restricted, and this is not a network
-  namespace;
+- the network namespace removes host routing; the Unix-socket bridge is the
+  only broker/meter path;
 - no report may imply that the adapter or grader is fully host-isolated.

@@ -96,7 +96,14 @@ a workspace-only `TaskView`, not the repository task root. This is a process
 boundary for crash/object-state isolation. On Linux, `require_sandbox: true`
 adds Landlock: runtime/workspace filesystem allowlists and TCP connects only
 to the broker/meter ports. Seccomp additionally denies UDP/raw/RDM/SEQPACKET
-IP sockets. Same-port IP targeting and full network namespaces are not covered.
+IP sockets. `require_network_namespace: true` adds a private loopback-only
+network namespace and bridges broker/meter over per-run Unix sockets.
+
+Campaign schema v2 agent entries can carry constructor `options`. A single
+`openai_adapter:OpenAICompatAgent` can therefore appear twice, with
+`{"model": "deepseek-v4-pro"}` and `{"model": "deepseek-flash"}`, inside one
+matrix. The harness records the options as `agent_config` and replays them in
+the process worker.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1
@@ -211,29 +218,32 @@ toolchain, and build log. A task edited after its hash was recorded fails
 `check`, so a result cannot silently refer to a different task than the one
 that was run.
 
-Rows also carry `record_schema_version`, `task_protocol` (schema version, tool
-policy, input domain, experiment use, difficulty, protectability) and a
-`campaign` block with campaign id, purpose, primary metric, manifest SHA-256,
-cell key and order index. `aegis-bench audit` checks duplicates, missing
-cells, commit/hash/version drift, mixed meter provenance and campaign
-fingerprint consistency. See [`docs/campaigns.md`](../../docs/campaigns.md).
+Rows also carry `record_schema_version`, `agent_config`, `task_protocol`
+(schema version, tool policy, input domain, experiment use, difficulty,
+protectability) and a `campaign` block with campaign id, purpose, primary
+metric, manifest SHA-256, cell key and order index. `aegis-bench audit` checks
+duplicates, missing cells, commit/hash/version drift, agent configuration,
+mixed meter provenance and campaign fingerprint consistency. See
+[`docs/campaigns.md`](../../docs/campaigns.md).
 
 The `tools` block records broker requests, allowed/denied/failed counts,
 per-tool calls, denials, bytes in/out, call cap, and the adapter's own
 tool-call figure. `adapter_exceeds_broker` is the detectable bypass signal.
 
-The adapter is still in-process. Campaign/resume and the tool broker do not
-enforce process or network isolation; an adapter can bypass the broker and the
-row will show no broker traffic. The worker boundary and its acceptance tests
+The default adapter is in-process for debugging and offline built-ins. A
+publishable real-model campaign sets process isolation, `require_sandbox` and
+`require_network_namespace`; the worker then sees only the workspace and its
+loopback bridges. A direct tool implementation can still bypass broker
+accounting, which is why `require_broker_tools` is audited. Acceptance tests
 are in [`docs/isolation.md`](../../docs/isolation.md).
 
 ## Deliberate limits
 
-- Four public tasks today: `rolling-token-v1` (reimplementation, frozen),
-  `rolling-token-v2` (binary-recovery, memorizable FNV/Adler) and two
-deliberately non-standard binary-recovery tasks (`packed-record-v1`,
-  `lane-shift-v1`). Four is still far too few for a claim; treat current
-  numbers as harness validation only.
+- Twelve public tasks today: one frozen reimplementation task and eleven
+  binary-recovery tasks covering rolling hashes, packed records, lane mixing,
+  parsers, state folds, ring buffers, grid routing, delta ledgers, S-boxes,
+  bit mosaics and packet weaving. Task count is not itself evidence; cost
+  numbers still require calibration and a completed model matrix.
 - No model adapters in-tree, by design. The contract a published result must
   satisfy is [`docs/reference-adapter.md`](../../docs/reference-adapter.md).
 - Oracle queries are counted and optionally capped by the broker, but the

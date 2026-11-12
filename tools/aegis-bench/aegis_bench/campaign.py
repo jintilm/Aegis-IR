@@ -23,12 +23,13 @@ import os
 import random
 import shutil
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable
 
 from .agent import Agent, AdapterError, create_agent
 from .landlock import abi_version as landlock_abi_version
+from .netns import NetnsError, unshare_options
 from .seccomp import available as seccomp_available
 from .report import atomic_write_text, write_reports
 from .runner import (
@@ -36,7 +37,8 @@ from .runner import (
     environment_stamp)
 from .schema import Task, TaskError, discover_tasks
 
-EXPERIMENT_SCHEMA_VERSION = 1
+EXPERIMENT_SCHEMA_VERSION = 2
+SUPPORTED_EXPERIMENT_SCHEMA_VERSIONS = (1, 2)
 PURPOSES = ("harness-validation", "pilot", "experiment")
 PRIMARY_METRICS = ("pass_rate", "tokens", "wall_seconds", "oracle_queries")
 ORDERS = ("interleaved", "randomized", "sequential")
@@ -45,7 +47,7 @@ _ALLOWED_KEYS = {
     "tasks", "agents", "profiles", "repetitions", "repetition_start",
     "access", "order", "seed", "require_clean", "require_meter",
     "require_broker_tools", "adapter_isolation",
-    "require_sandbox",
+    "require_sandbox", "require_network_namespace",
     "allow_oracle_comparison", "out", "notes",
 }
 
@@ -101,6 +103,7 @@ class AgentSpec:
     id: str
     adapter: str
     expected_version: str = ""
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -123,6 +126,7 @@ class Experiment:
     require_broker_tools: bool
     adapter_isolation: str
     require_sandbox: bool
+    require_network_namespace: bool
     allow_oracle_comparison: bool
     out: Path | None
     notes: str
@@ -177,6 +181,7 @@ class Cell:
     profile: str
     agent_id: str
     adapter: str
+    options: dict[str, Any]
     repetition: int
     order_index: int
 
@@ -225,7 +230,7 @@ def _bool(raw: dict[str, Any], key: str, default: bool) -> bool:
     return value
 
 
-def _parse_agents(raw: Any) -> tuple[AgentSpec, ...]:
+def _parse_agents(raw: Any, *, schema_version: int) -> tuple[AgentSpec, ...]:
     if not isinstance(raw, list) or not raw:
         raise ExperimentError("experiment.agents must be a non-empty list")
     agents: list[AgentSpec] = []
@@ -236,13 +241,15 @@ def _parse_agents(raw: Any) -> tuple[AgentSpec, ...]:
         if not isinstance(entry, dict):
             raise ExperimentError(
                 "each experiment.agents entry must be a string or object")
-        unknown = set(entry) - {"id", "adapter", "expected_version"}
+        unknown = set(entry) - {
+            "id", "adapter", "expected_version", "options"}
         if unknown:
             raise ExperimentError(
                 f"unknown agent key(s): {', '.join(sorted(unknown))}")
         agent_id = entry.get("id")
         adapter = entry.get("adapter")
         expected = entry.get("expected_version", "")
+        options = entry.get("options", {})
         if not isinstance(agent_id, str) or not agent_id:
             raise ExperimentError("agent.id must be a non-empty string")
         if "|" in agent_id or "\n" in agent_id or "\r" in agent_id:
@@ -254,8 +261,24 @@ def _parse_agents(raw: Any) -> tuple[AgentSpec, ...]:
         if not isinstance(expected, str):
             raise ExperimentError(
                 f"agent {agent_id!r}: expected_version must be a string")
+        if not isinstance(options, dict) or not all(
+                isinstance(key, str) and key for key in options):
+            raise ExperimentError(
+                f"agent {agent_id!r}: options must be an object with "
+                f"non-empty string keys")
+        if options and schema_version < 2:
+            raise ExperimentError(
+                f"agent {agent_id!r}: options require experiment "
+                f"schema_version 2")
+        try:
+            json.dumps(options, sort_keys=True)
+        except (TypeError, ValueError) as exc:
+            raise ExperimentError(
+                f"agent {agent_id!r}: options must be JSON-serialisable: "
+                f"{exc}") from exc
         agents.append(AgentSpec(
-            id=agent_id, adapter=adapter, expected_version=expected))
+            id=agent_id, adapter=adapter, expected_version=expected,
+            options=dict(options)))
     ids = [agent.id for agent in agents]
     if len(set(ids)) != len(ids):
         raise ExperimentError("experiment.agents contains duplicate ids")
@@ -277,9 +300,11 @@ def load_experiment(path: str | Path) -> Experiment:
     if unknown:
         raise ExperimentError(
             f"{path}: unknown key(s): {', '.join(sorted(unknown))}")
-    if raw.get("schema_version") != EXPERIMENT_SCHEMA_VERSION:
+    schema_version = raw.get("schema_version")
+    if schema_version not in SUPPORTED_EXPERIMENT_SCHEMA_VERSIONS:
         raise ExperimentError(
-            f"{path}: schema_version must be {EXPERIMENT_SCHEMA_VERSION}")
+            f"{path}: schema_version must be one of "
+            f"{SUPPORTED_EXPERIMENT_SCHEMA_VERSIONS}")
 
     name = raw.get("name")
     if not isinstance(name, str) or not name.strip():
@@ -303,7 +328,8 @@ def load_experiment(path: str | Path) -> Experiment:
             raise ExperimentError(
                 "task ids cannot contain '|' or line breaks")
     profiles = _string_list(raw, "profiles")
-    agents = _parse_agents(raw.get("agents"))
+    agents = _parse_agents(
+        raw.get("agents"), schema_version=schema_version)
 
     repetitions = raw.get("repetitions")
     if (isinstance(repetitions, bool) or not isinstance(repetitions, int)
@@ -358,6 +384,8 @@ def load_experiment(path: str | Path) -> Experiment:
             raw, "require_broker_tools", False),
         adapter_isolation=adapter_isolation,
         require_sandbox=_bool(raw, "require_sandbox", False),
+        require_network_namespace=_bool(
+            raw, "require_network_namespace", False),
         allow_oracle_comparison=_bool(
             raw, "allow_oracle_comparison", False),
         out=(path.parent / out_raw).resolve() if out_raw else None,
@@ -401,7 +429,8 @@ def plan_cells(experiment: Experiment) -> list[Cell]:
                 for task_id, profile, agent in block)
     return [
         Cell(task_id=task_id, profile=profile, agent_id=agent.id,
-             adapter=agent.adapter, repetition=repetition,
+             adapter=agent.adapter, options=dict(agent.options),
+             repetition=repetition,
              order_index=index)
         for index, (task_id, profile, agent, repetition) in enumerate(planned)
     ]
@@ -437,11 +466,11 @@ def _campaign_cell_key(record: RunRecord) -> str:
 
 def _preflight_agents(
         experiment: Experiment,
-        adapter_factory: Callable[[str], Agent]) -> dict[str, str]:
+        adapter_factory: Callable[..., Agent]) -> dict[str, str]:
     versions: dict[str, str] = {}
     for spec in experiment.agents:
         try:
-            agent = adapter_factory(spec.adapter)
+            agent = adapter_factory(spec.adapter, **spec.options)
         except AdapterError as exc:
             raise ExperimentError(
                 f"adapter preflight failed for {spec.id}: {exc}") from exc
@@ -457,6 +486,9 @@ def _preflight_agents(
         if not version:
             raise ExperimentError(
                 f"agent {spec.id}: adapter must expose a non-empty version")
+        if getattr(agent, "adapter_options", {}) != spec.options:
+            raise ExperimentError(
+                f"agent {spec.id}: adapter factory did not attach options")
         versions[spec.id] = version
     return versions
 
@@ -580,6 +612,20 @@ def _run_campaign_unlocked(
             raise ExperimentError(
                 f"{experiment.path}: require_sandbox=true but libseccomp is "
                 f"unavailable on this host")
+    if experiment.require_network_namespace:
+        if experiment.adapter_isolation != "process":
+            raise ExperimentError(
+                f"{experiment.path}: require_network_namespace=true needs "
+                f"adapter_isolation='process'")
+        if os.name != "posix":
+            raise ExperimentError(
+                f"{experiment.path}: network namespaces are Linux-only")
+        try:
+            unshare_options()
+        except NetnsError as exc:
+            raise ExperimentError(
+                f"{experiment.path}: require_network_namespace=true but "
+                f"{exc}") from exc
 
     tasks = experiment.resolve_tasks(allow_private=allow_private)
     task_by_id = {task.id: task for task in tasks}
@@ -654,7 +700,8 @@ def _run_campaign_unlocked(
         adapter_timeout=adapter_timeout, keep_workspaces=keep_workspaces,
         access=experiment.access, meter_upstream=meter_upstream,
         enable_tool_broker=enable_tool_broker,
-        adapter_isolation=experiment.adapter_isolation)
+        adapter_isolation=experiment.adapter_isolation,
+        network_namespace=experiment.require_network_namespace)
 
     def state(complete: bool) -> dict[str, Any]:
         return {
@@ -671,6 +718,8 @@ def _run_campaign_unlocked(
             "require_broker_tools": experiment.require_broker_tools,
             "adapter_isolation": experiment.adapter_isolation,
             "require_sandbox": experiment.require_sandbox,
+            "require_network_namespace": (
+                experiment.require_network_namespace),
             "completed_cells": sorted(completed),
         }
 
@@ -682,7 +731,7 @@ def _run_campaign_unlocked(
             continue
         task = task_by_id[cell.task_id]
         try:
-            agent = adapter_factory(cell.adapter)
+            agent = adapter_factory(cell.adapter, **cell.options)
         except AdapterError as exc:
             raise ExperimentError(
                 f"cannot create adapter for {cell.key}: {exc}") from exc

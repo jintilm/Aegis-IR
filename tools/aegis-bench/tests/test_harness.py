@@ -152,7 +152,9 @@ class SchemaTests(unittest.TestCase):
             task = load_with({"oracle": {
                 "status": "floor", "model": "m", "baseline_pass_rate": 0.0,
                 "runs": 3, "date": "2026-11-11"}})
-            self.assertEqual(task.calibration["oracle"].status, "floor")
+            self.assertEqual(
+                task.calibration_for("oracle", "deepseek-v4.1-flash").status,
+                "floor")
             # A floor label with a non-zero rate is a contradiction, not data.
             with self.assertRaises(TaskError):
                 load_with({"oracle": {"status": "floor", "model": "m",
@@ -169,6 +171,35 @@ class SchemaTests(unittest.TestCase):
                 load_with({"shim": {"status": "floor"}})
             with self.assertRaises(TaskError):
                 load_with({"oracle": {"status": "meaningful"}})
+
+    def test_calibration_can_hold_multiple_models_per_access(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(BINARY_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest["calibration"] = {"binary": {"models": {
+                "deepseek-v4-pro": {
+                    "status": "comparison-ready",
+                    "baseline_pass_rate": 0.2,
+                    "runs": 5,
+                    "date": "2026-11-13",
+                },
+                "deepseek-flash": {
+                    "status": "floor",
+                    "baseline_pass_rate": 0.0,
+                    "runs": 5,
+                    "date": "2026-11-13",
+                },
+            }}}
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            task = load_task(copy, verify_hash=False)
+        self.assertEqual(
+            task.calibration_for("binary", "deepseek-v4-pro").runs, 5)
+        self.assertEqual(
+            task.calibration_for("binary", "deepseek-flash").status, "floor")
+        self.assertIsNone(task.calibration_for("binary", "unknown-model"))
 
     def test_calibration_is_outside_the_content_hash(self):
         """Calibration is measurement metadata; adding it must not rename a task."""
@@ -515,17 +546,21 @@ class PublicTaskSetTests(unittest.TestCase):
     def test_all_public_tasks_load(self):
         tasks = discover_tasks(TASKS_ROOT)
         ids = {t.id for t in tasks}
-        self.assertGreaterEqual(len(ids), 8, ids)
+        self.assertGreaterEqual(len(ids), 12, ids)
         for expected in ("rolling-token-v1", "rolling-token-v2",
                          "packed-record-v1", "lane-shift-v1",
                          "window-parser-v1", "state-fold-v1",
-                         "ring-drain-v1", "grid-route-v1"):
+                         "ring-drain-v1", "grid-route-v1",
+                         "delta-ledger-v1", "sbox-cascade-v1",
+                         "bit-mosaic-v1", "packet-weave-v1"):
             self.assertIn(expected, ids)
 
     def test_new_tasks_ground_truth_passes(self):
         for task_id in ("packed-record-v1", "lane-shift-v1",
                         "window-parser-v1", "state-fold-v1",
-                        "ring-drain-v1", "grid-route-v1"):
+                        "ring-drain-v1", "grid-route-v1",
+                        "delta-ledger-v1", "sbox-cascade-v1",
+                        "bit-mosaic-v1", "packet-weave-v1"):
             task = load_task(TASKS_ROOT / task_id)
             with Grader(task) as grader:
                 grade = grader.grade(_ground_truth_source(task))
@@ -535,7 +570,9 @@ class PublicTaskSetTests(unittest.TestCase):
     @unittest.skipUnless(AEGIS_PLUGIN, "AEGIS_PLUGIN not set")
     def test_new_tasks_build_all_protection_profiles(self):
         for task_id in ("window-parser-v1", "state-fold-v1",
-                        "ring-drain-v1", "grid-route-v1"):
+                        "ring-drain-v1", "grid-route-v1",
+                        "delta-ledger-v1", "sbox-cascade-v1",
+                        "bit-mosaic-v1", "packet-weave-v1"):
             task = load_task(TASKS_ROOT / task_id)
             with tempfile.TemporaryDirectory() as tmp:
                 runner = Runner(

@@ -74,5 +74,17 @@
     "kind": "bytes",
     "summary": "length-tagged binary records with malformed and truncated tails"
   },
+  "calibration": {
+    "binary": {
+      "models": {
+        "deepseek-flash": {
+          "status": "uncalibrated"
+        },
+        "deepseek-v4-pro": {
+          "status": "uncalibrated"
+        }
+      }
+    }
+  },
   "content_hash": "sha256:e5852b8597cfe386b15c6dde7e9114e8be4c8ce38563eb4bdb8a1eca2843d229"
 }

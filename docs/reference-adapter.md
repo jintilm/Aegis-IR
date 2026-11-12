@@ -116,9 +116,19 @@ workspace-visible files. The adapter receives the broker/meter environment but
 not the repository `Task` object. With `require_sandbox: true` on Linux, a
 Landlock ruleset runs before adapter code and allows only runtime/workspace
 files plus TCP connections to the broker/meter ports. A seccomp rule denies
-UDP/raw/RDM/SEQPACKET IP socket creation. Same-port IP targeting remains
-outside this boundary. Adapter-side diagnostic saves under `LLM_SAVE_DIR` are
-redirected to the per-cell worker transport directory.
+UDP/raw/RDM/SEQPACKET IP socket creation. With
+`require_network_namespace: true`, the worker enters a private loopback-only
+network namespace. Broker and meter are reached through per-run Unix sockets
+bridged to loopback; direct host connections have no route. Adapter-side
+diagnostic saves under `LLM_SAVE_DIR` are redirected to the per-cell worker
+transport directory.
+
+Campaign agents can supply JSON `options` to the adapter constructor. The
+reference adapter uses `{"model": "deepseek-v4-pro"}` or
+`{"model": "deepseek-flash"}`, which lets one campaign compare two models
+through the same adapter source hash and recovery policy. Options are
+recorded in each row's `agent_config` and replayed when a process worker
+constructs the fresh adapter.
 
 ## Metering: `AEGIS_METER_BASE_URL`
 

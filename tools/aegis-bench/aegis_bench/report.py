@@ -43,7 +43,8 @@ from .runner import RunRecord
 CSV_FIELDS = [
     "record_schema", "campaign_id", "campaign_purpose",
     "task_schema", "experiment_use", "tool_network",
-    "run_id", "task_id", "task_hash", "agent", "adapter_version", "access",
+    "run_id", "task_id", "task_hash", "agent", "agent_model",
+    "adapter_version", "access",
     "adversary",
     "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
@@ -167,6 +168,7 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
             "task_id": row["task_id"],
             "task_hash": row["task_hash"],
             "agent": row["agent"],
+            "agent_model": (row.get("agent_config") or {}).get("model", ""),
             "adapter_version": row.get("adapter_version", ""),
             "access": row.get("access", ""),
             "adversary": row["adversary"],
@@ -321,8 +323,12 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "two runs. A run row states which budgets were enforced.",
         "",
     ]
-    versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
-                       for r in records})
+    versions = sorted({
+        f"{r.agent} {r.adapter_version or '(no version)'}"
+        + (f" model={r.agent_config['model']}"
+           if r.agent_config.get("model") else "")
+        for r in records
+    })
     lines += ["- Adapters: " + ", ".join(f"`{v}`" for v in versions), ""]
     campaigns = sorted({
         (r.campaign.get("id", ""), r.campaign.get("manifest_sha256", ""),
@@ -362,15 +368,15 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
             "",
         ]
     calibration_rows: list[tuple[str, str, dict[str, Any]]] = []
-    seen_calibration: set[tuple[str, str]] = set()
+    seen_calibration: set[tuple[str, str, str]] = set()
     for record in records:
         if not record.artifact:
             continue
-        key = (record.task_id, record.access)
+        entry = (record.calibration or {}).get(record.access) or {}
+        key = (record.task_id, record.access, str(entry.get("model", "")))
         if key in seen_calibration:
             continue
         seen_calibration.add(key)
-        entry = (record.calibration or {}).get(record.access) or {}
         calibration_rows.append((record.task_id, record.access, entry))
     if calibration_rows:
         parts = []

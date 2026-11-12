@@ -99,6 +99,17 @@ class StubAgent(Agent):
             ledger={"tokens": None, "tool_calls": 1})
 
 
+class ModelStubAgent(StubAgent):
+    """Configurable test double for multi-model campaign plumbing."""
+
+    version = "builtin-model-stub-v1"
+
+    def __init__(self, *, model: str, body: str | None = None):
+        super().__init__(body)
+        self.model = model
+        self.name = f"model-stub-{model}"
+
+
 class BrokerStubAgent(StubAgent):
     """Negative control that exercises the harness tool broker."""
 
@@ -183,6 +194,29 @@ class ForbiddenUdpAgent(StubAgent):
         else:
             sock.close()
             raise AdapterError("process isolation allowed a UDP socket")
+
+
+class ForbiddenEgressAgent(StubAgent):
+    """Assert that the host network is unreachable from the worker namespace."""
+
+    name = "forbidden-egress"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        host = os.environ.get("AEGIS_TEST_HOST_ADDRESS")
+        raw = os.environ.get("AEGIS_TEST_HOST_PORT")
+        if not host or not raw:
+            raise AdapterError(
+                "AEGIS_TEST_HOST_ADDRESS/PORT are not set")
+        import socket
+
+        try:
+            sock = socket.create_connection((host, int(raw)), timeout=1)
+        except OSError:
+            return super().solve(task, workspace)
+        else:
+            sock.close()
+            raise AdapterError(
+                f"network namespace allowed direct host connect to {host}:{raw}")
 
 
 class BrokenAgent(Agent):

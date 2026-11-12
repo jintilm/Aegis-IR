@@ -109,8 +109,21 @@ PROCESS_CFG="$REPO_ROOT/experiments/process-smoke.json"
 (cd "$BENCH_ROOT" && python3 -m aegis_bench audit "$PROCESS_OUT" \
   --experiment "$PROCESS_CFG")
 
+if unshare -Urn true 2>/dev/null; then
+  echo "== network namespace and Unix-socket broker bridge =="
+  NETNS_OUT="$OUT/netns-campaign"
+  NETNS_CFG="$REPO_ROOT/experiments/netns-smoke.json"
+  (cd "$BENCH_ROOT" && python3 -m aegis_bench campaign \
+    --config "$NETNS_CFG" --out "$NETNS_OUT")
+  (cd "$BENCH_ROOT" && python3 -m aegis_bench audit "$NETNS_OUT" \
+    --experiment "$NETNS_CFG")
+else
+  echo "network namespace test skipped: host lacks unshare permission"
+fi
+
 python3 - "$OUT" <<'PY'
 import json
+import os
 import sys
 
 root = sys.argv[1]
@@ -151,7 +164,7 @@ campaign = row("campaign")
 assert campaign["campaign"]["id"] == "offline-harness-smoke", campaign
 assert campaign["campaign"]["cell_key"] == (
     "rolling-token-v1|baseline|ground-truth-replay|0"), campaign
-assert campaign["record_schema_version"] == 3, campaign
+assert campaign["record_schema_version"] == 4, campaign
 assert campaign["tools"]["requests"] >= 3, campaign["tools"]
 assert campaign["tools"]["source"] == "harness tool broker", campaign["tools"]
 with open(f"{root}/campaign/campaign-state.json", encoding="utf-8") as fh:
@@ -161,7 +174,15 @@ assert state["cells_completed"] == 1, state
 process = row("process-campaign")
 assert process["isolation"]["adapter"] == "process", process["isolation"]
 assert process["isolation"]["sandbox"] is True, process["isolation"]
+assert process["isolation"]["network_namespace"] is False, process["isolation"]
 assert process["tools"]["requests"] >= 3, process["tools"]
+netns_path = f"{root}/netns-campaign/aegis-bench.jsonl"
+if os.path.exists(netns_path):
+    with open(netns_path, encoding="utf-8") as fh:
+        netns = json.loads(fh.readline())
+    assert netns["isolation"]["network_namespace"] is True, netns["isolation"]
+    assert "private network namespace" in netns["isolation"]["network"]
+    assert netns["tools"]["requests"] >= 3, netns["tools"]
 # No host or user name may reach a committed report.
 assert "host" not in base["environment"] and "user" not in base["environment"]
 assert base["environment"]["machine"]

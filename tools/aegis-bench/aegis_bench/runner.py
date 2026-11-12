@@ -42,7 +42,7 @@ from .toolbroker import (
 from .worker import ProcessIsolatedAgent
 
 DEFAULT_ADAPTER_TIMEOUT = 600
-RECORD_SCHEMA_VERSION = 3
+RECORD_SCHEMA_VERSION = 4
 ADAPTER_ISOLATION_MODES = ("in-process", "process")
 
 #: What the agent is given for a binary-recovery task.
@@ -112,6 +112,11 @@ def _metered_endpoint(meter: MeterProxy | None):
     if meter is None:
         yield
         return
+    if meter.unix_path is not None:
+        # The worker replaces this with its loopback bridge URL after it
+        # enters the private network namespace.
+        yield
+        return
     previous = os.environ.get(METER_ENV)
     os.environ[METER_ENV] = meter.base_url
     try:
@@ -131,7 +136,10 @@ def _tool_broker_endpoint(broker: ToolBroker | None):
         return
     old_url = os.environ.get(BROKER_ENV_URL)
     old_token = os.environ.get(BROKER_ENV_TOKEN)
-    os.environ[BROKER_ENV_URL] = broker.url
+    if broker.unix_path is None:
+        os.environ[BROKER_ENV_URL] = broker.url
+    else:
+        os.environ.pop(BROKER_ENV_URL, None)
     os.environ[BROKER_ENV_TOKEN] = broker.token
     try:
         yield
@@ -235,6 +243,9 @@ class RunRecord:
     #: Optional identifier supplied by the adapter (e.g. a source hash), so a
     #: report can name the exact agent implementation that produced a row.
     adapter_version: str = ""
+    #: Configured adapter constructor options. Model adapters put their model
+    #: id here so two agents can share one adapter implementation.
+    agent_config: dict[str, Any] = field(default_factory=dict)
     #: ``oracle``, ``binary``, or ``n/a`` for tasks with no artifact. Recorded
     #: per row because it decides whether an oracle count exists and whether a
     #: protection transform could have mattered at all.
@@ -280,6 +291,7 @@ class RunRecord:
             "agent": self.agent,
             "adversary": self.adversary,
             "adapter_version": self.adapter_version,
+            "agent_config": self.agent_config,
             "access": self.access,
             "calibration": self.calibration,
             "profile": self.profile,
@@ -337,6 +349,7 @@ class RunRecord:
             agent=str(raw["agent"]),
             adversary=str(raw.get("adversary", "")),
             adapter_version=str(raw.get("adapter_version", "")),
+            agent_config=dict(raw.get("agent_config") or {}),
             access=str(raw.get("access", "")),
             calibration=dict(raw.get("calibration") or {}),
             profile=str(raw["profile"]),
@@ -370,7 +383,8 @@ class Runner:
                  access: str = ACCESS_ORACLE,
                  meter_upstream: str | None = None,
                  enable_tool_broker: bool = True,
-                 adapter_isolation: str = "in-process"):
+                 adapter_isolation: str = "in-process",
+                 network_namespace: bool = False):
         if access not in ACCESS_MODES:
             raise ValueError(f"access must be one of {ACCESS_MODES}, "
                              f"got {access!r}")
@@ -378,6 +392,9 @@ class Runner:
             raise ValueError(
                 f"adapter_isolation must be one of "
                 f"{ADAPTER_ISOLATION_MODES}, got {adapter_isolation!r}")
+        if network_namespace and adapter_isolation != "process":
+            raise ValueError(
+                "network_namespace requires adapter_isolation='process'")
         if meter_upstream is not None:
             # Validate now, not mid-cell: a bad URL should stop the run before
             # the first repetition is paid for.
@@ -391,6 +408,7 @@ class Runner:
         self.access = access
         self.enable_tool_broker = enable_tool_broker
         self.adapter_isolation = adapter_isolation
+        self.network_namespace = network_namespace
         self.environment = environment_stamp(self.repo_root)
         cache_root = (Path(artifact_cache) if artifact_cache
                       else self.out_dir / ".artifacts")
@@ -466,6 +484,7 @@ class Runner:
         broker: OracleBroker | None = None
         meter: MeterProxy | None = None
         tool_broker: ToolBroker | None = None
+        bridge_dir: Path | None = None
         metering: dict[str, Any] = {}
         tools: dict[str, Any] = {}
         isolation = {
@@ -473,6 +492,7 @@ class Runner:
             "sandbox": False,
             "filesystem": "workspace-only by contract; host filesystem reachable",
             "network": "not restricted",
+            "network_namespace": False,
         }
         oracle: dict[str, Any] = {}
         access = self.access if task.artifact is not None else "n/a"
@@ -522,16 +542,28 @@ class Runner:
                     broker.stats.enforcement
                 self._install_oracle(broker, artifact, workspace)
             if self.meter_upstream:
-                meter = MeterProxy(self.meter_upstream).start()
+                if self.network_namespace:
+                    bridge_dir = bridge_dir or Path(tempfile.mkdtemp(
+                        prefix="aegis-bridge-"))
+                    meter = MeterProxy(self.meter_upstream).start(
+                        unix_path=bridge_dir / "meter.sock")
+                else:
+                    meter = MeterProxy(self.meter_upstream).start()
                 budgets["enforcement"]["tokens"] = \
                     "measured by harness (provider usage via proxy)"
             else:
                 budgets["enforcement"]["tokens"] = "not metered (no proxy)"
             if self.enable_tool_broker:
+                if self.network_namespace:
+                    bridge_dir = bridge_dir or Path(tempfile.mkdtemp(
+                        prefix="aegis-bridge-"))
                 tool_broker = ToolBroker(
                     workspace=workspace, task=task, access=access,
                     max_calls=task.budgets.max_tool_calls,
-                    enable_disassembly=access == ACCESS_BINARY).start()
+                    enable_disassembly=access == ACCESS_BINARY).start(
+                        unix_path=(
+                            bridge_dir / "broker.sock"
+                            if bridge_dir is not None else None))
                 budgets["enforcement"]["max_tool_calls"] = (
                     "measured and capped by harness broker")
             timeout = self.adapter_timeout or task.budgets.timeout_seconds
@@ -540,13 +572,20 @@ class Runner:
             run_agent: Agent = agent
             if self.adapter_isolation == "process":
                 isolation_ports = []
-                if tool_broker is not None:
+                if (tool_broker is not None
+                        and tool_broker.unix_path is None):
                     isolation_ports.append(tool_broker.port)
-                if meter is not None:
+                if meter is not None and meter.unix_path is None:
                     isolation_ports.append(meter.port)
                 run_agent = ProcessIsolatedAgent(
                     agent, timeout_seconds=timeout,
-                    tcp_ports=tuple(isolation_ports))
+                    tcp_ports=tuple(isolation_ports),
+                    network_namespace=self.network_namespace,
+                    meter_unix_path=(
+                        meter.unix_path if meter is not None else None),
+                    broker_unix_path=(
+                        tool_broker.unix_path
+                        if tool_broker is not None else None))
             with _metered_endpoint(meter), _tool_broker_endpoint(tool_broker):
                 # Inside the block, so an adapter that reads its endpoint in
                 # ``prepare`` sees the meter too.
@@ -599,14 +638,21 @@ class Runner:
                 shutil.copytree(workspace, self.out_dir / f"ws-{run_id}",
                                 dirs_exist_ok=True)
             shutil.rmtree(workspace, ignore_errors=True)
+            if bridge_dir is not None:
+                shutil.rmtree(bridge_dir, ignore_errors=True)
 
         return RunRecord(
             run_id=run_id, task_id=task.id, task_hash=task.content_hash,
             agent=agent.name, adversary=agent.adversary,
             adapter_version=str(getattr(agent, "version", "")),
+            agent_config=dict(getattr(agent, "adapter_options", {}) or {}),
             access=access,
-            calibration={mode: cal.to_dict()
-                         for mode, cal in task.calibration.items()},
+            calibration=(
+                {access: calibration.to_dict()}
+                if (calibration := task.calibration_for(
+                    access, str(getattr(agent, "model", "") or "")))
+                else {}
+            ),
             profile=profile,
             repetition=repetition, started_utc=started_utc,
             duration_seconds=time.time() - started, grade=grade,

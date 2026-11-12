@@ -29,10 +29,12 @@ BUILTIN_ADAPTERS = {
     "forbidden-read": "aegis_bench.adapters.fake:ForbiddenReadAgent",
     "forbidden-connect":
         "aegis_bench.adapters.fake:ForbiddenConnectAgent",
+    "forbidden-egress": "aegis_bench.adapters.fake:ForbiddenEgressAgent",
     "forbidden-udp": "aegis_bench.adapters.fake:ForbiddenUdpAgent",
     "broken": "aegis_bench.adapters.fake:BrokenAgent",
     "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",
+    "model-stub": "aegis_bench.adapters.fake:ModelStubAgent",
 }
 
 
@@ -66,6 +68,9 @@ class Agent(abc.ABC):
     #: ``module:Class`` spec attached by ``create_agent`` so the runner can
     #: re-import the adapter inside a process-isolated worker.
     adapter_spec: str = ""
+    #: JSON-serialisable constructor options attached by ``create_agent``.
+    #: The process worker uses them to recreate the same configured adapter.
+    adapter_options: dict[str, Any] = {}
 
     def prepare(self, task: Any, workspace: Path) -> None:
         """Called once before ``solve``; workspace is the visible-only copy."""
@@ -75,7 +80,7 @@ class Agent(abc.ABC):
         """Produce a candidate for ``task``, reading only ``workspace``."""
 
 
-def create_agent(spec: str) -> Agent:
+def create_agent(spec: str, **options: Any) -> Agent:
     """Resolve ``module:Class`` or a built-in short name to a fresh adapter.
 
     A fresh instance per cell is important: counters, cached disassembly and
@@ -99,9 +104,11 @@ def create_agent(spec: str) -> Agent:
     if not isinstance(cls, type) or not issubclass(cls, Agent):
         raise AdapterError(f"{resolved} is not an Agent subclass")
     try:
-        agent = cls()
+        agent = cls(**options)
     except TypeError as exc:
         raise AdapterError(
-            f"{resolved} must be constructible with no arguments: {exc}") from exc
+            f"{resolved} cannot be constructed with options "
+            f"{sorted(options)}: {exc}") from exc
     agent.adapter_spec = resolved
+    agent.adapter_options = dict(options)
     return agent

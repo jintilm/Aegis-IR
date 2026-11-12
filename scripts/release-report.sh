@@ -36,7 +36,9 @@ rm -rf "$WORK"
 mkdir -p "$WORK"
 
 run_in_container() {
-  MSYS_NO_PATHCONV=1 docker run --rm -v "$MOUNT_ROOT:/src" -w /src \
+  MSYS_NO_PATHCONV=1 docker run --rm \
+    --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+    -v "$MOUNT_ROOT:/src" -w /src \
     "$IMAGE" bash -c "$1"
 }
 
@@ -118,6 +120,28 @@ cat /tmp/process-campaign.log
 cat /tmp/process-campaign-audit.json
 "
 
+echo "== bench: network-namespace campaign =="
+run_in_container "
+set -e
+cd tools/aegis-bench
+CFG=/src/experiments/netns-smoke.json
+OUT=/tmp/bench-netns-campaign
+rm -rf \"\$OUT\"
+python3 -m aegis_bench campaign --config \"\$CFG\" --out \"\$OUT\" \
+  > /tmp/netns-campaign.log 2>&1
+python3 -m aegis_bench audit \"\$OUT\" --experiment \"\$CFG\" --json \
+  > /tmp/netns-campaign-audit.json
+rm -f \"\$OUT/.campaign.lock\"
+rm -rf /src/bench-out/release-$NAME/bench-netns-campaign
+cp -r \"\$OUT\" /src/bench-out/release-$NAME/bench-netns-campaign
+cp /tmp/netns-campaign.log \
+  /src/bench-out/release-$NAME/bench-netns-campaign.log
+cp /tmp/netns-campaign-audit.json \
+  /src/bench-out/release-$NAME/bench-netns-campaign-audit.json
+cat /tmp/netns-campaign.log
+cat /tmp/netns-campaign-audit.json
+"
+
 mkdir -p "$OUT"
 cp -r "$WORK"/. "$OUT"/
 cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
@@ -145,14 +169,18 @@ scripts/release-report.sh $NAME
   a known-correct solution at 100% and a compiling-but-wrong one at ~0%
   (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end to
   end; CTest additionally builds baseline and all protected artifact profiles
-  for the eight public tasks, including the parser, state-machine,
-  ring-buffer and grid-routing families;
+  for the twelve public tasks, including parser, state-machine, ring-buffer,
+  graph-routing, delta-ledger, S-box, bit-matrix and packet-framing families;
 - the offline campaign writes a row, checkpoints it, resumes without rerunning
   the cell, and passes the campaign-aware audit
   (\`bench-campaign/\`, \`bench-campaign-audit.json\`);
 - the process-sandbox campaign runs a fresh adapter worker with the loopback
   broker and Linux Landlock filesystem/TCP rules, and passes its audit
-  (\`bench-process-campaign/\`, \`bench-process-campaign-audit.json\`).
+  (\`bench-process-campaign/\`, \`bench-process-campaign-audit.json\`);
+- the network-namespace campaign proves the worker cannot connect directly to
+  a host listener, while the per-cell Unix-socket bridge still reaches the
+  harness broker and retains its counters
+  (\`bench-netns-campaign/\`, \`bench-netns-campaign-audit.json\`).
 
 ## What this does **not** show
 

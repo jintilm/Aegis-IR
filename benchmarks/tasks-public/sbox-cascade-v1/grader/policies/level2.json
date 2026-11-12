@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 710202,
+  "functions": [
+    {
+      "name": "sc_scrub",
+      "level": 2,
+      "reason": "sbox-cascade-v1: level-2 artifact"
+    },
+    {
+      "name": "sc_accept",
+      "level": 2,
+      "reason": "sbox-cascade-v1: level-2 artifact"
+    }
+  ]
+}

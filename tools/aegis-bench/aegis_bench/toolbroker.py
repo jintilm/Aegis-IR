@@ -27,6 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from .httpunix import ThreadingUnixHTTPServer
 from .policy import check_candidate
 from .schema import Task, ToolPolicy
 
@@ -132,10 +133,11 @@ class ToolBroker:
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._disassembly: str | None = None
+        self._unix_path: str | None = None
 
     # -- lifecycle -------------------------------------------------------
 
-    def start(self) -> "ToolBroker":
+    def start(self, *, unix_path: str | Path | None = None) -> "ToolBroker":
         broker = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -192,7 +194,11 @@ class ToolBroker:
                 self.end_headers()
                 self.wfile.write(payload)
 
-        self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        if unix_path is None:
+            self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        else:
+            self._unix_path = str(Path(unix_path))
+            self._httpd = ThreadingUnixHTTPServer(self._unix_path, Handler)
         self._httpd.daemon_threads = True
         self._thread = threading.Thread(
             target=self._httpd.serve_forever,
@@ -212,12 +218,17 @@ class ToolBroker:
             raise RuntimeError("tool broker is not started")
         return int(self._httpd.server_address[1])
 
+    @property
+    def unix_path(self) -> str | None:
+        return self._unix_path
+
     def stop(self, *, reported_by_adapter: int | float | None = None
              ) -> dict[str, Any]:
         if self._httpd is not None:
             self._httpd.shutdown()
             self._httpd.server_close()
             self._httpd = None
+            self._unix_path = None
         if self._thread is not None:
             self._thread.join(timeout=5)
             self._thread = None

@@ -92,7 +92,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                     access=args.access,
                     meter_upstream=args.meter_upstream,
                     enable_tool_broker=not args.no_tool_broker,
-                    adapter_isolation=args.adapter_isolation)
+                    adapter_isolation=args.adapter_isolation,
+                    network_namespace=args.network_namespace)
     try:
         records = runner.run(tasks, [agent], profile=args.profile,
                              repetitions=args.repetitions)
@@ -224,6 +225,10 @@ def build_parser() -> argparse.ArgumentParser:
                        default="in-process",
                        help="adapter execution boundary (process is not a "
                             "filesystem/network sandbox)")
+    p_run.add_argument("--network-namespace", action="store_true",
+                       help="run the process worker in a private Linux "
+                            "network namespace with loopback broker/meter "
+                            "bridges (requires process isolation)")
     p_run.set_defaults(func=cmd_run)
 
     p_campaign = sub.add_parser(

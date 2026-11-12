@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 710101,
+  "functions": [
+    {
+      "name": "dl_score",
+      "level": 1,
+      "reason": "delta-ledger-v1: level-1 artifact"
+    },
+    {
+      "name": "dl_accept",
+      "level": 1,
+      "reason": "delta-ledger-v1: level-1 artifact"
+    }
+  ]
+}

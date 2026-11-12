@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import http.client
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -153,6 +154,31 @@ def _post(url: str, *, stream: bool = True) -> bytes:
         return response.read()
 
 
+def _post_unix(path: Path, request_path: str, *,
+               stream: bool = True) -> bytes:
+    body = json.dumps({"model": "test", "messages": [], "stream": stream}
+                      ).encode()
+    request = (
+        f"POST {request_path} HTTP/1.0\r\n"
+        f"Host: aegis-test\r\n"
+        f"Content-Type: application/json\r\n"
+        f"Content-Length: {len(body)}\r\n\r\n"
+    ).encode() + body
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.settimeout(30)
+        sock.connect(str(path))
+        sock.sendall(request)
+        response = bytearray()
+        while True:
+            chunk = sock.recv(65536)
+            if not chunk:
+                return bytes(response)
+            response += chunk
+    finally:
+        sock.close()
+
+
 def _proxied(test: unittest.TestCase, mode: str, *,
              stream: bool = True) -> tuple[bytes, dict]:
     """Send one request through a fresh proxy in front of a fake upstream."""
@@ -219,6 +245,22 @@ class LedgerSourceTests(unittest.TestCase):
 
 
 class MeterProxyTests(unittest.TestCase):
+    def test_unix_socket_listener_meters_the_same_protocol(self):
+        if not hasattr(socket, "AF_UNIX"):
+            self.skipTest("Unix sockets unavailable")
+        upstream = _Upstream("usage")
+        self.addCleanup(upstream.stop)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "meter.sock"
+            proxy = MeterProxy(upstream.url).start(unix_path=path)
+            try:
+                response = _post_unix(path, "/v1/chat/completions")
+            finally:
+                stats = proxy.stop()
+        self.assertIn(b"data:", response)
+        self.assertEqual(stats["requests"], 1)
+        self.assertEqual(stats["total_tokens"], 16)
+
     def test_stream_is_forwarded_byte_for_byte(self):
         body, _ = _proxied(self, "usage")
         self.assertIn(b'data: {"choices":[{"delta":{"content":"hi"}}]}', body)

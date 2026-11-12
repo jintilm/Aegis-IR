@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "protection-pilot",
   "purpose": "pilot",
   "primary_metric": "tokens",
@@ -10,9 +10,20 @@
   ],
   "agents": [
     {
-      "id": "replace-with-adapter-name",
+      "id": "openai-deepseek-v4-pro",
       "adapter": "replace_with_adapter_module:AgentClass",
-      "expected_version": "replace-with-source-hash"
+      "expected_version": "replace-with-source-hash",
+      "options": {
+        "model": "deepseek-v4-pro"
+      }
+    },
+    {
+      "id": "openai-deepseek-flash",
+      "adapter": "replace_with_adapter_module:AgentClass",
+      "expected_version": "replace-with-source-hash",
+      "options": {
+        "model": "deepseek-flash"
+      }
     }
   ],
   "profiles": [
@@ -31,6 +42,7 @@
   "require_broker_tools": true,
   "adapter_isolation": "process",
   "require_sandbox": true,
+  "require_network_namespace": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/protection-pilot",
   "notes": "Copy outside the tree or edit the placeholders. Real adapters stay out-of-tree; the example is not runnable unchanged."

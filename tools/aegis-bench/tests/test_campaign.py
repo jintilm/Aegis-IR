@@ -49,6 +49,8 @@ class _FakeRunner:
                         agent=agent.name,
                         adversary=agent.adversary,
                         adapter_version=str(getattr(agent, "version", "")),
+                        agent_config=dict(
+                            getattr(agent, "adapter_options", {}) or {}),
                         access="n/a",
                         calibration={},
                         profile=profile,
@@ -82,15 +84,17 @@ def _manifest(
         require_broker_tools: bool = False,
         adapter_isolation: str = "in-process",
         require_sandbox: bool = False,
+        schema_version: int = 1,
+        agents: list[dict[str, object]] | None = None,
         ) -> Path:
     raw = {
-        "schema_version": 1,
+        "schema_version": schema_version,
         "name": "offline-campaign",
         "purpose": "harness-validation",
         "primary_metric": "pass_rate",
         "tasks_root": str(TASKS_ROOT),
         "tasks": tasks or ["rolling-token-v1"],
-        "agents": [{
+        "agents": agents or [{
             "id": "stub",
             "adapter": "stub",
             "expected_version": "builtin-test-double-v1",
@@ -142,6 +146,43 @@ class CampaignPlanningTests(unittest.TestCase):
             with self.assertRaises(ExperimentError):
                 load_experiment(path)
 
+    def test_two_models_share_one_adapter_in_one_campaign(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            experiment = load_experiment(_manifest(
+                tmp, schema_version=2, repetitions=2,
+                agents=[
+                    {
+                        "id": "model-stub-deepseek-v4-pro",
+                        "adapter": "model-stub",
+                        "expected_version": "builtin-model-stub-v1",
+                        "options": {"model": "deepseek-v4-pro"},
+                    },
+                    {
+                        "id": "model-stub-deepseek-flash",
+                        "adapter": "model-stub",
+                        "expected_version": "builtin-model-stub-v1",
+                        "options": {"model": "deepseek-flash"},
+                    },
+                ]))
+            cells = plan_cells(experiment)
+            out = Path(tmp) / "out"
+            result = run_campaign(
+                experiment, repo_root=REPO_ROOT, out_dir=out,
+                runner_factory=_FakeRunner)
+        self.assertEqual(len(cells), 4)
+        self.assertEqual({cell.agent_id for cell in cells}, {
+            "model-stub-deepseek-v4-pro",
+            "model-stub-deepseek-flash",
+        })
+        self.assertTrue(result.complete)
+        self.assertEqual({
+            tuple(sorted(record.agent_config.items()))
+            for record in result.records
+        }, {
+            (("model", "deepseek-v4-pro"),),
+            (("model", "deepseek-flash"),),
+        })
+
 
 class CampaignResumeTests(unittest.TestCase):
     def test_campaign_writes_then_resumes_without_rerunning(self):
@@ -178,7 +219,7 @@ class CampaignResumeTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["campaign"]["cell_key"],
                          "rolling-token-v1|baseline|stub|0")
-        self.assertEqual(rows[0]["record_schema_version"], 3)
+        self.assertEqual(rows[0]["record_schema_version"], 4)
         self.assertEqual(leftovers, [])
 
     def test_changed_manifest_cannot_resume_same_output(self):

@@ -1,0 +1,5 @@
+# sample input bytes -> output
+input=""                         -> mosaic=2357987060 accept=0
+input="00"                       -> mosaic=3432751880 accept=0
+input="003f80ff55aa1234"         -> mosaic=2824791318 accept=0
+input="0123456789abcdef"         -> mosaic=92892263 accept=0

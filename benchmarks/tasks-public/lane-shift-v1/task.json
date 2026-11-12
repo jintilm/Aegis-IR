@@ -74,5 +74,17 @@
     "kind": "bytes",
     "summary": "arbitrary byte strings passed to a lane mixer"
   },
+  "calibration": {
+    "binary": {
+      "models": {
+        "deepseek-flash": {
+          "status": "uncalibrated"
+        },
+        "deepseek-v4-pro": {
+          "status": "uncalibrated"
+        }
+      }
+    }
+  },
   "content_hash": "sha256:d0e33948d17bb5599b93d057b9405b078ef39919d05b015cb0d2822ce06658cb"
 }

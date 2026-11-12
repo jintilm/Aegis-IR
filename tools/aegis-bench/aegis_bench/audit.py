@@ -168,6 +168,7 @@ def _audit_campaign(
             binary_tasks.add(record.task_id)
     versions = {agent.id: agent.expected_version
                 for agent in experiment.agents if agent.expected_version}
+    configs = {agent.id: agent.options for agent in experiment.agents}
 
     for record in rows:
         campaign = record.campaign or {}
@@ -238,6 +239,12 @@ def _audit_campaign(
                 "error", "sandbox",
                 "experiment requires a sandbox but this row ran without one",
                 record.run_id))
+        if experiment.require_network_namespace and not (
+                record.isolation or {}).get("network_namespace"):
+            issues.append(AuditIssue(
+                "error", "network-namespace",
+                "experiment requires a network namespace but this row ran "
+                "without one", record.run_id))
         task_hash = current_hashes.get(record.task_id)
         if task_hash and record.task_hash != task_hash:
             issues.append(AuditIssue(
@@ -256,6 +263,12 @@ def _audit_campaign(
                 "error", "adapter-version",
                 f"adapter version {record.adapter_version!r} does not match "
                 f"expected {expected_version!r}", record.run_id))
+        expected_config = configs.get(record.agent)
+        if expected_config is not None and record.agent_config != expected_config:
+            issues.append(AuditIssue(
+                "error", "agent-config",
+                f"agent config {record.agent_config!r} does not match "
+                f"manifest options {expected_config!r}", record.run_id))
         broker = record.tools or {}
         if experiment.require_broker_tools and not broker.get("requests"):
             issues.append(AuditIssue(

@@ -2,8 +2,8 @@
 
 The worker receives a workspace-relative TaskView rather than the repository
 task root, imports a fresh adapter, runs one cell, and returns JSON data. On
-Linux it can install a Landlock filesystem allowlist and TCP-port restriction;
-that is not a full network namespace, so UDP remains outside the boundary.
+Linux it can install Landlock/seccomp and enter a private network namespace
+whose broker/meter traffic is bridged over Unix sockets.
 """
 
 from __future__ import annotations
@@ -20,10 +20,16 @@ from typing import Any
 
 from .agent import AdapterError, Agent, AgentResult, create_agent
 from .landlock import LandlockError, apply as apply_landlock
+from .netns import (
+    LoopbackBridge, NetnsError, bring_up_loopback, namespace_inode,
+    unshare_options)
 from .schema import Task, TaskError
 from .seccomp import SeccompError, apply_socket_policy
 
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
+NETNS_ENV = "AEGIS_NETWORK_NAMESPACE"
+METER_UNIX_ENV = "AEGIS_METER_UNIX_PATH"
+BROKER_UNIX_ENV = "AEGIS_TOOL_BROKER_UNIX_PATH"
 
 
 @dataclass(frozen=True)
@@ -143,10 +149,15 @@ class ProcessIsolatedAgent(Agent):
     """Parent-side proxy that executes one adapter call in a child process."""
 
     def __init__(self, inner: Agent, *, timeout_seconds: int,
-                 tcp_ports: tuple[int, ...] = ()):
+                 tcp_ports: tuple[int, ...] = (),
+                 network_namespace: bool = False,
+                 meter_unix_path: str | None = None,
+                 broker_unix_path: str | None = None):
         self.name = inner.name
         self.adversary = inner.adversary
         self.version = str(getattr(inner, "version", ""))
+        self.adapter_options = dict(
+            getattr(inner, "adapter_options", {}) or {})
         self.adapter_spec = str(
             getattr(inner, "adapter_spec", "") or "")
         if not self.adapter_spec:
@@ -155,11 +166,15 @@ class ProcessIsolatedAgent(Agent):
                 f"process isolation")
         self.timeout_seconds = timeout_seconds
         self.tcp_ports = tcp_ports
+        self.network_namespace = network_namespace
+        self.meter_unix_path = meter_unix_path
+        self.broker_unix_path = broker_unix_path
         self.last_isolation: dict[str, Any] = {
             "adapter": "process",
             "sandbox": False,
             "filesystem": "not restricted",
             "network": "not restricted",
+            "network_namespace": False,
         }
 
     def _landlock_paths(self) -> list[Path]:
@@ -186,6 +201,7 @@ class ProcessIsolatedAgent(Agent):
         view = TaskView.from_task(task, workspace)
         request = {
             "adapter_spec": self.adapter_spec,
+            "adapter_options": self.adapter_options,
             "task": view.payload(),
         }
         env = os.environ.copy()
@@ -200,6 +216,15 @@ class ProcessIsolatedAgent(Agent):
                 str(path) for path in self._landlock_paths())
             env["AEGIS_LANDLOCK_TCP_PORTS"] = ",".join(
                 str(port) for port in self.tcp_ports)
+        if self.network_namespace:
+            if os.name != "posix":
+                raise AdapterError(
+                    "network namespace isolation is supported only on Linux")
+            env[NETNS_ENV] = "1"
+            if self.meter_unix_path:
+                env[METER_UNIX_ENV] = self.meter_unix_path
+            if self.broker_unix_path:
+                env[BROKER_UNIX_ENV] = self.broker_unix_path
         with tempfile.TemporaryDirectory(prefix="aegis-worker-") as tmp:
             transport = Path(tmp)
             # Adapter diagnostic saves stay in the per-run transport directory,
@@ -215,11 +240,17 @@ class ProcessIsolatedAgent(Agent):
             timeout = (None if self.timeout_seconds <= 0
                        else max(1, self.timeout_seconds - 2))
             try:
+                worker_command = [
+                    sys.executable, "-c",
+                    "from aegis_bench.worker import main; "
+                    "raise SystemExit(main())",
+                    str(request_path), str(response_path), str(workspace),
+                ]
+                if self.network_namespace:
+                    worker_command = [
+                        *unshare_options(), "--", *worker_command]
                 proc = subprocess.run(
-                    [sys.executable, "-c",
-                     "from aegis_bench.worker import main; raise SystemExit(main())",
-                     str(request_path), str(response_path),
-                     str(workspace)],
+                    worker_command,
                     cwd=workspace, env=env, capture_output=True,
                     timeout=timeout)
             except subprocess.TimeoutExpired as exc:
@@ -278,7 +309,42 @@ def main(argv: list[str] | None = None) -> int:
             "sandbox": False,
             "filesystem": "not restricted",
             "network": "not restricted",
+            "network_namespace": False,
         }
+        bridges: list[LoopbackBridge] = []
+        if os.environ.get(NETNS_ENV) == "1":
+            try:
+                bring_up_loopback()
+                bridge_specs = (
+                    (METER_UNIX_ENV, "AEGIS_METER_BASE_URL"),
+                    (BROKER_UNIX_ENV, "AEGIS_TOOL_BROKER_URL"),
+                )
+                for path_env, url_env in bridge_specs:
+                    unix_path = os.environ.get(path_env)
+                    if not unix_path:
+                        continue
+                    bridge = LoopbackBridge(unix_path).start()
+                    bridges.append(bridge)
+                    os.environ[url_env] = bridge.url
+                if not bridges:
+                    raise NetnsError(
+                        "network namespace is enabled but no Unix-socket "
+                        "broker or meter path was supplied")
+                os.environ["AEGIS_LANDLOCK_TCP_PORTS"] = ",".join(
+                    str(bridge.port) for bridge in bridges)
+                isolation.update({
+                    "network_namespace": True,
+                    "network_namespace_inode": namespace_inode(),
+                    "network": (
+                        "private network namespace; host reachable only "
+                        "through loopback Unix-socket bridges"),
+                })
+            except (NetnsError, OSError) as exc:
+                _write_response(response_path, {
+                    "ok": False,
+                    "error": f"cannot install network namespace: {exc}",
+                })
+                return 0
         if os.environ.get("AEGIS_LANDLOCK") == "1":
             try:
                 ro_paths = [
@@ -291,8 +357,13 @@ def main(argv: list[str] | None = None) -> int:
                     os.environ.get("AEGIS_LANDLOCK_TCP_PORTS", "").split(
                         ",") if value
                 ]
+                bridge_roots = [
+                    Path(value).parent for key in (
+                        METER_UNIX_ENV, BROKER_UNIX_ENV)
+                    if (value := os.environ.get(key))
+                ]
                 metadata = apply_landlock(
-                    rw_paths=[workspace, request_path.parent],
+                    rw_paths=[workspace, request_path.parent, *bridge_roots],
                     ro_paths=ro_paths,
                     tcp_ports=ports)
                 isolation.update(metadata)
@@ -307,14 +378,20 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 isolation["seccomp"] = apply_socket_policy()
                 isolation["network"] = (
-                    "Landlock TCP allowlist; UDP/raw sockets denied")
+                    "private network namespace; loopback Unix-socket "
+                    "bridges only; UDP/raw sockets denied"
+                    if isolation.get("network_namespace")
+                    else "Landlock TCP allowlist; UDP/raw sockets denied")
             except SeccompError as exc:
                 _write_response(response_path, {
                     "ok": False,
                     "error": f"cannot install seccomp policy: {exc}",
                 })
                 return 0
-        agent = create_agent(str(request["adapter_spec"]))
+        options = request.get("adapter_options", {})
+        if not isinstance(options, dict):
+            raise AdapterError("adapter_options must be an object")
+        agent = create_agent(str(request["adapter_spec"]), **options)
         agent.prepare(task, workspace)
         result = agent.solve(task, workspace)
         _write_response(response_path, {

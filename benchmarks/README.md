@@ -28,10 +28,15 @@ tasks-private/   # layout notes only; actual content stored separately
 | [`state-fold-v1`](tasks-public/state-fold-v1/task.md) | small | recover a token-dependent 64-bit state transition and rolling digest | binary-recovery; needs model calibration |
 | [`ring-drain-v1`](tasks-public/ring-drain-v1/task.md) | small | recover command-driven ring-buffer overwrite, drain and reset semantics | binary-recovery; needs model calibration |
 | [`grid-route-v1`](tasks-public/grid-route-v1/task.md) | small | recover an input-derived 8x8 reachability and route encoding | binary-recovery; needs model calibration |
+| [`delta-ledger-v1`](tasks-public/delta-ledger-v1/task.md) | small | recover a tagged signed-delta ledger and rolling byte predicate | binary-recovery; initially calibrated on both pilot models |
+| [`sbox-cascade-v1`](tasks-public/sbox-cascade-v1/task.md) | small | recover a seed-derived nibble S-box with a four-lane cascade | binary-recovery; initially calibrated on both pilot models |
+| [`bit-mosaic-v1`](tasks-public/bit-mosaic-v1/task.md) | small | recover row/column bit selection across four rotating lanes | binary-recovery; initially calibrated on both pilot models |
+| [`packet-weave-v1`](tasks-public/packet-weave-v1/task.md) | small | recover big-endian word masks, odd-byte tails and a rolling weave | binary-recovery; initially calibrated on both pilot models |
 
-Eight tasks are still not a benchmark. They now cover parser, state-machine,
-data-structure and graph-routing families, but published cost-delta numbers
-still require model calibration and the full matrix described in the protocol.
+Twelve tasks cover parser, state-machine, data-structure, graph-routing,
+tagged-delta, S-box, bit-matrix and packet-framing families. Calibration is
+published per access mode and model; a task that has only a floor or ceiling
+record supports a cost comparison, not a success-rate effect.
 
 ## Harness
 
@@ -51,8 +56,9 @@ together with the edit.
 
 1. Write the interface, brief and real sample I/O that the agent may see.
 2. Write ground truth, a driver, property tests and hidden cases.
-3. Fill in the schema-v2 `task.json`: budgets, protectability, experiment use,
-   difficulty, input domain and the declared `tool_policy`.
+3. Fill in the schema-v3 `task.json`: budgets, protectability, experiment use,
+   difficulty, input domain, declared `tool_policy`, and model-specific
+   calibration records.
 4. `python3 -m aegis_bench hash <task-dir>`, then `check`.
 5. Confirm the ground truth scores 100% and a deliberately wrong but
    compiling candidate scores ~0% — the harness test does both for the

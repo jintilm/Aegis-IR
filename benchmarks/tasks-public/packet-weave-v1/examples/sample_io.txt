@@ -1,0 +1,5 @@
+# sample input bytes -> output
+input=""                         -> weave=28399398 accept=0
+input="00"                       -> weave=1175025580 accept=0
+input="1234a55aff007e8133"       -> weave=4108865124 accept=0
+input="0011223344556677"         -> weave=556402937 accept=0

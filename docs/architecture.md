@@ -71,8 +71,9 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 - **Harness** (`tools/aegis-bench/`): Python; agent adapters, task runner,
   resumable campaign planner, independent JSONL auditor, grader and report
   generator. Fixed budgets (model version, prompt, tool set, timeouts, token
-  caps) are recorded per run. Task schema v2 records the declared tool policy,
-  input domain, experiment use and difficulty in every row.
+  caps) are recorded per run. Task schema v3 records the declared tool policy,
+  input domain, experiment use, difficulty and model-specific calibration in
+  every row.
 - **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Tasks are
   either `reimplement` (brief + examples) or `binary-recovery` (a stripped
   probe built from ground truth at protection levels 0–3). Each task has
@@ -91,9 +92,9 @@ production debugging": rebuild the same commit with it, reproduce, fix.
   adapter in a fresh subprocess with a workspace-only TaskView. That process
   boundary can optionally install Landlock filesystem allowlists and restrict
   TCP connects to the broker/meter ports; seccomp denies non-stream IP
-  sockets. Full network namespaces remain specified in
-  [`isolation.md`](isolation.md) and are required before a protection-effect
-  claim.
+  sockets. It can also enter a private network namespace and reach the broker
+  and meter only through per-run Unix sockets. The acceptance tests and
+  remaining trust boundary are in [`isolation.md`](isolation.md).
 
 ## Boundaries
 

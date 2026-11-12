@@ -74,5 +74,17 @@
     "kind": "bytes",
     "summary": "arbitrary byte strings supplied through the target interface"
   },
+  "calibration": {
+    "binary": {
+      "models": {
+        "deepseek-flash": {
+          "status": "uncalibrated"
+        },
+        "deepseek-v4-pro": {
+          "status": "uncalibrated"
+        }
+      }
+    }
+  },
   "content_hash": "sha256:3723071199f5079919fb76598e89b3f56ded8a931d423f5e9052b534a26df6d0"
 }

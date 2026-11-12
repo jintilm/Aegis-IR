@@ -21,7 +21,7 @@ things that a multi-hour comparison needs:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "packed-record-protection-pilot",
   "purpose": "pilot",
   "primary_metric": "tokens",
@@ -31,7 +31,14 @@ things that a multi-hour comparison needs:
     {
       "id": "openai-deepseek-v4-pro",
       "adapter": "openai_adapter:OpenAICompatAgent",
-      "expected_version": "7fc63d1279f9"
+      "expected_version": "7fc63d1279f9",
+      "options": {"model": "deepseek-v4-pro"}
+    },
+    {
+      "id": "openai-deepseek-flash",
+      "adapter": "openai_adapter:OpenAICompatAgent",
+      "expected_version": "7fc63d1279f9",
+      "options": {"model": "deepseek-flash"}
     }
   ],
   "profiles": [
@@ -50,6 +57,7 @@ things that a multi-hour comparison needs:
   "require_broker_tools": true,
   "adapter_isolation": "process",
   "require_sandbox": true,
+  "require_network_namespace": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/packed-record-protection-pilot"
 }
@@ -57,15 +65,16 @@ things that a multi-hour comparison needs:
 
 | Field | Rule |
 |---|---|
-| `schema_version` | currently `1` |
+| `schema_version` | `1` remains readable; new manifests use `2` |
 | `name` | stable campaign id used in every row |
 | `purpose` | `harness-validation`, `pilot`, or `experiment` |
 | `primary_metric` | `pass_rate`, `tokens`, `wall_seconds`, or `oracle_queries` |
 | `tasks_root` | resolved relative to the manifest |
 | `tasks` | unique task ids under `tasks_root` |
-| `agents[].id` | must equal `Agent.name` |
+| `agents[].id` | must equal the configured `Agent.name` |
 | `agents[].adapter` | `module:Class` or a built-in adapter |
 | `agents[].expected_version` | optional exact `Agent.version` check |
+| `agents[].options` | constructor options, passed to the adapter and replayed inside the process worker; use one entry per model |
 | `profiles` | unique artifact profile names for every binary task |
 | `repetitions` | positive count |
 | `repetition_start` | non-negative offset for a partial continuation |
@@ -77,11 +86,13 @@ things that a multi-hour comparison needs:
 | `require_broker_tools` | fail audit if any run has no harness-broker tool traffic |
 | `adapter_isolation` | `in-process` or `process`; `process` is a subprocess boundary, not a filesystem/network sandbox |
 | `require_sandbox` | require Linux Landlock filesystem/TCP rules plus the seccomp non-stream-socket block |
+| `require_network_namespace` | require the process worker to run in a private Linux network namespace; broker/meter are bridged over Unix sockets |
 
 All adapters must expose a non-empty `version`. A campaign preflights every
-adapter once, checks its identity and version, and then creates a fresh
-instance for each cell. Counters or conversation state therefore cannot leak
-between repetitions.
+configured agent once, checks its identity, version and options, and then
+creates a fresh instance for each cell. Two agents may share one adapter class
+when their `options` select different model ids. Counters or conversation
+state therefore cannot leak between repetitions.
 
 `require_clean=true` and `require_meter=true` are the defaults for a
 publishable campaign. Set them to `false` only for an offline smoke run, and do
@@ -93,8 +104,11 @@ The parent still owns brokered tools and grading. This closes object-state and
 crash coupling. With `require_sandbox: true`, Landlock additionally installs a
 workspace/runtime filesystem allowlist and TCP connect rules for only the
 broker/meter ports before adapter code runs. Seccomp denies UDP/raw/RDM/
-SEQPACKET IP socket creation. Same-port IP targeting and full network
-namespaces remain outside this boundary.
+SEQPACKET IP socket creation. With `require_network_namespace`, the worker
+also enters a private Linux network namespace containing only loopback. The
+trusted broker and meter stay in the host namespace and expose Unix sockets;
+the worker bridges those to loopback HTTP ports for the adapter. A direct
+connection to any host address has no route.
 
 ## Commands
 
@@ -110,6 +124,11 @@ python3 -m aegis_bench audit ../../bench-out/offline-smoke \
 python3 -m aegis_bench campaign --config ../../experiments/process-smoke.json
 python3 -m aegis_bench audit ../../bench-out/process-smoke \
   --experiment ../../experiments/process-smoke.json
+
+# requires SYS_ADMIN/NET_ADMIN or unprivileged user namespaces
+python3 -m aegis_bench campaign --config ../../experiments/netns-smoke.json
+python3 -m aegis_bench audit ../../bench-out/netns-smoke \
+  --experiment ../../experiments/netns-smoke.json
 ```
 
 Run a real pilot:
@@ -214,9 +233,11 @@ Use `--strict` in CI or before publication to turn warnings into failure.
 
 ## Current boundary
 
-Campaigns orchestrate work but do not sandbox the adapter. The adapter still
-runs in-process and can reach paths outside the workspace. Mediated requests
-through the loopback tool broker are measured and capped, while direct file or
-subprocess access bypasses it and shows `tools.requests: 0`. The worker
-boundary is in [`isolation.md`](isolation.md); a protection-effect claim
-requires process isolation as well as a passing audit.
+`adapter_isolation: "process"` is the default for publishable real-model
+campaigns. Together with `require_sandbox` and `require_network_namespace`, it
+enforces a workspace/runtime filesystem allowlist, denies non-stream sockets,
+and gives the worker no route to the host network. Broker and meter traffic
+cross a per-cell Unix socket, so mediated calls remain counted. Tool choices
+that bypass the broker still appear as `tools.requests: 0`. See
+[`isolation.md`](isolation.md) for the acceptance tests and remaining trust
+boundary.

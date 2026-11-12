@@ -7,7 +7,7 @@ else (ground truth, property tests, hidden cases) stays out of the workspace.
 Manifest shape (schema_version 2; version 1 remains readable)::
 
     {
-      "schema_version": 2,
+      "schema_version": 3,
       "id": "fnv-rolling-hash-v1",
       "title": "Recover a rolling hash and token predicate",
       "description": "task.md",
@@ -32,6 +32,14 @@ Manifest shape (schema_version 2; version 1 remains readable)::
         "workspace_writable": true
       },
       "input_domain": {"kind": "bytes", "summary": "..."},
+      "calibration": {
+        "binary": {
+          "models": {
+            "model-a": {"status": "floor", "baseline_pass_rate": 0.0,
+                        "runs": 5, "date": "2026-11-13"}
+          }
+        }
+      },
       "content_hash": "sha256:...",
 
       # Optional. "reimplement" (default) gives the agent a brief and
@@ -59,8 +67,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 2
-SUPPORTED_SCHEMA_VERSIONS = (1, 2)
+SCHEMA_VERSION = 3
+SUPPORTED_SCHEMA_VERSIONS = (1, 2, 3)
 _PROFILE_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -216,7 +224,8 @@ class Calibration:
         return self.status == "comparison-ready"
 
 
-def _calibration_entry(raw: Any, task_id: str, access: str) -> Calibration:
+def _calibration_entry(raw: Any, task_id: str, access: str,
+                       model_override: str | None = None) -> Calibration:
     if not isinstance(raw, dict):
         raise TaskError(f"{task_id}: calibration['{access}'] must be an object")
     status = raw.get("status", "uncalibrated")
@@ -225,7 +234,8 @@ def _calibration_entry(raw: Any, task_id: str, access: str) -> Calibration:
             f"{task_id}: calibration['{access}'].status must be one of "
             f"{CALIBRATION_STATUSES}, got {status!r}")
     if status == "uncalibrated":
-        return Calibration(status=status, access=access)
+        return Calibration(status=status, access=access,
+                           model=model_override or str(raw.get("model", "")))
     runs = raw.get("runs", 0)
     if not isinstance(runs, int) or runs < 1:
         raise TaskError(f"{task_id}: calibration['{access}'].runs must be a "
@@ -243,16 +253,25 @@ def _calibration_entry(raw: Any, task_id: str, access: str) -> Calibration:
     if status == "comparison-ready" and not 0.0 < float(rate) < 1.0:
         raise TaskError(f"{task_id}: 'comparison-ready' needs a baseline pass "
                         f"rate strictly between 0 and 1")
-    for key in ("model", "date"):
-        if not str(raw.get(key, "")).strip():
-            raise TaskError(f"{task_id}: calibration.{key} is required once "
-                            f"a task is calibrated")
-    return Calibration(status=status, model=str(raw["model"]), access=access,
+    embedded_model = str(raw.get("model", "")).strip()
+    model = model_override or embedded_model
+    if not model:
+        raise TaskError(f"{task_id}: calibration.model is required once "
+                        f"a task is calibrated")
+    if model_override and embedded_model and embedded_model != model_override:
+        raise TaskError(
+            f"{task_id}: calibration['{access}'].models[{model_override!r}] "
+            f"declares a different model {embedded_model!r}")
+    if not str(raw.get("date", "")).strip():
+        raise TaskError(f"{task_id}: calibration.date is required once "
+                        f"a task is calibrated")
+    return Calibration(status=status, model=model, access=access,
                        baseline_pass_rate=float(rate), runs=runs,
                        date=str(raw["date"]))
 
 
-def _calibrations(raw: Any, task_id: str) -> dict[str, Calibration]:
+def _calibrations(
+        raw: Any, task_id: str) -> dict[str, dict[str, Calibration]]:
     """Parse ``{"oracle": {...}, "binary": {...}}`` keyed by access mode.
 
     One record per access mode, because the same task can be at the floor for a
@@ -264,12 +283,33 @@ def _calibrations(raw: Any, task_id: str) -> dict[str, Calibration]:
     if not isinstance(raw, dict):
         raise TaskError(f"{task_id}: 'calibration' must be an object keyed by "
                         f"access mode ({', '.join(ACCESS_MODES)})")
-    out: dict[str, Calibration] = {}
+    out: dict[str, dict[str, Calibration]] = {}
     for access, entry in raw.items():
         if access not in ACCESS_MODES:
             raise TaskError(f"{task_id}: calibration key must be one of "
                             f"{ACCESS_MODES}, got {access!r}")
-        out[access] = _calibration_entry(entry, task_id, access)
+        if not isinstance(entry, dict):
+            raise TaskError(
+                f"{task_id}: calibration['{access}'] must be an object")
+        models = entry.get("models")
+        if models is None:
+            calibration = _calibration_entry(entry, task_id, access)
+            out[access] = {calibration.model: calibration}
+            continue
+        if not isinstance(models, dict) or not models:
+            raise TaskError(
+                f"{task_id}: calibration['{access}'].models must be a "
+                f"non-empty object keyed by model id")
+        parsed: dict[str, Calibration] = {}
+        for model, model_entry in models.items():
+            if (not isinstance(model, str) or not model.strip()
+                    or "|" in model or "\n" in model or "\r" in model):
+                raise TaskError(
+                    f"{task_id}: calibration['{access}'].models has an "
+                    f"invalid model id")
+            parsed[model] = _calibration_entry(
+                model_entry, task_id, access, model_override=model)
+        out[access] = parsed
     return out
 
 
@@ -317,7 +357,8 @@ class Task:
     task_type: str = "reimplement"
     artifact: ArtifactRecipe | None = None
     private: bool = False
-    calibration: dict[str, Calibration] = field(default_factory=dict)
+    calibration: dict[str, dict[str, Calibration]] = field(
+        default_factory=dict)
     schema_version: int = 1
     tool_policy: ToolPolicy = field(default_factory=ToolPolicy.legacy)
     input_domain: dict[str, Any] = field(default_factory=dict)
@@ -336,6 +377,21 @@ class Task:
 
     def hidden_paths(self) -> list[Path]:
         return [self.path(c) for c in self.hidden_cases]
+
+    def calibration_for(self, access: str,
+                        model: str = "") -> Calibration | None:
+        """Return the calibration for this access/model pair.
+
+        Legacy manifests have one model per access. A task with multiple
+        model-specific records requires an exact match so one model's
+        calibration is never silently applied to another.
+        """
+        records = self.calibration.get(access, {})
+        if model and model in records:
+            return records[model]
+        if len(records) == 1:
+            return next(iter(records.values()))
+        return None
 
     def protocol_dict(self) -> dict[str, Any]:
         """Schema metadata copied into every run row for later audit."""
@@ -556,7 +612,7 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
                             f"task_type 'binary-recovery'")
         artifact = None
 
-    if version == 2:
+    if version >= 2:
         if "tool_policy" not in raw:
             raise TaskError(f"{task_id}: schema_version 2 requires tool_policy")
         if "input_domain" not in raw:
@@ -570,13 +626,13 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
                 f"{task_id}: schema_version 2 requires protectability")
     tool_policy = (
         ToolPolicy.from_dict(raw["tool_policy"], task_id)
-        if version == 2 else ToolPolicy.legacy())
+        if version >= 2 else ToolPolicy.legacy())
     input_domain = (
         _parse_input_domain(raw["input_domain"], task_id)
-        if version == 2 else {})
+        if version >= 2 else {})
     protectability = (
         _parse_protectability(raw["protectability"], task_id)
-        if version == 2 else dict(raw.get("protectability", {})))
+        if version >= 2 else dict(raw.get("protectability", {})))
     experiment_use = raw.get("experiment_use", "harness-validation")
     if experiment_use not in EXPERIMENT_USES:
         raise TaskError(

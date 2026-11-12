@@ -56,8 +56,11 @@ import urllib.error
 import urllib.request
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
+
+from .httpunix import ThreadingUnixHTTPServer
 
 #: Request headers that must not be forwarded: they describe the client's
 #: connection to *this* proxy or the encoding it asked for. Dropping
@@ -233,10 +236,11 @@ class MeterProxy:
         self.stats = _Stats()
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
+        self._unix_path: str | None = None
 
     # -- lifecycle -------------------------------------------------------
 
-    def start(self) -> "MeterProxy":
+    def start(self, *, unix_path: str | Path | None = None) -> "MeterProxy":
         proxy = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -254,7 +258,11 @@ class MeterProxy:
                 body = self.rfile.read(min(length, _MAX_BODY)) if length else b""
                 proxy._handle(self, body)
 
-        self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        if unix_path is None:
+            self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        else:
+            self._unix_path = str(Path(unix_path))
+            self._httpd = ThreadingUnixHTTPServer(self._unix_path, Handler)
         self._httpd.daemon_threads = True
         self._thread = threading.Thread(target=self._httpd.serve_forever,
                                         name="aegis-meter", daemon=True)
@@ -271,12 +279,17 @@ class MeterProxy:
     def base_url(self) -> str:
         return f"http://127.0.0.1:{self.port}{self.upstream_prefix}"
 
+    @property
+    def unix_path(self) -> str | None:
+        return self._unix_path
+
     def stop(self, *, reported_by_adapter: int | float | None = None
              ) -> dict[str, Any]:
         if self._httpd is not None:
             self._httpd.shutdown()
             self._httpd.server_close()
             self._httpd = None
+            self._unix_path = None
         if self._thread is not None:
             self._thread.join(timeout=10)
             self._thread = None

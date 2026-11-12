@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 710302,
+  "functions": [
+    {
+      "name": "bm_mosaic",
+      "level": 2,
+      "reason": "bit-mosaic-v1: level-2 artifact"
+    },
+    {
+      "name": "bm_accept",
+      "level": 2,
+      "reason": "bit-mosaic-v1: level-2 artifact"
+    }
+  ]
+}

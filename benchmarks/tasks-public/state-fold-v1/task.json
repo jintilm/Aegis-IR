@@ -74,5 +74,17 @@
     "kind": "bytes",
     "summary": "byte streams folded through a token-dependent 64-bit transition"
   },
+  "calibration": {
+    "binary": {
+      "models": {
+        "deepseek-flash": {
+          "status": "uncalibrated"
+        },
+        "deepseek-v4-pro": {
+          "status": "uncalibrated"
+        }
+      }
+    }
+  },
   "content_hash": "sha256:65280e7210a8d4da3340f74c07dca0bd9d9fde7d85e24a873537c950e19834b8"
 }

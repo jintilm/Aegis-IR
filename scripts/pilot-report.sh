@@ -11,7 +11,7 @@
 #   ADAPTERS_DIR=/path/to/adapters LLM_API_KEY=... \
 #     scripts/pilot-report.sh pilot-2026-11-11
 #
-# Optional: TASKS (comma-separated), PROFILES, REPS, STEPS, ACCESS
+# Optional: TASKS (comma-separated), PROFILES, MODELS, REPS, STEPS, ACCESS
 # (oracle|binary; use binary for anything that compares protection levels),
 # BENCH_METER (1 to measure tokens with the harness proxy, 0 for the older
 # self-reported shape), ADAPTER_TIMEOUT (binary access at 30 steps needs more
@@ -23,6 +23,7 @@ set -euo pipefail
 NAME="${1:-pilot}"
 TASKS="${TASKS:-packed-record-v1}"
 PROFILES="${PROFILES:-baseline,aegis-level3}"
+MODELS="${MODELS:-deepseek-v4-pro,deepseek-flash}"
 REPS="${REPS:-3}"
 STEPS="${STEPS:-30}"
 ACCESS="${ACCESS:-oracle}"
@@ -92,12 +93,15 @@ else
   fi
   mkdir -p "$RUN_DATA"
   MSYS_NO_PATHCONV=1 docker run --rm \
+    --cap-add SYS_ADMIN --cap-add NET_ADMIN \
     -v "$MOUNT_ROOT:/src" \
     -v "$MOUNT_ADAPTERS:/adapters" \
     -w /src/tools/aegis-bench \
     -e LLM_API_KEY \
     -e LLM_BASE_URL="${LLM_BASE_URL:-https://jpn.cdn.moxuna.com/v1}" \
     -e LLM_MODEL="${LLM_MODEL:-deepseek-v4.1-flash}" \
+    -e BENCH_MODELS="$MODELS" \
+    -e BENCH_NETNS="${BENCH_NETNS:-1}" \
     -e PYTHONPATH=/adapters \
     -e LLM_STEPS="$STEPS" \
     -e LLM_MAX_TOKENS="${LLM_MAX_TOKENS:-16384}" \
@@ -135,7 +139,12 @@ rows = [json.loads(line) for line in Path(jsonl).read_text(encoding="utf-8").spl
 # whose model and endpoint were both "?" -- and those are exactly the fields a
 # reader uses to decide whether the result applies to them.
 ledger0 = next((r.get("ledger") or {} for r in rows if r.get("ledger")), {})
-model = ledger0.get("model", "?")
+models_by_agent = {}
+for row in rows:
+    configured = (row.get("agent_config") or {}).get("model")
+    recorded = (row.get("ledger") or {}).get("model")
+    models_by_agent[row["agent"]] = configured or recorded or "?"
+models = sorted(set(models_by_agent.values()))
 endpoint = ledger0.get("endpoint", "?")
 versions = sorted({r.get("adapter_version", "") for r in rows})
 env = rows[0].get("environment", {}) if rows else {}
@@ -153,7 +162,7 @@ else:
 
 groups = defaultdict(list)
 for row in rows:
-    groups[row["profile"]].append(row)
+    groups[(row["agent"], row["profile"])].append(row)
 
 
 def tokens_of(row):
@@ -193,13 +202,15 @@ brokered_tools = sum(1 for r in rows
                      if (r.get("tools") or {}).get("requests"))
 sandboxed_rows = sum(1 for r in rows
                      if (r.get("isolation") or {}).get("sandbox"))
+netns_rows = sum(1 for r in rows
+                 if (r.get("isolation") or {}).get("network_namespace"))
 tool_line = (f"- tool accounting: {brokered_tools} of {len(rows)} runs used "
              f"the harness-owned tool broker; broker counters enforce the "
              f"declared tool set and call cap for mediated requests")
-isolation_line = (f"- worker isolation: {sandboxed_rows} of {len(rows)} runs "
-                  f"record a sandboxed process worker; the recorded policy "
-                  f"includes filesystem/TCP allowlists and non-stream socket "
-                  f"denial where available")
+isolation_line = (
+    f"- worker isolation: {sandboxed_rows}/{len(rows)} runs record "
+    f"Landlock/seccomp and {netns_rows}/{len(rows)} record a private network "
+    f"namespace")
 
 # Repetitions come from the data, not from a default: regenerating a report
 # must not relabel a 2-repetition run as 3.
@@ -209,7 +220,7 @@ for row in rows:
 reps = max(cell_counts.values()) if cell_counts else 0
 
 
-def declared_calibration(task_id: str, mode: str) -> dict:
+def declared_calibration(task_id: str, mode: str, model: str) -> dict:
     """Read the task manifest's calibration for this access mode.
 
     The manifest is the current statement of record; the rows carry the
@@ -225,40 +236,47 @@ def declared_calibration(task_id: str, mode: str) -> dict:
     cal = raw.get("calibration") or {}
     if "status" in cal:  # manifests written before the per-mode split
         return cal if cal.get("access", mode) == mode else {}
-    return cal.get(mode) or {}
+    entry = cal.get(mode) or {}
+    records = entry.get("models") if isinstance(entry, dict) else None
+    if isinstance(records, dict):
+        return records.get(model) or {}
+    return entry if entry.get("model", model) == model else {}
 
 
 mode = access.split(" ")[0]
 cal_lines: list[str] = []
-cal_status: list[tuple[str, str]] = []
+cal_status: list[tuple[str, str, str]] = []
 for task_id in (t for t in tasks.split(",") if t):
-    cal = declared_calibration(task_id, mode)
+  for model_id in models:
+    cal = declared_calibration(task_id, mode, model_id)
     if not cal:
-        cal_lines.append(f"- task calibration: `{task_id}` has no record for "
-                         f"`{mode}` access")
-        cal_status.append((task_id, "uncalibrated"))
+        cal_lines.append(
+            f"- task calibration: `{task_id}` / `{model_id}` has no record "
+            f"for `{mode}` access")
+        cal_status.append((task_id, model_id, "uncalibrated"))
         continue
     status = cal.get("status", "uncalibrated")
     rate = cal.get("baseline_pass_rate")
     rate_text = f"{float(rate):.0%}" if isinstance(rate, (int, float)) else "n/a"
     cal_lines.append(
-        f"- task calibration: `{task_id}` under `{mode}` access is "
+        f"- task calibration: `{task_id}` / `{model_id}` under `{mode}` "
+        f"access is "
         f"**{status}** — baseline {rate_text} over N={cal.get('runs', '?')} "
-        f"(`{cal.get('model', '?')}`, {cal.get('date', '?')})")
-    cal_status.append((task_id, status))
+        f"({cal.get('date', '?')})")
+    cal_status.append((task_id, model_id, status))
 
-floor_tasks = [t for t, s in cal_status if s != "ceiling"
+floor_tasks = [(t, m) for t, m, s in cal_status if s != "ceiling"
                and s != "comparison-ready"]
-ceiling_tasks = [t for t, s in cal_status if s == "ceiling"]
+ceiling_tasks = [(t, m) for t, m, s in cal_status if s == "ceiling"]
 
 lines = [
     f"# Pilot report: {name}", "",
     f"Generated by `scripts/pilot-report.sh` from commit `{commit}` "
     f"(dirty: {dirty}).", "",
-    "**This is a pilot, not a claim.** It uses a small N, one task family and "
-    "one model, and it is not cited from the claims ledger.", "",
+    "**This is a pilot, not a claim.** It uses a small N and is not cited "
+    "from the claims ledger.", "",
     "## Configuration", "",
-    f"- model: `{model}`",
+    f"- models: {', '.join('`' + model + '`' for model in models)}",
     f"- endpoint: `{endpoint}` (shared relay)",
     f"- adapter source hash: {', '.join('`' + v + '`' for v in versions) or 'n/a'}",
     f"- tasks: `{tasks}`",
@@ -279,17 +297,18 @@ lines = [
     f"replies; conversation cap recorded per row",
     "",
     "## Results", "",
-    "| profile | runs | submit calls | graded | passed | passed/runs | oracle "
+    "| agent | model | profile | runs | submit calls | graded | passed | "
+    "passed/runs | oracle "
     "queries (mean) | wall s (mean) | tokens (mean, graded runs) | tool calls "
     "(mean) |",
-    "|---|---|---|---|---|---|---|---|---|---|",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
 ]
 
 # baseline first: it is the reference every delta is read against.
-order = sorted(groups, key=lambda p: (p != "baseline", p))
+order = sorted(groups, key=lambda key: (key[0], key[1] != "baseline", key[1]))
 
-for profile in order:
-    group = groups[profile]
+for agent_id, profile in order:
+    group = groups[(agent_id, profile)]
     # Two different things, and conflating them misreports the run: a *submit
     # call* is the agent choosing to deliver, while a *graded* attempt is one
     # that produced a candidate at all -- including one the final-answer turn
@@ -317,7 +336,8 @@ for profile in order:
     ]
     tools_cell = f"{statistics.mean(tools):.0f}" if tools else "n/a"
     lines.append(
-        f"| {profile} | {len(group)} | {submitted} | {graded} | {passed} | "
+        f"| {agent_id} | {models_by_agent.get(agent_id, '?')} | {profile} | "
+        f"{len(group)} | {submitted} | {graded} | {passed} | "
         f"{passed}/{len(group)} | {oracle_cell} | "
         f"{statistics.mean(wall):.1f} | {tokens_cell} | {tools_cell} |")
 
@@ -349,8 +369,9 @@ def is_infrastructure(row) -> bool:
 
 infra = {p: sum(1 for r in g if is_infrastructure(r)) for p, g in groups.items()}
 if any(infra.values()):
-    parts = ", ".join(f"{profile} {n}/{len(groups[profile])}"
-                      for profile, n in sorted(infra.items()) if n)
+    parts = ", ".join(
+        f"{agent_id}/{profile} {n}/{len(groups[(agent_id, profile)])}"
+        for (agent_id, profile), n in sorted(infra.items()) if n)
     lines += [
         "",
         f"**Infrastructure failures: {parts}.** These runs ended on a relay "
@@ -360,8 +381,9 @@ if any(infra.values()):
         "with more than one of them needs to be rerun, not interpreted.",
     ]
 if any(incomplete.values()):
-    parts = ", ".join(f"{profile} {n}/{len(groups[profile])}"
-                      for profile, n in sorted(incomplete.items()) if n)
+    parts = ", ".join(
+        f"{agent_id}/{profile} {n}/{len(groups[(agent_id, profile)])}"
+        for (agent_id, profile), n in sorted(incomplete.items()) if n)
     lines += [
         "",
         f"**{parts} run(s) have no ledger.** They produced no candidate at "
@@ -371,22 +393,28 @@ if any(incomplete.values()):
         "rather than a protection cost.",
     ]
 
-# The headline number. Token ratio between the protected arm and the baseline,
-# computed only when both sides have graded runs.
-if "baseline" in groups and len(groups) > 1:
+# The headline number. Token ratio between the protected arm and baseline,
+# computed independently for each model.
+if len(groups) > 1:
     def tok_mean(rows):
         vals = [v for v in (tokens_of(r) for r in rows) if v is not None]
         return statistics.mean(vals) if vals else None
 
-    base = tok_mean(groups["baseline"])
     ratios = []
-    for profile in sorted(groups):
-        if profile == "baseline":
+    for agent_id in sorted(models_by_agent):
+        base_rows = groups.get((agent_id, "baseline"))
+        if not base_rows:
             continue
-        other = tok_mean(groups[profile])
-        if base and other:
-            ratios.append(f"{profile} **{other / base:.2f}×** baseline "
-                          f"({other:.0f} vs {base:.0f} tokens)")
+        base = tok_mean(base_rows)
+        for (other_agent, profile), rows_for_profile in sorted(groups.items()):
+            if other_agent != agent_id or profile == "baseline":
+                continue
+            other = tok_mean(rows_for_profile)
+            if base and other:
+                ratios.append(
+                    f"{models_by_agent[agent_id]} `{profile}` "
+                    f"**{other / base:.2f}×** baseline "
+                    f"({other:.0f} vs {base:.0f} tokens)")
     if ratios:
         provenance = {
             "metered": "metered tokens — the provider's own `usage` report, "
@@ -426,13 +454,15 @@ lines += [
        "level-vs-baseline difference here is noise, not evidence. Protection "
        "comparisons need `--access binary`.", ""]
       if access.startswith("oracle") else []),
-    *([f"- **`{', '.join(floor_tasks)}` is not calibrated to a measurable "
+    *([f"- **{', '.join(f'`{t}` / `{m}`' for t, m in floor_tasks)} is not "
+       "calibrated to a measurable "
        "baseline** for this agent and access mode: the baseline never passed "
        "there, or there is no record. Neither a success-rate nor a cost delta "
        "is interpretable on such a task — the agent fails for reasons that "
        "have nothing to do with the protection.", ""]
       if floor_tasks else []),
-    *([f"- **`{', '.join(ceiling_tasks)}` is at the ceiling** for this agent "
+    *([f"- **{', '.join(f'`{t}` / `{m}`' for t, m in ceiling_tasks)} is at "
+       "the ceiling** for this agent "
        "and access mode: the unprotected baseline already passes every run. A "
        "*success-rate* delta is therefore saturated and meaningless, but a "
        "**cost** delta is still interpretable, because both arms are held to "
@@ -440,13 +470,12 @@ lines += [
        "column, and do not describe the result as protection changing "
        "success.", ""]
       if ceiling_tasks else []),
-    "- **No effectiveness claim.** N is small and only one task and one model "
-    "were run; the pass column describes what this agent could do, not what a "
-    "protection prevented.",
+    "- **No effectiveness claim.** N is small; the pass column describes what "
+    "these configured agents could do, not what a protection prevented.",
     "- No claim about other attacker classes or larger models.",
-    "- **The worker sandbox is not a full network namespace.** Rows record "
-    "Landlock/seccomp policy where available; same-port IP targeting and "
-    "non-Linux fallback are not removed by this pilot.",
+    "- **The worker is not a container-isolated service.** Rows record the "
+    "private network namespace, Landlock and seccomp policy; non-Linux "
+    "fallback is not part of this pilot.",
     "- Token figures include an estimate for calls aborted by the reasoning "
     "watchdog (`tokens_source` and `aborted_tokens_estimate` in the JSONL mark "
     "the share).",

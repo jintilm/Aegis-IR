@@ -1,11 +1,11 @@
 # Benchmark protocol
 
 Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
-artifact profiles are implemented and tested offline; eight public tasks
+artifact profiles are implemented and tested offline; twelve public tasks
 (`rolling-token-v1`, `rolling-token-v2`, `packed-record-v1`,
 `lane-shift-v1`, `window-parser-v1`, `state-fold-v1`, `ring-drain-v1`,
-`grid-route-v1`); four real-model pilots are published under `docs/reports/`,
-plus a separate N=1 sandbox smoke.
+`grid-route-v1`, `delta-ledger-v1`, `sbox-cascade-v1`, `bit-mosaic-v1`,
+`packet-weave-v1`); real-model pilots are published under `docs/reports/`.
 They are pilots, not effectiveness claims. Every number in future reports must
 be traceable to a commit, a model version, and a date.
 
@@ -125,23 +125,26 @@ which number is being read:
 - **comparison-ready** (baseline passes sometimes) supports both.
 
 Every binary-recovery task therefore carries a `calibration` record in its
-manifest, one per access mode:
+manifest, one per access mode and, when more than one agent is measured,
+one per model:
 
 ```json
 "calibration": {
-  "oracle": {
-    "status": "floor",            // uncalibrated | floor | ceiling | comparison-ready
-    "model": "deepseek-v4.1-flash",
-    "baseline_pass_rate": 0.0,
-    "runs": 3,
-    "date": "2026-11-11"
-  },
   "binary": {
-    "status": "comparison-ready",
-    "model": "deepseek-v4-pro",
-    "baseline_pass_rate": 0.5,
-    "runs": 2,
-    "date": "2026-11-12"
+    "models": {
+      "deepseek-v4-pro": {
+        "status": "comparison-ready",
+        "baseline_pass_rate": 0.2,
+        "runs": 5,
+        "date": "2026-11-13"
+      },
+      "deepseek-flash": {
+        "status": "floor",
+        "baseline_pass_rate": 0.0,
+        "runs": 5,
+        "date": "2026-11-13"
+      }
+    }
   }
 }
 ```
@@ -149,6 +152,9 @@ manifest, one per access mode:
 - One record per **access mode**, because the same task can be at the floor for
   a black-box agent and solvable for one that can read the binary. A single
   flat record would silently describe only one of those runs.
+- The `models` object keeps model-specific records side by side. The older
+  single-model shape remains readable; the loader never applies one model's
+  calibration to another when multiple records exist.
 - `floor` means the baseline never passed, `ceiling` that it always did, and
   `comparison-ready` that it landed strictly between. The loader rejects a
   label that contradicts its own rate, and rejects a calibrated record without
@@ -252,7 +258,8 @@ powered count above.
   budget, probe/disassembly limits and submission policy, then records
   authoritative counters in `tools`. `adapter_isolation=process` moves the
   adapter to a child; `require_sandbox` adds Landlock filesystem and TCP-port
-  restrictions on Linux. UDP and full network namespaces remain open.
+  restrictions plus seccomp on Linux; `require_network_namespace` removes
+  host routing and reaches broker/meter through Unix-socket bridges.
 - The workspace contains the task's visible files plus, for binary-recovery
   tasks, either the oracle **shim** (`oracle` access) or the stripped **probe**
   (`binary` access) — never ground truth, the grader, property tests or hidden
@@ -344,8 +351,8 @@ caveats to add later:
    bypasses the meter. That run shows `requests: 0` and keeps the
    self-reported label — visibly unmetered rather than quietly mislabelled.
    A run that both uses and bypasses the proxy is undercounted, and the
-   harness cannot detect it. Process-level isolation is still required
-   before a published cost claim.
+   harness cannot detect it. A process worker in a private network namespace
+   is required before a published cost claim.
 2. **The provider may ignore `include_usage`.** Then requests are counted
    but carry no usage; `requests_without_usage` says how many and
    `total_tokens` is `null`, never a zero.
@@ -398,10 +405,12 @@ kill, and `aegis-bench audit` checks the raw JSONL against the planned cells.
 See [`campaigns.md`](campaigns.md).
 
 Campaign orchestration can run the adapter in-process or in a subprocess, and
-can require Landlock on Linux. Direct in-process tool calls still bypass the
-broker; binary-access local probe executions remain uncounted. Full network
-namespaces and UDP egress are specified in [`isolation.md`](isolation.md) and
-remain a protection-effect-claim gate.
+can require Landlock, seccomp and a private network namespace on Linux. The
+network-isolated worker reaches broker and meter only through per-run Unix
+sockets bridged to loopback; direct host connections have no route.
+Binary-access local probe executions remain uncounted. See
+[`isolation.md`](isolation.md) for acceptance tests and the remaining trust
+boundary.
 
 ## Oracle-budget curve
 

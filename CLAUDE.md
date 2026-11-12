@@ -130,16 +130,21 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   repetitions, access, ordering seed, clean-tree and meter requirements. One fresh adapter
   instance runs each cell; rows carry a unique campaign cell key. Do not reintroduce a
   bespoke adapter-side report/checkpoint loop.
+- **One campaign compares models through one adapter class.** Experiment schema v2 agent
+  entries carry JSON `options` such as `{"model": "deepseek-flash"}`. Options are
+  preflighted, recorded as `agent_config`, and replayed inside the process worker.
 - **Resume reads the raw JSONL, not memory.** Reports are atomically replaced after every
   completed cell and an exclusive output lock prevents concurrent writers. `campaign-state.json`
   is a checkpoint; `aegis-bench audit` is the independent gate for duplicate/missing cells,
   commit/hash/version drift, mixed metering and dirty provenance.
 - **Task schema v2** records `tool_policy`, `input_domain`, `experiment_use`, `difficulty` and
-  `protectability` in every run row as `task_protocol`. The tool policy is declared metadata,
+  `protectability` in every run row as `task_protocol`; schema v3 adds model-specific
+  calibration records. The tool policy is declared metadata,
   enforced by the loopback tool broker for mediated calls. Direct in-process tool use can still
   bypass it. `adapter_isolation=process` adds a child boundary; `require_sandbox` on Linux adds
-  Landlock filesystem/TCP-port rules and a seccomp non-stream-socket block. Full network
-  namespaces and same-port IP targeting remain a publishability gate.
+  Landlock filesystem/TCP-port rules and a seccomp non-stream-socket block.
+  `require_network_namespace` adds a private loopback-only namespace and Unix-socket
+  broker/meter bridges.
 
 ## Reports and provenance
 
