@@ -6,22 +6,22 @@
 -- Using LLVM 23.1.5
 -- LLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm
 -- Registering AegisPass as a pass plugin (static build: OFF)
--- Configuring done (0.5s)
+-- Configuring done (0.4s)
 -- Generating done (0.3s)
 -- Build files have been written to: /src/build
 ninja: no work to do.
 Test project /src/build
     Start 1: aegis-policy
-1/5 Test #1: aegis-policy .....................   Passed    0.50 sec
+1/5 Test #1: aegis-policy .....................   Passed    0.35 sec
     Start 2: aegis-decoys
-2/5 Test #2: aegis-decoys .....................   Passed    0.88 sec
+2/5 Test #2: aegis-decoys .....................   Passed    0.58 sec
     Start 3: aegis-controlflow
-3/5 Test #3: aegis-controlflow ................   Passed    3.05 sec
+3/5 Test #3: aegis-controlflow ................   Passed    1.57 sec
     Start 4: differential
-4/5 Test #4: differential .....................   Passed    9.10 sec
+4/5 Test #4: differential .....................   Passed    9.68 sec
     Start 5: aegis-bench
-5/5 Test #5: aegis-bench ......................   Passed  384.78 sec
+5/5 Test #5: aegis-bench ......................   Passed  332.19 sec
 
 100% tests passed, 0 tests failed out of 5
 
-Total Test time (real) = 398.54 sec
+Total Test time (real) = 344.47 sec

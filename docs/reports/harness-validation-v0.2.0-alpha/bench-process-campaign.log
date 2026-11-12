@@ -1,4 +1,4 @@
-[FAIL] rolling-token-v1 / broker-stub (baseline, rep 0) - 4.69s 73/73 case(s) failed
+[FAIL] rolling-token-v1 / broker-stub (baseline, rep 0) - 4.63s 73/73 case(s) failed
 [campaign 1/1] FAIL rolling-token-v1|baseline|broker-stub|0 -> /tmp/bench-process-campaign/aegis-bench.md
 campaign process-sandbox-smoke: 1/1 cells complete (new) -> /tmp/bench-process-campaign
 raw rows: /tmp/bench-process-campaign/aegis-bench.jsonl

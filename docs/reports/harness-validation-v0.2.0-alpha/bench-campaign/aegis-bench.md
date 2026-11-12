@@ -1,6 +1,6 @@
 # Aegis-Bench run report
 
-- Commit: `19cf0a9eb8cb85c192feb8c765098ba23123cfe0` (dirty: no)
+- Commit: `bab46740cf15edbdadab6b2003c92aeaacb03e67` (dirty: no)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
@@ -24,11 +24,11 @@ Pass/fail, case counts, wall clock and oracle queries are always measured by the
 
 | profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | ground-truth-replay | rolling-token-v1 | 1 | 1/1 | 100% [21%-100%] | 4.39±0.00 | n/a | n/a |
+| baseline | ground-truth-replay | rolling-token-v1 | 1 | 1/1 | 100% [21%-100%] | 4.40±0.00 | n/a | n/a |
 
 ## By (agent, profile), across tasks
 
 | agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (total) |
 |---|---|---|---|---|---|---|---|---|
-| ground-truth-replay | baseline | 1 | 1 | 1/1 | 100% [21%-100%] | 4.39±0.00 | n/a | n/a |
+| ground-truth-replay | baseline | 1 | 1 | 1/1 | 100% [21%-100%] | 4.40±0.00 | n/a | n/a |
 
