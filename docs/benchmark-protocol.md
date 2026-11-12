@@ -173,6 +173,45 @@ per-run outcome distribution, and if more than a fifth of runs fail to submit,
 treat the configuration as miscalibrated (step budget, task difficulty or
 agent policy) instead of computing a delta from it.
 
+### Statistical power: which number carries the result
+
+Success is a **Bernoulli per run**, and the per-run outcome is bimodal — an
+agent either reconstructs the function or gets a handful of cases. Measured
+under `binary` access on one task with one model
+(`packed-record-v1` × `deepseek-v4-pro`, three independent runs, 12 attempts per
+arm):
+
+| arm | passes | token mean (submitted runs) |
+|---|---|---|
+| baseline | 5/12 (42%) | 562 k |
+| aegis-level3 | 2/12 (17%) | 869 k |
+
+- **A success-rate comparison cannot be resolved at any repetition count we can
+  afford.** Fisher's exact test on 5/12 vs 2/12 gives p = 0.19; reaching
+  α = 0.05 with 80% power against a 42% → 17% shift needs roughly **50 runs per
+  arm**, i.e. ~23 h of single-relay model time for one two-arm comparison.
+  `N >= 5` in the [matrix](#matrix) is a **floor for reporting a number with an
+  interval**, not a claim of sufficiency; no success-rate effect may be asserted
+  below the powered count.
+- **A case-level secondary metric does not help.** Across those runs the
+  per-run `success_rate` takes values 0.0, ≈0.03, or 1.0 — there are no
+  near-misses to score partially. It is recorded in every row (`cases_passed`,
+  `cases_total`, `success_rate`) and reported, but it buys no resolution.
+- **Token cost is the metric that resolves.** The level-3 / baseline ratio was
+  **1.91×, 2.06×, 1.33×** in the three independent runs — same direction every
+  time, from different adapter revisions and step budgets. This is a *lower
+  bound* on the protection cost: runs that never submit contribute no ledger,
+  and those are precisely the attempts that burned the most budget.
+- **Wall clock is not a cost signal here.** In the same data the level-3
+  median wall time (595 s) is *below* the baseline (840 s) while its token cost
+  is 1.5× higher, because a protected listing produces more restarts and more
+  early terminations. Report it as latency, never as cost.
+
+Practically: a pilot may report "level 3 costs ~1.7× the tokens (per-run ratios
+1.3–2.1×; pooled means 562 k → 869 k) with no success-rate change
+distinguishable at this N". It may not report that level 3 *reduced* success —
+that requires the powered count above.
+
 ### Integrity rules the harness enforces
 
 - The agent workspace contains only the manifest's `visible` entries; ground
@@ -257,6 +296,13 @@ white-box} × {>= 2 model families} × N >= 5 repetitions`, reporting mean,
 variance, and confidence intervals. Binary-recovery tasks define their profile
 names in the manifest; `reimplement` tasks keep their earlier profile labels.
 Per-transform ablations report marginal contribution.
+
+`N >= 5` is the minimum for reporting a number with a confidence interval, not
+a count that can resolve a success-rate effect — see
+[statistical power](#statistical-power-which-number-carries-the-result). A
+success-rate claim needs the powered count (~50 per arm for the effect sizes
+measured so far); a cost claim can be made from the pilot counts, labelled as a
+lower bound.
 
 ## Oracle-budget curve
 
