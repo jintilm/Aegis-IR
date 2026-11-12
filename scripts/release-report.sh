@@ -96,6 +96,28 @@ cat /tmp/campaign.log
 cat /tmp/campaign-audit.json
 "
 
+echo "== bench: process-sandbox campaign =="
+run_in_container "
+set -e
+cd tools/aegis-bench
+CFG=/src/experiments/process-smoke.json
+OUT=/tmp/bench-process-campaign
+rm -rf \"\$OUT\"
+python3 -m aegis_bench campaign --config \"\$CFG\" --out \"\$OUT\" \
+  > /tmp/process-campaign.log 2>&1
+python3 -m aegis_bench audit \"\$OUT\" --experiment \"\$CFG\" --json \
+  > /tmp/process-campaign-audit.json
+rm -f \"\$OUT/.campaign.lock\"
+rm -rf /src/bench-out/release-$NAME/bench-process-campaign
+cp -r \"\$OUT\" /src/bench-out/release-$NAME/bench-process-campaign
+cp /tmp/process-campaign.log \
+  /src/bench-out/release-$NAME/bench-process-campaign.log
+cp /tmp/process-campaign-audit.json \
+  /src/bench-out/release-$NAME/bench-process-campaign-audit.json
+cat /tmp/process-campaign.log
+cat /tmp/process-campaign-audit.json
+"
+
 mkdir -p "$OUT"
 cp -r "$WORK"/. "$OUT"/
 cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
@@ -126,7 +148,10 @@ scripts/release-report.sh $NAME
   reimplementation task (\`rolling-token-v1\`);
 - the offline campaign writes a row, checkpoints it, resumes without rerunning
   the cell, and passes the campaign-aware audit
-  (\`bench-campaign/\`, \`bench-campaign-audit.json\`).
+  (\`bench-campaign/\`, \`bench-campaign-audit.json\`);
+- the process-sandbox campaign runs a fresh adapter worker with the loopback
+  broker and Linux Landlock filesystem/TCP rules, and passes its audit
+  (\`bench-process-campaign/\`, \`bench-process-campaign-audit.json\`).
 
 ## What this does **not** show
 

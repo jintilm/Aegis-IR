@@ -12,7 +12,8 @@
   ],
   "manifest_sha256": "bb5b4148a7ff059087f7de4dce7c726281a075d1980bc19676e64f85b5a41fcc",
   "require_broker_tools": true,
+  "require_sandbox": false,
   "schema_version": 1,
-  "started_utc": "2026-11-12T14:24:02Z",
-  "updated_utc": "2026-11-12T14:24:10Z"
+  "started_utc": "2026-11-12T14:44:35Z",
+  "updated_utc": "2026-11-12T14:44:43Z"
 }

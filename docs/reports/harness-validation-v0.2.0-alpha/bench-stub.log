@@ -1,4 +1,4 @@
-[FAIL] rolling-token-v2 / stub (baseline, rep 0) - 4.03s 73/73 case(s) failed
+[FAIL] rolling-token-v2 / stub (baseline, rep 0) - 4.50s 73/73 case(s) failed
 jsonl: /tmp/bench-stub/aegis-bench.jsonl
 csv: /tmp/bench-stub/aegis-bench.csv
 markdown: /tmp/bench-stub/aegis-bench.md

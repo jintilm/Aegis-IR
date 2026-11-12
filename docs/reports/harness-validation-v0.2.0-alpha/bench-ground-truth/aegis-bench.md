@@ -1,6 +1,6 @@
 # Aegis-Bench run report
 
-- Commit: `114cd4f4f7e2b31ba17289b791ee087525cbb1d6` (dirty: no)
+- Commit: `2f8d41c90c91c4114c4f9ffc879a54f56e2123f9` (dirty: no)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
@@ -13,6 +13,8 @@ Tool calls are **measured by the harness-owned broker** for every costed run tha
 Pass/fail, case counts, wall clock and oracle queries are always measured by the harness. Pass rates carry a Wilson 95% interval; cost deltas carry an interval only when both groups have at least two runs. A run row states which budgets were enforced.
 
 - Adapters: `ground-truth-replay builtin-test-double-v1`
+
+- Adapter isolation: `in-process`; 0/1 row(s) record a sandbox
 
 - Access: `oracle`
 
