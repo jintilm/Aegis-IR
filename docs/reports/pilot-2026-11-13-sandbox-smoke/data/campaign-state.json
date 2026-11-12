@@ -1,0 +1,20 @@
+{
+  "adapter_isolation": "process",
+  "adapter_versions": {
+    "openai-deepseek-v4-pro": "3cfa0466724c"
+  },
+  "campaign": "pilot-real-sandbox-sanitized-smoke",
+  "cells_completed": 2,
+  "cells_total": 2,
+  "complete": true,
+  "completed_cells": [
+    "packed-record-v1|aegis-level3|openai-deepseek-v4-pro|0",
+    "packed-record-v1|baseline|openai-deepseek-v4-pro|0"
+  ],
+  "manifest_sha256": "7ad0b7de4c5fa9b96efd39c7c09c39733902b89f2e56d8cec4301bb855236368",
+  "require_broker_tools": true,
+  "require_sandbox": true,
+  "schema_version": 1,
+  "started_utc": "2026-11-12T16:27:16Z",
+  "updated_utc": "2026-11-12T16:33:00Z"
+}

@@ -1,0 +1,33 @@
+{
+  "errors": 0,
+  "issues": [
+    {
+      "code": "metering",
+      "message": "provider usage covered 5/10 request(s)",
+      "run_id": "e4cad8f347b076e3",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 5/7 request(s)",
+      "run_id": "6da807ca8d6557ff",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "6da807ca8d6557ff",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "2 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "6da807ca8d6557ff",
+      "severity": "warning"
+    }
+  ],
+  "ok": true,
+  "path": "/src/bench-out/real-sandbox-sanitized-smoke/aegis-bench.jsonl",
+  "rows": 2,
+  "warnings": 4
+}

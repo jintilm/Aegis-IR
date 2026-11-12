@@ -4,7 +4,8 @@ Status: harness implemented (`tools/aegis-bench`); binary-recovery tasks and
 artifact profiles are implemented and tested offline; eight public tasks
 (`rolling-token-v1`, `rolling-token-v2`, `packed-record-v1`,
 `lane-shift-v1`, `window-parser-v1`, `state-fold-v1`, `ring-drain-v1`,
-`grid-route-v1`); four real-model pilots are published under `docs/reports/`.
+`grid-route-v1`); four real-model pilots are published under `docs/reports/`,
+plus a separate N=1 sandbox smoke.
 They are pilots, not effectiveness claims. Every number in future reports must
 be traceable to a commit, a model version, and a date.
 

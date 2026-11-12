@@ -66,6 +66,11 @@ versions follow SemVer once past alpha.
   IP socket creation before adapter code runs, closing the UDP/DNS and raw
   socket paths that Landlock does not cover. TCP remains subject to the
   broker/meter port allowlist; same-port IP targeting remains open.
+- **Real-model sandbox smoke** — [`docs/reports/pilot-2026-11-13-sandbox-smoke/`](docs/reports/pilot-2026-11-13-sandbox-smoke/README.md)
+  records an N=1 `packed-record-v1` baseline/level3 run through process
+  isolation, Landlock/seccomp, the loopback broker and the meter. Both
+  candidates reached grading; relay retries and abandoned calls are recorded.
+  It is a smoke, not a comparison or effectiveness claim.
 - **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
   temporary file, fsynced and atomically replaced. A killed campaign therefore
   resumes from the previous complete report rather than parsing a truncated
