@@ -30,6 +30,15 @@ Three limits worth stating next to any number that comes from here:
    the same thing, so they are kept apart and compared.** Agreement is a
    cross-check; the adapter reporting more than the proxy saw means traffic
    left the proxy, which is the one direction that is detectable.
+4. **The meter does not keep a call alive that the agent abandoned.** When
+   the client disconnects mid-stream (a reasoning watchdog firing, a step the
+   adapter gave up on), the proxy closes the upstream connection too, exactly
+   as the client would have. Draining the rest of the stream instead would
+   make the provider generate tokens nobody reads and then charge them to the
+   run: an earlier version did that and inflated completion by ~18% on one
+   arm, in a direction that depended on how often that arm aborted. Such
+   requests are counted in ``client_disconnects`` and carry no usage, so the
+   metered total is a floor, never an overstatement.
 
 The handler speaks HTTP/1.0 and closes the connection at end of body. That
 makes a streamed response close-delimited, which is what every SSE client
@@ -75,6 +84,7 @@ class _Stats:
         self.completion_tokens = 0
         self.usage_requests = 0
         self.requests_without_usage = 0
+        self.client_disconnects = 0
         self.injected_usage = 0
         self.bytes_in = 0
         self.bytes_out = 0
@@ -102,6 +112,10 @@ class _Stats:
     def note_status(self, status: int) -> None:
         with self.lock:
             self.statuses[status] += 1
+
+    def note_disconnect(self) -> None:
+        with self.lock:
+            self.client_disconnects += 1
 
     def note_output(self, n: int) -> None:
         with self.lock:
@@ -131,6 +145,7 @@ class _Stats:
                 "requests": self.requests,
                 "requests_with_usage": self.usage_requests,
                 "requests_without_usage": self.requests_without_usage,
+                "client_disconnects": self.client_disconnects,
                 "include_usage_injected": injected,
                 "prompt_tokens": self.prompt_tokens,
                 "completion_tokens": self.completion_tokens,
@@ -331,6 +346,7 @@ class MeterProxy:
             buffer = bytearray()
             pending = bytearray()
             found_usage = False
+            abandoned = False
             while True:
                 chunk = _read_some(response)
                 if not chunk:
@@ -339,9 +355,17 @@ class MeterProxy:
                     handler.wfile.write(chunk)
                     handler.wfile.flush()
                 except OSError:
-                    # The adapter hung up (its own watchdog fired). Keep
-                    # reading so the request is still fully accounted.
-                    handler.wfile = _NullWriter()
+                    # The adapter hung up -- its own reasoning watchdog fired,
+                    # or it gave up on a slow step. **Stop reading and close
+                    # the upstream connection**, which is what the adapter
+                    # would have done itself: continuing to drain the stream
+                    # makes the provider generate tokens nobody will read and
+                    # then bills them to the run. A meter that changes the
+                    # cost it measures is not a meter (this is what an earlier
+                    # version did, inflating completion by ~18% on one arm).
+                    abandoned = True
+                    self.stats.note_disconnect()
+                    break
                 self.stats.note_output(len(chunk))
                 if is_sse:
                     pending += chunk
@@ -374,16 +398,6 @@ class MeterProxy:
                 self.stats.note_usage(usage)
         except (urllib.error.URLError, OSError) as exc:
             self.stats.note_error(f"{type(exc).__name__}: {exc}")
-
-
-class _NullWriter:
-    """Stands in for ``wfile`` after the client disconnects."""
-
-    def write(self, _data: bytes) -> int:
-        return len(_data)
-
-    def flush(self) -> None:
-        return None
 
 
 def _read_some(response: Any) -> bytes:

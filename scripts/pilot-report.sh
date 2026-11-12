@@ -155,6 +155,14 @@ meter_line = (f"- token metering: {len(metered_rows)} of {len(costed)} "
               f"costed runs measured by the harness proxy (provider `usage`); "
               f"the rest are adapter self-reports"
               ) if costed else "- token metering: no costed runs"
+# Calls the agent abandoned mid-stream are closed upstream rather than drained,
+# so they carry no usage: a metered total is a floor, not an overstatement.
+disconnects = sum((r.get("metering") or {}).get("client_disconnects") or 0
+                  for r in rows)
+if disconnects:
+    meter_line += (f"; {disconnects} call(s) were abandoned mid-stream and are "
+                   f"therefore **not** in the metered totals (the adapter "
+                   f"estimates those separately)")
 
 # Repetitions come from the data, not from a default: regenerating a report
 # must not relabel a 2-repetition run as 3.

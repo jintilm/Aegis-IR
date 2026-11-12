@@ -334,6 +334,20 @@ caveats to add later:
    true when the adapter claims more than the proxy saw, which means traffic
    left the proxy. The adapter claiming *less* is normal — aborted calls are
    estimated, never answered by the provider.
+4. **Abandoned calls are not kept alive to be measured.** When the agent
+   hangs up mid-stream — its reasoning watchdog fired, or it gave up on a
+   step — the proxy closes the upstream call as the agent would have.
+   Draining the rest of the stream instead would make the provider generate
+   tokens nobody reads and then charge them to the run. That is not a
+   hypothetical: an earlier version of the proxy did exactly that and
+   inflated completion tokens by ~18% on one arm, in a direction set by how
+   often that arm aborted — an arm-dependent bias that would have moved the
+   very ratio the benchmark reports. Such calls appear as
+   `metering.client_disconnects` and carry no usage, so a metered total is a
+   **floor** on the true cost, never an overstatement. Their prompt tokens
+   are genuinely spent and genuinely unmeasured; the adapter's
+   `aborted_tokens_estimate` is the only figure that covers them, and it is
+   labelled an estimate.
 
 An adapter that ignores `AEGIS_METER_BASE_URL` is not an error: its runs
 simply stay self-reported, and a comparison must not mix the two kinds of

@@ -27,6 +27,17 @@ versions follow SemVer once past alpha.
   byte-exact streaming pass-through, absent usage, forwarded 5xx, per-run
   attribution, and the runner path; **the published pilots remain
   self-reported**, since metering did not exist when they ran.
+- **Fixed, found by the meter disagreeing with the adapter** — the first
+  metered ladder run reported 1.4–1.65× the adapter's figure, and the whole
+  gap sat in calls the agent had abandoned mid-stream. The proxy had been
+  draining the upstream connection to EOF after the client hung up, which made
+  the provider generate ~162 k completion tokens nobody would read (~18 % of
+  that run) and charged the abandoned prompts to the run — a bias whose size
+  depended on how often each arm aborted, i.e. one that would have moved the
+  protection ratio itself. The proxy now closes the upstream call when the
+  agent disconnects (`metering.client_disconnects`), which makes a metered
+  total a **floor** rather than an overstatement. The four contaminated cells
+  were discarded, not published.
 - **Statistical-power rules for the benchmark's metrics** — the protocol now
   states which number can carry a result at which N, from measured data rather
   than convention. Success is a Bernoulli per run; the observed level-3 vs

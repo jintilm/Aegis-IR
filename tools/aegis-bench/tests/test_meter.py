@@ -17,6 +17,7 @@ import os
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -48,6 +49,7 @@ class _Upstream:
     def __init__(self, mode: str = "usage") -> None:
         self.mode = mode
         self.seen: list[dict] = []
+        self.aborted = False
         upstream = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -83,6 +85,28 @@ class _Upstream:
                 # block on the terminal chunk and nowhere else.
                 wants_usage = bool(upstream.seen[-1].get(
                     "stream_options", {}).get("include_usage"))
+                if upstream.mode == "slow":
+                    # A long generation that reports usage only at the end --
+                    # the shape of a call the adapter's watchdog abandons.
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.end_headers()
+                    try:
+                        for _ in range(200):
+                            self.wfile.write(
+                                b'data: {"choices":[{"delta":'
+                                b'{"content":"x"}}]}\n\n')
+                            self.wfile.flush()
+                            time.sleep(0.01)
+                        self.wfile.write(
+                            b'data: {"choices":[],"usage":'
+                            b'{"prompt_tokens":1,"completion_tokens":9999}}'
+                            b"\n\n")
+                    except OSError:
+                        # The proxy closed the upstream call after the client
+                        # hung up. That is the behaviour under test.
+                        upstream.aborted = True
+                    return
                 chunks = [b'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n']
                 if upstream.mode == "usage" and wants_usage:
                     chunks.append(
@@ -246,6 +270,35 @@ class MeterProxyTests(unittest.TestCase):
         finally:
             stats = proxy.stop(reported_by_adapter=4)
         self.assertFalse(stats["adapter_exceeds_metered"])
+
+    def test_client_disconnect_stops_the_upstream_call(self):
+        # The decisive property: an abandoned call must not be kept alive by
+        # the meter. Draining it would make the provider generate tokens
+        # nobody reads and charge them to the run -- inflating the protected
+        # arm by however often its agent aborts, which is exactly the kind of
+        # arm-dependent bias the ratio must not have.
+        upstream = _Upstream("slow")
+        self.addCleanup(upstream.stop)
+        proxy = MeterProxy(upstream.url).start()
+        body = json.dumps({"model": "test", "messages": [],
+                           "stream": True}).encode()
+        request = urllib.request.Request(
+            proxy.base_url + "/chat/completions", data=body,
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            response = urllib.request.urlopen(request, timeout=30)
+            response.readline()          # a client that reads one event
+            response.close()             # ...then gives up on the step
+            deadline = time.time() + 10
+            while not upstream.aborted and time.time() < deadline:
+                time.sleep(0.05)
+        finally:
+            stats = proxy.stop()
+        self.assertTrue(upstream.aborted,
+                        "the proxy drained a call the client abandoned")
+        self.assertEqual(stats["client_disconnects"], 1)
+        self.assertEqual(stats["requests_without_usage"], 1)
+        self.assertIsNone(stats["total_tokens"])
 
     def test_two_proxies_do_not_share_counters(self):
         upstream_a, upstream_b = _Upstream("usage"), _Upstream("usage")
