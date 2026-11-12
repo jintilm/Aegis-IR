@@ -29,6 +29,7 @@ BUILTIN_ADAPTERS = {
     "forbidden-read": "aegis_bench.adapters.fake:ForbiddenReadAgent",
     "forbidden-connect":
         "aegis_bench.adapters.fake:ForbiddenConnectAgent",
+    "forbidden-udp": "aegis_bench.adapters.fake:ForbiddenUdpAgent",
     "broken": "aegis_bench.adapters.fake:BrokenAgent",
     "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",

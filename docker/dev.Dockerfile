@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
       wget ca-certificates lsb-release gnupg software-properties-common \
       build-essential git cmake ninja-build pkg-config \
-      python3 python3-venv python3-pip \
+      python3 python3-venv python3-pip libseccomp2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install LLVM 23 from apt.llvm.org (same procedure as CI; keep in sync).

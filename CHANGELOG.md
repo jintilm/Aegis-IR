@@ -56,6 +56,10 @@ versions follow SemVer once past alpha.
   connects only to the per-cell broker/meter ports. Offline tests prove that a
   repo read and an unapproved TCP port are denied. UDP and same-port IP
   targeting remain outside Landlock's scope.
+- **Seccomp worker network floor** — libseccomp denies UDP/raw/RDM/SEQPACKET
+  IP socket creation before adapter code runs, closing the UDP/DNS and raw
+  socket paths that Landlock does not cover. TCP remains subject to the
+  broker/meter port allowlist; same-port IP targeting remains open.
 - **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
   temporary file, fsynced and atomically replaced. A killed campaign therefore
   resumes from the previous complete report rather than parsing a truncated

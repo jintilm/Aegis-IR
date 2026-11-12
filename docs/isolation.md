@@ -1,9 +1,9 @@
 # Isolation and tool accounting
 
-Status: the loopback tool broker, adapter subprocess, and optional Linux
-Landlock filesystem/TCP-port boundary are implemented. A non-Linux or
-Landlock-disabled process is only a process boundary. UDP and full network
-namespace isolation remain open.
+Status: the loopback tool broker, adapter subprocess, Linux Landlock
+filesystem/TCP-port boundary, and seccomp non-stream-socket block are
+implemented. A non-Linux or Landlock-disabled process is only a process
+boundary. Full network-namespace isolation remains open.
 
 ## What is implemented
 
@@ -21,6 +21,7 @@ namespace isolation remain open.
 | Tool broker | loopback policy checks, counters, byte caps and call cap when the adapter uses it |
 | Adapter process | optional fresh child process with a workspace-only TaskView and no repository task root |
 | Landlock worker | Linux filesystem allowlist and TCP connect rules for broker/meter ports |
+| Seccomp worker | deny UDP/raw/RDM/SEQPACKET IP socket creation |
 
 These controls stop accidental leakage and several replay tricks. They do not
 stop a malicious adapter from walking the host filesystem, reading the
@@ -74,9 +75,10 @@ become network services scoped to the worker's lifecycle.
 The subprocess path uses `TaskView.path()` to hide task-root paths and keeps
 the broker/meter endpoints in the child environment. On Linux with Landlock,
 the worker installs a filesystem allowlist and permits TCP connects only to the
-broker/meter ports. The tests verify that repo reads and unapproved TCP ports
-are denied. UDP, same-port IP targeting, and non-Linux hosts remain outside
-this boundary.
+broker/meter ports. A narrow seccomp policy also denies UDP/raw/RDM/SEQPACKET
+IP socket creation. The tests verify that repo reads, unapproved TCP ports, and
+UDP sockets are denied. Same-port IP targeting and non-Linux hosts remain
+outside this boundary.
 
 ## Tool broker
 
@@ -162,5 +164,6 @@ acceptance items are closed:
   the adapter bypassed the broker;
 - oracle access is counted only because the workspace holds the shim;
 - binary access does not count local executions;
-- Landlock is port-based, not a network namespace; UDP egress is not blocked;
+- TCP is port-restricted rather than IP-restricted, and this is not a network
+  namespace;
 - no report may imply that the adapter or grader is fully host-isolated.

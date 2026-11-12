@@ -29,6 +29,7 @@ from typing import Any, Callable
 
 from .agent import Agent, AdapterError, create_agent
 from .landlock import abi_version as landlock_abi_version
+from .seccomp import available as seccomp_available
 from .report import atomic_write_text, write_reports
 from .runner import (
     ACCESS_MODES, ADAPTER_ISOLATION_MODES, Runner, RunRecord,
@@ -575,6 +576,10 @@ def _run_campaign_unlocked(
             raise ExperimentError(
                 f"{experiment.path}: require_sandbox=true but "
                 f"AEGIS_LANDLOCK=0 disables it")
+        if not seccomp_available():
+            raise ExperimentError(
+                f"{experiment.path}: require_sandbox=true but libseccomp is "
+                f"unavailable on this host")
 
     tasks = experiment.resolve_tasks(allow_private=allow_private)
     task_by_id = {task.id: task for task in tasks}

@@ -90,9 +90,10 @@ production debugging": rebuild the same commit with it, reproduce, fix.
   budget and workspace containment for mediated calls. Campaigns may run the
   adapter in a fresh subprocess with a workspace-only TaskView. That process
   boundary can optionally install Landlock filesystem allowlists and restrict
-  TCP connects to the broker/meter ports. UDP and full network namespaces
-  remain specified in [`isolation.md`](isolation.md) and are required before a
-  protection-effect claim.
+  TCP connects to the broker/meter ports; seccomp denies non-stream IP
+  sockets. Full network namespaces remain specified in
+  [`isolation.md`](isolation.md) and are required before a protection-effect
+  claim.
 
 ## Boundaries
 

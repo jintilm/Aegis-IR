@@ -20,6 +20,7 @@ from aegis_bench.grader import Grade  # noqa: E402
 from aegis_bench.landlock import abi_version  # noqa: E402
 from aegis_bench.runner import Runner  # noqa: E402
 from aegis_bench.schema import TaskError, load_task  # noqa: E402
+from aegis_bench.seccomp import available as seccomp_available  # noqa: E402
 from aegis_bench.worker import TaskView  # noqa: E402
 
 TASK_ROOT = REPO_ROOT / "benchmarks" / "tasks-public" / "rolling-token-v1"
@@ -106,6 +107,22 @@ class WorkerTests(unittest.TestCase):
         record = records[0]
         self.assertTrue(record.grade.passed, record.grade.reason)
         self.assertTrue(record.isolation["sandbox"])
+
+    def test_seccomp_denies_udp_socket(self):
+        if (os.name != "posix" or abi_version() <= 0
+                or not seccomp_available()):
+            self.skipTest("Landlock/seccomp unavailable")
+        agent = create_agent("forbidden-udp")
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("aegis_bench.runner.Grader", _FakeGrader):
+            records = Runner(
+                repo_root=REPO_ROOT, out_dir=Path(tmp),
+                adapter_isolation="process").run(
+                    [self.task], [agent], profile="baseline")
+        record = records[0]
+        self.assertTrue(record.grade.passed, record.grade.reason)
+        self.assertTrue(record.isolation["sandbox"])
+        self.assertIn("UDP", record.isolation["network"])
 
 
 if __name__ == "__main__":

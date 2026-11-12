@@ -23,6 +23,7 @@ aegis_bench/
 ├── toolbroker.py policy-checked workspace tools, counters and call budget
 ├── worker.py    optional subprocess boundary + workspace-only TaskView
 ├── landlock.py  Linux filesystem/TCP-port worker policy
+├── seccomp.py   Linux non-stream socket denial
 ├── report.py    JSONL / CSV / Markdown reports
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`, `campaign`, `audit`
@@ -94,7 +95,8 @@ Campaign manifests can set `adapter_isolation: "process"` (or `run` can pass
 a workspace-only `TaskView`, not the repository task root. This is a process
 boundary for crash/object-state isolation. On Linux, `require_sandbox: true`
 adds Landlock: runtime/workspace filesystem allowlists and TCP connects only
-to the broker/meter ports. UDP and same-port IP targeting are not covered.
+to the broker/meter ports. Seccomp additionally denies UDP/raw/RDM/SEQPACKET
+IP sockets. Same-port IP targeting and full network namespaces are not covered.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1

@@ -76,7 +76,7 @@ things that a multi-hour comparison needs:
 | `require_meter` | reject a campaign with no model metering proxy |
 | `require_broker_tools` | fail audit if any run has no harness-broker tool traffic |
 | `adapter_isolation` | `in-process` or `process`; `process` is a subprocess boundary, not a filesystem/network sandbox |
-| `require_sandbox` | require Linux Landlock filesystem/TCP rules and fail audit if a row lacks them |
+| `require_sandbox` | require Linux Landlock filesystem/TCP rules plus the seccomp non-stream-socket block |
 
 All adapters must expose a non-empty `version`. A campaign preflights every
 adapter once, checks its identity and version, and then creates a fresh
@@ -92,8 +92,9 @@ and passes it a workspace-only `TaskView`, not the repository task root.
 The parent still owns brokered tools and grading. This closes object-state and
 crash coupling. With `require_sandbox: true`, Landlock additionally installs a
 workspace/runtime filesystem allowlist and TCP connect rules for only the
-broker/meter ports before adapter code runs. UDP and same-port IP targeting
-remain outside Landlock's current scope.
+broker/meter ports before adapter code runs. Seccomp denies UDP/raw/RDM/
+SEQPACKET IP socket creation. Same-port IP targeting and full network
+namespaces remain outside this boundary.
 
 ## Commands
 

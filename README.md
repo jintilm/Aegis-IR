@@ -26,7 +26,8 @@ protector. Campaign/resume/audit and harness-owned token/tool brokers are
 implemented, including an optional adapter subprocess boundary; filesystem and
 network isolation remain the publishability gate. Linux `require_sandbox`
 workers additionally use Landlock for workspace/runtime file access and
-broker/meter TCP-port restriction. UDP and full egress namespaces remain open.
+broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. Full
+network namespaces and same-port IP targeting remain open.
 
 Present in the tree: `aegis-audit` (read-only summary), `aegis-lint`
 (read-only protectability preflight), `aegis-policy`
@@ -243,8 +244,8 @@ Known limits, stated so they are not discovered as surprises:
 - benchmark tool calls are broker-measured for mediated requests, but an
   in-process adapter can bypass the broker; tokens are provider-measured only
   when the meter is used, and otherwise self-reported. Oracle queries are
-  counted by the broker. Optional Linux worker sandboxes use Landlock, but
-  UDP and full network-namespace isolation are not implemented;
+  counted by the broker. Optional Linux worker sandboxes use Landlock and
+  seccomp, but full network-namespace isolation is not implemented;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 

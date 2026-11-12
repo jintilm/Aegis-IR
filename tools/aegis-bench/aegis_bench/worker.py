@@ -21,6 +21,7 @@ from typing import Any
 from .agent import AdapterError, Agent, AgentResult, create_agent
 from .landlock import LandlockError, apply as apply_landlock
 from .schema import Task, TaskError
+from .seccomp import SeccompError, apply_socket_policy
 
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 
@@ -189,6 +190,7 @@ class ProcessIsolatedAgent(Agent):
             package_root + (os.pathsep + existing if existing else ""))
         if os.name == "posix" and os.environ.get("AEGIS_LANDLOCK", "1") != "0":
             env["AEGIS_LANDLOCK"] = "1"
+            env["AEGIS_SECCOMP"] = "1"
             env["AEGIS_LANDLOCK_RO_PATHS"] = os.pathsep.join(
                 str(path) for path in self._landlock_paths())
             env["AEGIS_LANDLOCK_TCP_PORTS"] = ",".join(
@@ -294,6 +296,17 @@ def main(argv: list[str] | None = None) -> int:
                 _write_response(response_path, {
                     "ok": False,
                     "error": f"cannot install worker sandbox: {exc}",
+                })
+                return 0
+        if os.environ.get("AEGIS_SECCOMP") == "1":
+            try:
+                isolation["seccomp"] = apply_socket_policy()
+                isolation["network"] = (
+                    "Landlock TCP allowlist; UDP/raw sockets denied")
+            except SeccompError as exc:
+                _write_response(response_path, {
+                    "ok": False,
+                    "error": f"cannot install seccomp policy: {exc}",
                 })
                 return 0
         agent = create_agent(str(request["adapter_spec"]))

@@ -38,7 +38,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             cmake ninja-build "clang-$LLVM_VERSION" "llvm-$LLVM_VERSION" \
             "llvm-$LLVM_VERSION-dev" "llvm-$LLVM_VERSION-tools" \
-            "clang-format-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
+            "clang-format-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev" \
+            libseccomp2
 
       - name: Configure
         run: |

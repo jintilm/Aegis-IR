@@ -138,7 +138,8 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
   `protectability` in every run row as `task_protocol`. The tool policy is declared metadata,
   enforced by the loopback tool broker for mediated calls. Direct in-process tool use can still
   bypass it. `adapter_isolation=process` adds a child boundary; `require_sandbox` on Linux adds
-  Landlock filesystem/TCP-port rules. UDP and full network namespaces remain a publishability gate.
+  Landlock filesystem/TCP-port rules and a seccomp non-stream-socket block. Full network
+  namespaces and same-port IP targeting remain a publishability gate.
 
 ## Reports and provenance
 

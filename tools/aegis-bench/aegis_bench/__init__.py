@@ -24,6 +24,7 @@ from .runner import Runner, RunRecord
 from .report import write_reports
 from .toolbroker import ToolBroker, ToolDenied, ToolError, call_tool
 from .worker import ProcessIsolatedAgent, TaskView
+from .seccomp import SeccompError, apply_socket_policy
 
 __all__ = [
     "Agent",
@@ -38,6 +39,7 @@ __all__ = [
     "Grader",
     "RunRecord",
     "Runner",
+    "SeccompError",
     "Task",
     "TaskView",
     "TaskError",
@@ -46,6 +48,7 @@ __all__ = [
     "ToolError",
     "ProcessIsolatedAgent",
     "audit_path",
+    "apply_socket_policy",
     "call_tool",
     "load_task",
     "load_experiment",

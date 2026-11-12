@@ -44,8 +44,11 @@ a blocker, and a box checked without evidence is worse.
 - [x] Linux Landlock worker policy restricts filesystem access to the
       workspace/runtime allowlist and permits TCP connects only to the
       broker/meter ports; tests deny a repo read and an unapproved TCP port.
+- [x] Seccomp worker policy denies UDP/raw/RDM/SEQPACKET IP socket creation;
+      the UDP denial is covered by `test_worker.py`.
 - [ ] Full network-namespace egress isolation. Landlock cannot block UDP or
-      distinguish IP addresses for the allowed TCP ports.
+      distinguish IP addresses for the allowed TCP ports. (UDP is now blocked
+      separately by seccomp; same-port IP targeting remains.)
 - [x] Clean-tree `v0.2.0-alpha` validation report generated from commit
       `19cf0a9`: `docs/reports/harness-validation-v0.2.0-alpha/`. The rows
       record `commit_dirty: no`; campaign audit reports 0 errors and 0

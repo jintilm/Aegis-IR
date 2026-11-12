@@ -168,6 +168,23 @@ class ForbiddenConnectAgent(StubAgent):
                 f"process isolation allowed TCP connect to {raw}")
 
 
+class ForbiddenUdpAgent(StubAgent):
+    """Assert that the worker seccomp policy blocks UDP socket creation."""
+
+    name = "forbidden-udp"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        import socket
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except PermissionError:
+            return super().solve(task, workspace)
+        else:
+            sock.close()
+            raise AdapterError("process isolation allowed a UDP socket")
+
+
 class BrokenAgent(Agent):
     name = "broken"
     adversary = "n/a (fault injection)"
