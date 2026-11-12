@@ -48,6 +48,8 @@ if [ -n "${REUSE_DATA:-}" ]; then
   # without spending the model budget again. The run.log is not recreated.
   echo "reusing existing run data from $REUSE_DATA" >&2
   cp -r "$REUSE_DATA" "$DATA"
+  # The console log belongs at the report root, not inside data/.
+  rm -f "$DATA/run.log"
   # The console log from the run that produced this data is evidence. A
   # regeneration succeeds it rather than truncating it, and carries it over
   # when the run directory kept its own copy.
