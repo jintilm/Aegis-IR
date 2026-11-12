@@ -191,9 +191,15 @@ if disconnects:
                    f"estimates those separately)")
 brokered_tools = sum(1 for r in rows
                      if (r.get("tools") or {}).get("requests"))
+sandboxed_rows = sum(1 for r in rows
+                     if (r.get("isolation") or {}).get("sandbox"))
 tool_line = (f"- tool accounting: {brokered_tools} of {len(rows)} runs used "
              f"the harness-owned tool broker; broker counters enforce the "
              f"declared tool set and call cap for mediated requests")
+isolation_line = (f"- worker isolation: {sandboxed_rows} of {len(rows)} runs "
+                  f"record a sandboxed process worker; the recorded policy "
+                  f"includes filesystem/TCP allowlists and non-stream socket "
+                  f"denial where available")
 
 # Repetitions come from the data, not from a default: regenerating a report
 # must not relabel a 2-repetition run as 3.
@@ -262,6 +268,7 @@ lines = [
     f"- access: {access}",
     meter_line,
     tool_line,
+    isolation_line,
     *cal_lines,
     "- adapter policy: streaming SSE, thinking enabled, reasoning watchdog, "
     "fresh conversation after repeated unproductive replies, repeated "
@@ -437,9 +444,9 @@ lines += [
     "were run; the pass column describes what this agent could do, not what a "
     "protection prevented.",
     "- No claim about other attacker classes or larger models.",
-    "- **The tool broker is not a process sandbox.** An adapter can still use "
-    "workspace tools directly; rows with `tools.requests: 0` retain the "
-    "adapter's self-reported tool count.",
+    "- **The worker sandbox is not a full network namespace.** Rows record "
+    "Landlock/seccomp policy where available; same-port IP targeting and "
+    "non-Linux fallback are not removed by this pilot.",
     "- Token figures include an estimate for calls aborted by the reasoning "
     "watchdog (`tokens_source` and `aborted_tokens_estimate` in the JSONL mark "
     "the share).",
