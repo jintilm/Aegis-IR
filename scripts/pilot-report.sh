@@ -23,7 +23,10 @@ PROFILES="${PROFILES:-baseline,aegis-level3}"
 REPS="${REPS:-3}"
 STEPS="${STEPS:-30}"
 ACCESS="${ACCESS:-oracle}"
-ADAPTERS_DIR="${ADAPTERS_DIR:?set ADAPTERS_DIR to the out-of-tree adapter directory}"
+# A fresh run needs the adapter tree; regenerating from REUSE_DATA does not.
+if [ -z "${REUSE_DATA:-}" ]; then
+  : "${ADAPTERS_DIR:?set ADAPTERS_DIR to the out-of-tree adapter directory}"
+fi
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
 
 # A fresh run needs a key; regenerating from REUSE_DATA must not. Check it only
