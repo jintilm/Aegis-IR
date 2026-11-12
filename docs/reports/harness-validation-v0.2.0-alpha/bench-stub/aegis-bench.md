@@ -1,6 +1,6 @@
 # Aegis-Bench run report
 
-- Commit: `bab46740cf15edbdadab6b2003c92aeaacb03e67` (dirty: no)
+- Commit: `87575382b395f9a71886b4b6269fc4d9034e36fe` (dirty: no)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
@@ -34,13 +34,13 @@ A binary-recovery row records an **access mode**. Under `oracle` the workspace h
 
 | profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | stub | rolling-token-v2 | 1 | 0/1 | 0% [0%-79%] | 4.56±0.00 | n/a | 0.0 |
+| baseline | stub | rolling-token-v2 | 1 | 0/1 | 0% [0%-79%] | 4.55±0.00 | n/a | 0.0 |
 
 ## By (agent, profile), across tasks
 
 | agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (total) |
 |---|---|---|---|---|---|---|---|---|
-| stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.56±0.00 | n/a | 0 |
+| stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.55±0.00 | n/a | 0 |
 
 
 ## Failures
