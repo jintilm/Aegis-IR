@@ -144,8 +144,9 @@ scripts/release-report.sh $NAME
 - Aegis-Bench builds \`rolling-token-v2\`'s stripped baseline probe and scores
   a known-correct solution at 100% and a compiling-but-wrong one at ~0%
   (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end to
-  end; CTest additionally builds the level-1/2/3 probes and scores the frozen
-  reimplementation task (\`rolling-token-v1\`);
+  end; CTest additionally builds baseline and all protected artifact profiles
+  for the eight public tasks, including the parser, state-machine,
+  ring-buffer and grid-routing families;
 - the offline campaign writes a row, checkpoints it, resumes without rerunning
   the cell, and passes the campaign-aware audit
   (\`bench-campaign/\`, \`bench-campaign-audit.json\`);
