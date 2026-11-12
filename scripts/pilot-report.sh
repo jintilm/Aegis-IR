@@ -221,6 +221,33 @@ incomplete = {p: len(g) - sum(1 for r in g
                               if isinstance(r["ledger"].get("tokens"),
                                             (int, float)))
               for p, g in groups.items()}
+
+
+def is_infrastructure(row) -> bool:
+    """True when the run died on the relay or the adapter budget, not the task.
+
+    Cloudflare 52x responses and adapter timeouts are failures of the
+    measurement, not of the agent; counting them as agent failures understates
+    the model and makes two arms incomparable when they hit different numbers
+    of them.
+    """
+    error = row.get("error") or ""
+    return (row["grade"].get("stage") == "agent"
+            and ("HTTP " in error or "exceeded its" in error))
+
+
+infra = {p: sum(1 for r in g if is_infrastructure(r)) for p, g in groups.items()}
+if any(infra.values()):
+    parts = ", ".join(f"{profile} {n}/{len(groups[profile])}"
+                      for profile, n in sorted(infra.items()) if n)
+    lines += [
+        "",
+        f"**Infrastructure failures: {parts}.** These runs ended on a relay "
+        "error (Cloudflare 52x) or the adapter wall-clock budget, which says "
+        "nothing about the agent or the protection. They are counted in the "
+        "run totals above and must be excluded before comparing arms; a cell "
+        "with more than one of them needs to be rerun, not interpreted.",
+    ]
 if any(incomplete.values()):
     parts = ", ".join(f"{profile} {n}/{len(groups[profile])}"
                       for profile, n in sorted(incomplete.items()) if n)
