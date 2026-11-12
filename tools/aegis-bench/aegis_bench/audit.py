@@ -160,7 +160,12 @@ def _audit_campaign(
                 binary_tasks.add(task.id)
     except ExperimentError as exc:
         issues.append(AuditIssue(
-            "error", "tasks", f"cannot verify current task hashes: {exc}"))
+            "warning", "task-root",
+            f"cannot verify current task hashes from this environment: {exc}"))
+    for record in rows:
+        if (record.task_protocol or {}).get("task_type") == "binary-recovery" \
+                or record.artifact:
+            binary_tasks.add(record.task_id)
     versions = {agent.id: agent.expected_version
                 for agent in experiment.agents if agent.expected_version}
 

@@ -341,6 +341,7 @@ class Task:
         """Schema metadata copied into every run row for later audit."""
         return {
             "schema_version": self.schema_version,
+            "task_type": self.task_type,
             "experiment_use": self.experiment_use,
             "difficulty": self.difficulty,
             "tool_policy": self.tool_policy.to_dict(),

@@ -13,6 +13,7 @@ Run with::
 from __future__ import annotations
 
 import json
+import http.client
 import os
 import sys
 import tempfile
@@ -30,7 +31,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 
 from aegis_bench.adapters.fake import ReplayAgent  # noqa: E402
 from aegis_bench.meter import (  # noqa: E402
-    MeterProxy, _prepare_request, ledger_source_for)
+    MeterProxy, _prepare_request, _read_some, ledger_source_for)
 from aegis_bench.runner import METER_ENV, Runner  # noqa: E402
 from aegis_bench.schema import load_task  # noqa: E402
 
@@ -187,6 +188,13 @@ class PrepareRequestTests(unittest.TestCase):
 
     def test_non_json_body_is_passed_through(self):
         self.assertEqual(_prepare_request(b"not json"), (b"not json", False))
+
+    def test_torn_chunk_preserves_partial_bytes(self):
+        class Torn:
+            def read1(self, _size):
+                raise http.client.IncompleteRead(b"partial", 100)
+
+        self.assertEqual(_read_some(Torn()), b"partial")
 
 
 class LedgerSourceTests(unittest.TestCase):

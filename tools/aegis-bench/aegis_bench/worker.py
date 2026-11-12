@@ -32,6 +32,7 @@ class TaskView:
 
     workspace: Path
     id: str
+    task_type: str
     title: str
     description: str
     interface: str
@@ -50,6 +51,7 @@ class TaskView:
         return cls(
             workspace=Path(workspace),
             id=task.id,
+            task_type=task.task_type,
             title=task.title,
             description=task.description,
             interface=task.interface,
@@ -69,6 +71,7 @@ class TaskView:
         return cls(
             workspace=Path(workspace),
             id=str(raw["id"]),
+            task_type=str(raw["task_type"]),
             title=str(raw["title"]),
             description=str(raw["description"]),
             interface=str(raw["interface"]),
@@ -85,12 +88,14 @@ class TaskView:
     def payload(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "task_type": self.task_type,
             "title": self.title,
             "description": self.description,
             "interface": self.interface,
             "candidate_sources": list(self.candidate_sources),
             "visible": list(self.visible),
             "schema_version": self.schema_version,
+            "task_type": self.task_type,
             "experiment_use": self.experiment_use,
             "difficulty": self.difficulty,
             "tool_policy": self.tool_policy,

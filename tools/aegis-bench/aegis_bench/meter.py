@@ -50,6 +50,7 @@ sent one.
 from __future__ import annotations
 
 import json
+import http.client
 import threading
 import urllib.error
 import urllib.request
@@ -411,6 +412,11 @@ def _read_some(response: Any) -> bytes:
             continue
         try:
             data = reader(65536)
+        except http.client.IncompleteRead as exc:
+            # A relay can close a chunked SSE stream between chunks. Preserve
+            # any partial bytes for the client, then treat the next read as
+            # EOF rather than letting a meter thread traceback escape.
+            return exc.partial
         except TypeError:  # a reader that takes no size
             data = reader()
         if data:
