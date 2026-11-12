@@ -113,8 +113,11 @@ did not use the broker.
 With `adapter_isolation: "process"`, the harness imports the adapter in a
 fresh child process and passes a `TaskView` whose `path()` is restricted to
 workspace-visible files. The adapter receives the broker/meter environment but
-not the repository `Task` object. This is a process boundary, not a
-filesystem/network sandbox.
+not the repository `Task` object. With `require_sandbox: true` on Linux, a
+Landlock ruleset runs before adapter code and allows only runtime/workspace
+files plus TCP connections to the broker/meter ports. UDP and same-port IP
+targeting remain outside this boundary. Adapter-side diagnostic saves under
+`LLM_SAVE_DIR` are redirected to the per-cell worker transport directory.
 
 ## Metering: `AEGIS_METER_BASE_URL`
 

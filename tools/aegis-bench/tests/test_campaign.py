@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -19,6 +20,7 @@ from aegis_bench.campaign import (  # noqa: E402
     ExperimentError, _CampaignLock, load_experiment, plan_cells, run_campaign)
 from aegis_bench.runner import RunRecord  # noqa: E402
 from aegis_bench.grader import Grade  # noqa: E402
+from aegis_bench.landlock import abi_version  # noqa: E402
 
 
 class _FakeRunner:
@@ -79,6 +81,7 @@ def _manifest(
         access: str = "oracle",
         require_broker_tools: bool = False,
         adapter_isolation: str = "in-process",
+        require_sandbox: bool = False,
         ) -> Path:
     raw = {
         "schema_version": 1,
@@ -101,6 +104,7 @@ def _manifest(
         "require_meter": False,
         "require_broker_tools": require_broker_tools,
         "adapter_isolation": adapter_isolation,
+        "require_sandbox": require_sandbox,
     }
     path = Path(tmp) / "experiment.json"
     path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
@@ -320,6 +324,20 @@ class AuditTests(unittest.TestCase):
                 runner_factory=_FakeRunner)
             report = audit_path(out, experiment=experiment)
         self.assertTrue(any(issue.code == "isolation"
+                            for issue in report.errors))
+
+    def test_required_sandbox_is_audited(self):
+        if os.name != "posix" or abi_version() <= 0:
+            self.skipTest("Landlock unavailable")
+        with tempfile.TemporaryDirectory() as tmp:
+            experiment = load_experiment(_manifest(
+                tmp, adapter_isolation="process", require_sandbox=True))
+            out = Path(tmp) / "out"
+            run_campaign(
+                experiment, repo_root=REPO_ROOT, out_dir=out,
+                runner_factory=_FakeRunner)
+            report = audit_path(out, experiment=experiment)
+        self.assertTrue(any(issue.code == "sandbox"
                             for issue in report.errors))
 
 

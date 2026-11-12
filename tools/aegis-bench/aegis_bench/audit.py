@@ -227,6 +227,12 @@ def _audit_campaign(
                 "error", "isolation",
                 f"row adapter isolation {isolation!r} does not match "
                 f"{experiment.adapter_isolation!r}", record.run_id))
+        if experiment.require_sandbox and not (
+                record.isolation or {}).get("sandbox"):
+            issues.append(AuditIssue(
+                "error", "sandbox",
+                "experiment requires a sandbox but this row ran without one",
+                record.run_id))
         task_hash = current_hashes.get(record.task_id)
         if task_hash and record.task_hash != task_hash:
             issues.append(AuditIssue(

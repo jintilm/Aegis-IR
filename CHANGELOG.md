@@ -51,6 +51,11 @@ versions follow SemVer once past alpha.
   child process and passes a workspace-only `TaskView`; the repository task
   root, grader material and object state stay in the parent. This is not yet a
   filesystem/network sandbox, and every row records that distinction.
+- **Landlock worker sandbox** — `require_sandbox: true` installs a deny-by-
+  default Linux filesystem policy before adapter code runs and allows TCP
+  connects only to the per-cell broker/meter ports. Offline tests prove that a
+  repo read and an unapproved TCP port are denied. UDP and same-port IP
+  targeting remain outside Landlock's scope.
 - **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
   temporary file, fsynced and atomically replaced. A killed campaign therefore
   resumes from the previous complete report rather than parsing a truncated

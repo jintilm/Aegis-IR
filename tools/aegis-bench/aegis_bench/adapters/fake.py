@@ -123,6 +123,51 @@ class BrokerStubAgent(StubAgent):
                     "tool_broker_calls": calls})
 
 
+class ForbiddenReadAgent(StubAgent):
+    """Assert that process isolation blocks a configured host path."""
+
+    name = "forbidden-read"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        path = os.environ.get("AEGIS_TEST_FORBIDDEN_PATH")
+        if not path:
+            raise AdapterError("AEGIS_TEST_FORBIDDEN_PATH is not set")
+        try:
+            Path(path).read_bytes()
+        except PermissionError:
+            pass
+        except OSError as exc:
+            raise AdapterError(f"unexpected forbidden-path error: {exc}") from exc
+        else:
+            raise AdapterError(f"process isolation allowed read of {path}")
+        return super().solve(task, workspace)
+
+
+class ForbiddenConnectAgent(StubAgent):
+    """Assert that process isolation blocks a configured TCP port."""
+
+    name = "forbidden-connect"
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        raw = os.environ.get("AEGIS_TEST_FORBIDDEN_PORT")
+        if not raw:
+            raise AdapterError("AEGIS_TEST_FORBIDDEN_PORT is not set")
+        import socket
+
+        try:
+            sock = socket.create_connection(
+                ("127.0.0.1", int(raw)), timeout=1)
+        except PermissionError:
+            return super().solve(task, workspace)
+        except OSError as exc:
+            raise AdapterError(
+                f"unexpected forbidden-port error: {exc}") from exc
+        else:
+            sock.close()
+            raise AdapterError(
+                f"process isolation allowed TCP connect to {raw}")
+
+
 class BrokenAgent(Agent):
     name = "broken"
     adversary = "n/a (fault injection)"

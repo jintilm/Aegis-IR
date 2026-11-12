@@ -30,6 +30,7 @@
   "require_meter": true,
   "require_broker_tools": true,
   "adapter_isolation": "process",
+  "require_sandbox": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/protection-pilot",
   "notes": "Copy outside the tree or edit the placeholders. Real adapters stay out-of-tree; the example is not runnable unchanged."

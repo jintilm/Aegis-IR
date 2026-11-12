@@ -248,8 +248,9 @@ powered count above.
 - Reference-adapter tool calls go through a per-run loopback broker. It
   enforces the task's declared tools, workspace-relative file access, call
   budget, probe/disassembly limits and submission policy, then records
-  authoritative counters in `tools`. Bypass remains possible until the adapter
-  worker is isolated from the repository and network.
+  authoritative counters in `tools`. `adapter_isolation=process` moves the
+  adapter to a child; `require_sandbox` adds Landlock filesystem and TCP-port
+  restrictions on Linux. UDP and full network namespaces remain open.
 - The workspace contains the task's visible files plus, for binary-recovery
   tasks, either the oracle **shim** (`oracle` access) or the stripped **probe**
   (`binary` access) — never ground truth, the grader, property tests or hidden
@@ -394,11 +395,11 @@ clean-tree requirement; `campaign-state.json` makes the run resumable after a
 kill, and `aegis-bench audit` checks the raw JSONL against the planned cells.
 See [`campaigns.md`](campaigns.md).
 
-Campaign orchestration is not process isolation. The current adapter still
-runs in-process, tool calls are self-reported, and binary-access probe
-executions are uncounted. The worker/broker boundary that closes those gaps is
-specified in [`isolation.md`](isolation.md); protection-effect claims require
-it.
+Campaign orchestration can run the adapter in-process or in a subprocess, and
+can require Landlock on Linux. Direct in-process tool calls still bypass the
+broker; binary-access local probe executions remain uncounted. Full network
+namespaces and UDP egress are specified in [`isolation.md`](isolation.md) and
+remain a protection-effect-claim gate.
 
 ## Oracle-budget curve
 

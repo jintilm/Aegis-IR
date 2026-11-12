@@ -137,7 +137,8 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
 - **Task schema v2** records `tool_policy`, `input_domain`, `experiment_use`, `difficulty` and
   `protectability` in every run row as `task_protocol`. The tool policy is declared metadata,
   enforced by the loopback tool broker for mediated calls. Direct in-process tool use can still
-  bypass it; process/network isolation remains a publishability gate.
+  bypass it. `adapter_isolation=process` adds a child boundary; `require_sandbox` on Linux adds
+  Landlock filesystem/TCP-port rules. UDP and full network namespaces remain a publishability gate.
 
 ## Reports and provenance
 

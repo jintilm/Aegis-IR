@@ -22,6 +22,7 @@ aegis_bench/
 ├── audit.py     JSONL/matrix/provenance audit
 ├── toolbroker.py policy-checked workspace tools, counters and call budget
 ├── worker.py    optional subprocess boundary + workspace-only TaskView
+├── landlock.py  Linux filesystem/TCP-port worker policy
 ├── report.py    JSONL / CSV / Markdown reports
 ├── adapters/    offline deterministic adapters (test doubles)
 └── cli.py       `hash`, `check`, `run`, `campaign`, `audit`
@@ -91,8 +92,9 @@ execution, disassembly and submission.
 Campaign manifests can set `adapter_isolation: "process"` (or `run` can pass
 `--adapter-isolation process`). The adapter then executes in a fresh child with
 a workspace-only `TaskView`, not the repository task root. This is a process
-boundary for crash/object-state isolation; it does not yet restrict the child's
-filesystem or network access.
+boundary for crash/object-state isolation. On Linux, `require_sandbox: true`
+adds Landlock: runtime/workspace filesystem allowlists and TCP connects only
+to the broker/meter ports. UDP and same-port IP targeting are not covered.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1

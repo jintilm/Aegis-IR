@@ -539,14 +539,22 @@ class Runner:
             budgets["enforcement"]["adapter_isolation"] = self.adapter_isolation
             run_agent: Agent = agent
             if self.adapter_isolation == "process":
+                isolation_ports = []
+                if tool_broker is not None:
+                    isolation_ports.append(tool_broker.port)
+                if meter is not None:
+                    isolation_ports.append(meter.port)
                 run_agent = ProcessIsolatedAgent(
-                    agent, timeout_seconds=timeout)
+                    agent, timeout_seconds=timeout,
+                    tcp_ports=tuple(isolation_ports))
             with _metered_endpoint(meter), _tool_broker_endpoint(tool_broker):
                 # Inside the block, so an adapter that reads its endpoint in
                 # ``prepare`` sees the meter too.
                 run_agent.prepare(task, workspace)
                 result, _enforced = _call_with_deadline(
                     lambda: run_agent.solve(task, workspace), timeout)
+            if self.adapter_isolation == "process":
+                isolation.update(run_agent.last_isolation)
             ledger = dict(result.ledger)
             ledger["ledger_source"] = "self-reported by adapter"
             if result.notes:

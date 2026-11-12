@@ -41,9 +41,11 @@ a blocker, and a box checked without evidence is worse.
       `test_toolbroker.py`.
 - [x] Optional process-isolated adapter worker receives a workspace-only
       `TaskView`, not the repository task root; covered by `test_worker.py`.
-- [ ] Filesystem/network isolation around the adapter worker. The broker
-      remains bypassable until the worker cannot directly read the repository
-      or open arbitrary network connections.
+- [x] Linux Landlock worker policy restricts filesystem access to the
+      workspace/runtime allowlist and permits TCP connects only to the
+      broker/meter ports; tests deny a repo read and an unapproved TCP port.
+- [ ] Full network-namespace egress isolation. Landlock cannot block UDP or
+      distinguish IP addresses for the allowed TCP ports.
 - [x] Clean-tree `v0.2.0-alpha` validation report generated from commit
       `114cd4f`: `docs/reports/harness-validation-v0.2.0-alpha/`. The rows
       record `commit_dirty: no`; campaign audit reports 0 errors and 0

@@ -206,6 +206,12 @@ class ToolBroker:
             raise RuntimeError("tool broker is not started")
         return f"http://127.0.0.1:{self._httpd.server_address[1]}"
 
+    @property
+    def port(self) -> int:
+        if self._httpd is None:
+            raise RuntimeError("tool broker is not started")
+        return int(self._httpd.server_address[1])
+
     def stop(self, *, reported_by_adapter: int | float | None = None
              ) -> dict[str, Any]:
         if self._httpd is not None:

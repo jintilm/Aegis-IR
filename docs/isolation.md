@@ -1,9 +1,9 @@
 # Isolation and tool accounting
 
-Status: the loopback tool broker and optional adapter subprocess are
-implemented; filesystem and network isolation are not. The worker is a process
-boundary, **not** a sandbox. This document distinguishes what the current code
-enforces from what a publishable campaign must add.
+Status: the loopback tool broker, adapter subprocess, and optional Linux
+Landlock filesystem/TCP-port boundary are implemented. A non-Linux or
+Landlock-disabled process is only a process boundary. UDP and full network
+namespace isolation remain open.
 
 ## What is implemented
 
@@ -20,6 +20,7 @@ enforces from what a publishable campaign must add.
 | Task tool contract | schema v2 `tool_policy` records the declared tool set |
 | Tool broker | loopback policy checks, counters, byte caps and call cap when the adapter uses it |
 | Adapter process | optional fresh child process with a workspace-only TaskView and no repository task root |
+| Landlock worker | Linux filesystem allowlist and TCP connect rules for broker/meter ports |
 
 These controls stop accidental leakage and several replay tricks. They do not
 stop a malicious adapter from walking the host filesystem, reading the
@@ -55,8 +56,8 @@ process, so a compromised adapter cannot observe the grader's file view.
 
 ## Worker boundary
 
-The implemented first stage is one fresh subprocess per cell. The minimum
-publishable boundary extends it to a sandboxed worker:
+The implemented first stage is one fresh subprocess per cell, optionally
+sandboxed by Landlock. The stronger container boundary remains:
 
 1. Create a fresh workspace with only the declared visible files.
 2. Start a disposable container or namespace with a read-only adapter mount.
@@ -70,9 +71,12 @@ publishable boundary extends it to a sandboxed worker:
 The harness already starts one oracle broker and one meter per run. Those
 become network services scoped to the worker's lifecycle.
 
-The current subprocess path uses `TaskView.path()` to hide task-root paths and
-keeps the broker/meter endpoints in the child environment. It is useful for
-crash containment and object-state hygiene; it is not a security boundary.
+The subprocess path uses `TaskView.path()` to hide task-root paths and keeps
+the broker/meter endpoints in the child environment. On Linux with Landlock,
+the worker installs a filesystem allowlist and permits TCP connects only to the
+broker/meter ports. The tests verify that repo reads and unapproved TCP ports
+are denied. UDP, same-port IP targeting, and non-Linux hosts remain outside
+this boundary.
 
 ## Tool broker
 
@@ -149,13 +153,14 @@ A release must fail if any of these controls is missing:
 ## Publishability gate
 
 A campaign can be used as a **measurement** when reports are metered and
-auditable. A campaign can support a **protection-effect claim** only after the
-worker boundary is implemented and the isolation acceptance tests run in CI.
-Until then:
+auditable. A campaign can support a **protection-effect claim** only when
+`require_sandbox: true` rows pass audit and the remaining full-egress
+acceptance items are closed:
 
 - token results may be cited only with the current meter caveat;
 - broker tool counts describe mediated calls, while `tools.requests: 0` means
   the adapter bypassed the broker;
 - oracle access is counted only because the workspace holds the shim;
 - binary access does not count local executions;
-- no report may imply that the adapter or grader is sandboxed.
+- Landlock is port-based, not a network namespace; UDP egress is not blocked;
+- no report may imply that the adapter or grader is fully host-isolated.

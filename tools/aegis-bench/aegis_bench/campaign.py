@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .agent import Agent, AdapterError, create_agent
+from .landlock import abi_version as landlock_abi_version
 from .report import atomic_write_text, write_reports
 from .runner import (
     ACCESS_MODES, ADAPTER_ISOLATION_MODES, Runner, RunRecord,
@@ -43,6 +44,7 @@ _ALLOWED_KEYS = {
     "tasks", "agents", "profiles", "repetitions", "repetition_start",
     "access", "order", "seed", "require_clean", "require_meter",
     "require_broker_tools", "adapter_isolation",
+    "require_sandbox",
     "allow_oracle_comparison", "out", "notes",
 }
 
@@ -119,6 +121,7 @@ class Experiment:
     require_meter: bool
     require_broker_tools: bool
     adapter_isolation: str
+    require_sandbox: bool
     allow_oracle_comparison: bool
     out: Path | None
     notes: str
@@ -353,6 +356,7 @@ def load_experiment(path: str | Path) -> Experiment:
         require_broker_tools=_bool(
             raw, "require_broker_tools", False),
         adapter_isolation=adapter_isolation,
+        require_sandbox=_bool(raw, "require_sandbox", False),
         allow_oracle_comparison=_bool(
             raw, "allow_oracle_comparison", False),
         out=(path.parent / out_raw).resolve() if out_raw else None,
@@ -558,6 +562,19 @@ def _run_campaign_unlocked(
         raise ExperimentError(
             f"{experiment.path}: require_broker_tools=true but the tool "
             f"broker was disabled")
+    if experiment.require_sandbox:
+        if experiment.adapter_isolation != "process":
+            raise ExperimentError(
+                f"{experiment.path}: require_sandbox=true needs "
+                f"adapter_isolation='process'")
+        if os.name != "posix" or landlock_abi_version() <= 0:
+            raise ExperimentError(
+                f"{experiment.path}: require_sandbox=true but Landlock is "
+                f"unavailable on this host")
+        if os.environ.get("AEGIS_LANDLOCK") == "0":
+            raise ExperimentError(
+                f"{experiment.path}: require_sandbox=true but "
+                f"AEGIS_LANDLOCK=0 disables it")
 
     tasks = experiment.resolve_tasks(allow_private=allow_private)
     task_by_id = {task.id: task for task in tasks}
@@ -648,6 +665,7 @@ def _run_campaign_unlocked(
             "adapter_versions": preflight,
             "require_broker_tools": experiment.require_broker_tools,
             "adapter_isolation": experiment.adapter_isolation,
+            "require_sandbox": experiment.require_sandbox,
             "completed_cells": sorted(completed),
         }
 

@@ -26,6 +26,9 @@ class AdapterError(Exception):
 BUILTIN_ADAPTERS = {
     "stub": "aegis_bench.adapters.fake:StubAgent",
     "broker-stub": "aegis_bench.adapters.fake:BrokerStubAgent",
+    "forbidden-read": "aegis_bench.adapters.fake:ForbiddenReadAgent",
+    "forbidden-connect":
+        "aegis_bench.adapters.fake:ForbiddenConnectAgent",
     "broken": "aegis_bench.adapters.fake:BrokenAgent",
     "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",

@@ -101,6 +101,14 @@ CAMPAIGN_CFG="$REPO_ROOT/experiments/offline-smoke.json"
 (cd "$BENCH_ROOT" && python3 -m aegis_bench audit "$CAMPAIGN_OUT" \
   --experiment "$CAMPAIGN_CFG")
 
+echo "== process sandbox and broker campaign =="
+PROCESS_OUT="$OUT/process-campaign"
+PROCESS_CFG="$REPO_ROOT/experiments/process-smoke.json"
+(cd "$BENCH_ROOT" && python3 -m aegis_bench campaign \
+  --config "$PROCESS_CFG" --out "$PROCESS_OUT")
+(cd "$BENCH_ROOT" && python3 -m aegis_bench audit "$PROCESS_OUT" \
+  --experiment "$PROCESS_CFG")
+
 python3 - "$OUT" <<'PY'
 import json
 import sys
@@ -150,6 +158,10 @@ with open(f"{root}/campaign/campaign-state.json", encoding="utf-8") as fh:
     state = json.load(fh)
 assert state["complete"] is True, state
 assert state["cells_completed"] == 1, state
+process = row("process-campaign")
+assert process["isolation"]["adapter"] == "process", process["isolation"]
+assert process["isolation"]["sandbox"] is True, process["isolation"]
+assert process["tools"]["requests"] >= 3, process["tools"]
 # No host or user name may reach a committed report.
 assert "host" not in base["environment"] and "user" not in base["environment"]
 assert base["environment"]["machine"]

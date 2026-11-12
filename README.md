@@ -24,7 +24,9 @@ numbers too.
 `v0.2.0-alpha` — reproducible measurement prototype, not a hardened
 protector. Campaign/resume/audit and harness-owned token/tool brokers are
 implemented, including an optional adapter subprocess boundary; filesystem and
-network isolation remain the publishability gate.
+network isolation remain the publishability gate. Linux `require_sandbox`
+workers additionally use Landlock for workspace/runtime file access and
+broker/meter TCP-port restriction. UDP and full egress namespaces remain open.
 
 Present in the tree: `aegis-audit` (read-only summary), `aegis-lint`
 (read-only protectability preflight), `aegis-policy`
@@ -191,7 +193,7 @@ python3 -m aegis_bench audit ../../bench-out/offline-smoke \
 
 Real runs pass an adapter from outside this repository, so no vendor SDK or API
 key enters the tree or CI; run it with only the workspace mounted, since the
-harness isolates the workspace but does not sandbox the process.
+harness isolates the workspace but defaults to an in-process adapter.
 `aegis-bench campaign` owns the matrix, interleaves repetitions, writes
 atomically after every cell and resumes from the raw JSONL. `aegis-bench
 audit` checks duplicate/missing cells, stale task hashes, mixed meter
@@ -241,8 +243,8 @@ Known limits, stated so they are not discovered as surprises:
 - benchmark tool calls are broker-measured for mediated requests, but an
   in-process adapter can bypass the broker; tokens are provider-measured only
   when the meter is used, and otherwise self-reported. Oracle queries are
-  counted by the broker, which is accounting rather than a sandbox; process
-  and network isolation are not implemented;
+  counted by the broker. Optional Linux worker sandboxes use Landlock, but
+  UDP and full network-namespace isolation are not implemented;
 - `aegis-debug` (unprotected `-O0 -g`) is the supported way to debug a
   protected program — not the protected build itself.
 

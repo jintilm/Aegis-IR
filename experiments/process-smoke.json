@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "name": "process-sandbox-smoke",
+  "purpose": "harness-validation",
+  "primary_metric": "pass_rate",
+  "tasks_root": "../benchmarks/tasks-public",
+  "tasks": [
+    "rolling-token-v1"
+  ],
+  "agents": [
+    {
+      "id": "broker-stub",
+      "adapter": "broker-stub",
+      "expected_version": "builtin-test-double-v1"
+    }
+  ],
+  "profiles": [
+    "baseline"
+  ],
+  "repetitions": 1,
+  "repetition_start": 0,
+  "access": "oracle",
+  "order": "interleaved",
+  "seed": 29,
+  "require_clean": false,
+  "require_meter": false,
+  "require_broker_tools": true,
+  "adapter_isolation": "process",
+  "require_sandbox": true,
+  "allow_oracle_comparison": false,
+  "out": "../bench-out/process-smoke"
+}

@@ -49,6 +49,7 @@ things that a multi-hour comparison needs:
   "require_meter": true,
   "require_broker_tools": true,
   "adapter_isolation": "process",
+  "require_sandbox": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/packed-record-protection-pilot"
 }
@@ -75,6 +76,7 @@ things that a multi-hour comparison needs:
 | `require_meter` | reject a campaign with no model metering proxy |
 | `require_broker_tools` | fail audit if any run has no harness-broker tool traffic |
 | `adapter_isolation` | `in-process` or `process`; `process` is a subprocess boundary, not a filesystem/network sandbox |
+| `require_sandbox` | require Linux Landlock filesystem/TCP rules and fail audit if a row lacks them |
 
 All adapters must expose a non-empty `version`. A campaign preflights every
 adapter once, checks its identity and version, and then creates a fresh
@@ -88,8 +90,10 @@ not cite that output as a model result.
 `adapter_isolation: "process"` imports a fresh adapter inside a child process
 and passes it a workspace-only `TaskView`, not the repository task root.
 The parent still owns brokered tools and grading. This closes object-state and
-crash coupling; it does not yet stop the child from reading arbitrary host
-paths or opening network connections.
+crash coupling. With `require_sandbox: true`, Landlock additionally installs a
+workspace/runtime filesystem allowlist and TCP connect rules for only the
+broker/meter ports before adapter code runs. UDP and same-port IP targeting
+remain outside Landlock's current scope.
 
 ## Commands
 
@@ -100,6 +104,11 @@ cd tools/aegis-bench
 python3 -m aegis_bench campaign --config ../../experiments/offline-smoke.json
 python3 -m aegis_bench audit ../../bench-out/offline-smoke \
   --experiment ../../experiments/offline-smoke.json
+
+# exercise the process worker, tool broker and Linux Landlock boundary
+python3 -m aegis_bench campaign --config ../../experiments/process-smoke.json
+python3 -m aegis_bench audit ../../bench-out/process-smoke \
+  --experiment ../../experiments/process-smoke.json
 ```
 
 Run a real pilot:

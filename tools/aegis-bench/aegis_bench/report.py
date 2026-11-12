@@ -50,7 +50,7 @@ CSV_FIELDS = [
     "reason", "cases_total", "cases_passed", "success_rate",
     "tokens", "metered_tokens", "metered_requests", "tool_calls",
     "broker_tool_calls", "broker_tool_denied", "broker_tool_source",
-    "adapter_isolation", "ledger_source",
+    "adapter_isolation", "sandbox", "ledger_source",
     "artifact_sha256",
     "artifact_bytes", "artifact_text", "adapter_timeout", "oracle_queries",
     "oracle_refused", "oracle_budget", "task_calibration", "private", "commit",
@@ -194,6 +194,8 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "source", ""),
             "adapter_isolation": (row.get("isolation") or {}).get(
                 "adapter", ""),
+            "sandbox": (row.get("isolation") or {}).get(
+                "sandbox", ""),
             "ledger_source": row["ledger"].get("ledger_source", ""),
             "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
             "artifact_bytes": row.get("artifact", {}).get("size_bytes", ""),
@@ -332,6 +334,18 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
             f"`{name}` ({purpose or 'purpose unset'}, manifest "
             f"`{digest[:12] or '?'}`)" for name, digest, purpose in campaigns)
         lines += ["- Campaigns: " + rendered, ""]
+    isolation_modes = sorted({
+        str((record.isolation or {}).get("adapter") or "legacy/unspecified")
+        for record in records
+    })
+    sandboxed = sum(1 for record in records
+                    if (record.isolation or {}).get("sandbox"))
+    lines += [
+        "- Adapter isolation: "
+        + ", ".join(f"`{mode}`" for mode in isolation_modes)
+        + f"; {sandboxed}/{len(records)} row(s) record a sandbox",
+        "",
+    ]
     # Rows written before access modes existed put the shim in the workspace,
     # i.e. oracle access; label them with the fact, not with "?".
     accesses = sorted({r.access or ("oracle" if r.artifact else "n/a")

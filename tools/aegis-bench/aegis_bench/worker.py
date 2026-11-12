@@ -1,10 +1,9 @@
 """Out-of-process adapter worker.
 
-The worker is a process boundary, not yet a filesystem/network sandbox. It
-receives a workspace-relative TaskView rather than the repository task root,
-imports a fresh adapter, runs one cell, and returns JSON data. The parent
-process never executes adapter code directly when process isolation is
-selected.
+The worker receives a workspace-relative TaskView rather than the repository
+task root, imports a fresh adapter, runs one cell, and returns JSON data. On
+Linux it can install a Landlock filesystem allowlist and TCP-port restriction;
+that is not a full network namespace, so UDP remains outside the boundary.
 """
 
 from __future__ import annotations
@@ -20,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent import AdapterError, Agent, AgentResult, create_agent
+from .landlock import LandlockError, apply as apply_landlock
 from .schema import Task, TaskError
 
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
@@ -136,7 +136,8 @@ class TaskView:
 class ProcessIsolatedAgent(Agent):
     """Parent-side proxy that executes one adapter call in a child process."""
 
-    def __init__(self, inner: Agent, *, timeout_seconds: int):
+    def __init__(self, inner: Agent, *, timeout_seconds: int,
+                 tcp_ports: tuple[int, ...] = ()):
         self.name = inner.name
         self.adversary = inner.adversary
         self.version = str(getattr(inner, "version", ""))
@@ -147,6 +148,33 @@ class ProcessIsolatedAgent(Agent):
                 f"adapter {inner.name} has no importable adapter_spec for "
                 f"process isolation")
         self.timeout_seconds = timeout_seconds
+        self.tcp_ports = tcp_ports
+        self.last_isolation: dict[str, Any] = {
+            "adapter": "process",
+            "sandbox": False,
+            "filesystem": "not restricted",
+            "network": "not restricted",
+        }
+
+    def _landlock_paths(self) -> list[Path]:
+        package_root = Path(__file__).resolve().parents[1]
+        repo_root = package_root.parents[1]
+        paths = [
+            Path("/usr"), Path("/usr/local"), Path("/lib"), Path("/lib64"),
+            Path("/bin"), Path("/etc"),
+        ]
+        candidates = [package_root]
+        for entry in os.environ.get("PYTHONPATH", "").split(os.pathsep):
+            if entry:
+                candidates.append(Path(entry))
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved in package_root.parents:
+                continue
+            if resolved != package_root and repo_root in resolved.parents:
+                continue
+            paths.append(resolved)
+        return paths
 
     def solve(self, task: Task, workspace: Path) -> AgentResult:
         view = TaskView.from_task(task, workspace)
@@ -159,9 +187,21 @@ class ProcessIsolatedAgent(Agent):
         existing = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = (
             package_root + (os.pathsep + existing if existing else ""))
+        if os.name == "posix" and os.environ.get("AEGIS_LANDLOCK", "1") != "0":
+            env["AEGIS_LANDLOCK"] = "1"
+            env["AEGIS_LANDLOCK_RO_PATHS"] = os.pathsep.join(
+                str(path) for path in self._landlock_paths())
+            env["AEGIS_LANDLOCK_TCP_PORTS"] = ",".join(
+                str(port) for port in self.tcp_ports)
         with tempfile.TemporaryDirectory(prefix="aegis-worker-") as tmp:
-            request_path = Path(tmp) / "request.json"
-            response_path = Path(tmp) / "response.json"
+            transport = Path(tmp)
+            # Adapter diagnostic saves stay in the per-run transport directory,
+            # not a shared /tmp path and not the visible task workspace.
+            save_dir = transport / "submissions"
+            save_dir.mkdir()
+            env["LLM_SAVE_DIR"] = str(save_dir)
+            request_path = transport / "request.json"
+            response_path = transport / "response.json"
             request_path.write_text(
                 json.dumps(request, sort_keys=True) + "\n",
                 encoding="utf-8")
@@ -195,6 +235,9 @@ class ProcessIsolatedAgent(Agent):
                     f"cannot read isolated adapter response: {exc}") from exc
         if not reply.get("ok"):
             raise AdapterError(str(reply.get("error") or "adapter failed"))
+        isolation = reply.get("isolation")
+        if isinstance(isolation, dict):
+            self.last_isolation.update(isolation)
         sources = reply.get("sources")
         ledger = reply.get("ledger")
         if not isinstance(sources, dict) or not isinstance(ledger, dict):
@@ -223,6 +266,36 @@ def main(argv: list[str] | None = None) -> int:
     try:
         request = json.loads(request_path.read_text(encoding="utf-8"))
         task = TaskView.from_payload(request["task"], workspace)
+        isolation = {
+            "adapter": "process",
+            "sandbox": False,
+            "filesystem": "not restricted",
+            "network": "not restricted",
+        }
+        if os.environ.get("AEGIS_LANDLOCK") == "1":
+            try:
+                ro_paths = [
+                    Path(value) for value in
+                    os.environ.get("AEGIS_LANDLOCK_RO_PATHS", "").split(
+                        os.pathsep) if value
+                ]
+                ports = [
+                    int(value) for value in
+                    os.environ.get("AEGIS_LANDLOCK_TCP_PORTS", "").split(
+                        ",") if value
+                ]
+                metadata = apply_landlock(
+                    rw_paths=[workspace, request_path.parent],
+                    ro_paths=ro_paths,
+                    tcp_ports=ports)
+                isolation.update(metadata)
+                isolation["sandbox"] = True
+            except (LandlockError, OSError, ValueError) as exc:
+                _write_response(response_path, {
+                    "ok": False,
+                    "error": f"cannot install worker sandbox: {exc}",
+                })
+                return 0
         agent = create_agent(str(request["adapter_spec"]))
         agent.prepare(task, workspace)
         result = agent.solve(task, workspace)
@@ -231,6 +304,7 @@ def main(argv: list[str] | None = None) -> int:
             "sources": result.sources,
             "ledger": result.ledger,
             "notes": result.notes,
+            "isolation": isolation,
         })
         return 0
     except AdapterError as exc:
