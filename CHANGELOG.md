@@ -71,6 +71,13 @@ versions follow SemVer once past alpha.
   isolation, Landlock/seccomp, the loopback broker and the meter. Both
   candidates reached grading; relay retries and abandoned calls are recorded.
   It is a smoke, not a comparison or effectiveness claim.
+- **N=5 sandbox pilot** — [`docs/reports/pilot-2026-11-13-sandbox-n5/`](docs/reports/pilot-2026-11-13-sandbox-n5/README.md)
+  ran `packed-record-v1` under `binary` access with process isolation,
+  Landlock/seccomp, the harness broker and provider metering. Baseline and
+  level 3 both scored 0/5; metered totals were 1.507M vs 2.532M tokens
+  (**1.68×**) with 97 abandoned calls making the totals floors. The
+  success-rate difference remains unresolved and the result is not an
+  effectiveness claim.
 - **Atomic report writes** — JSONL, CSV and Markdown reports are written to a
   temporary file, fsynced and atomically replaced. A killed campaign therefore
   resumes from the previous complete report rather than parsing a truncated
