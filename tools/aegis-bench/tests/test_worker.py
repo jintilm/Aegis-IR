@@ -188,6 +188,26 @@ class WorkerTests(unittest.TestCase):
             self.assertTrue(records[0].grade.passed, records[0].grade.reason)
             self.assertEqual(records[0].tools["requests"], 3)
 
+    def test_network_namespace_meter_bridge_preserves_base_path(self):
+        if os.name != "posix":
+            self.skipTest("network namespaces are Linux-only")
+        try:
+            unshare_options()
+        except NetnsError as exc:
+            self.skipTest(str(exc))
+        agent = create_agent("meter-path", suffix="/v1")
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("aegis_bench.runner.Grader", _FakeGrader):
+            records = Runner(
+                repo_root=REPO_ROOT, out_dir=Path(tmp),
+                adapter_isolation="process",
+                network_namespace=True,
+                meter_upstream="https://relay.example/v1").run(
+                    [self.task], [agent], profile="baseline")
+        record = records[0]
+        self.assertTrue(record.grade.passed, record.grade.reason)
+        self.assertTrue(record.isolation["network_namespace"])
+
 
 if __name__ == "__main__":
     unittest.main()

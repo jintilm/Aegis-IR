@@ -35,6 +35,7 @@ BUILTIN_ADAPTERS = {
     "ground-truth": "aegis_bench.adapters.fake:GroundTruthAgent",
     "probe-query": "aegis_bench.adapters.fake:ProbeQueryAgent",
     "model-stub": "aegis_bench.adapters.fake:ModelStubAgent",
+    "meter-path": "aegis_bench.adapters.fake:MeterPathAgent",
 }
 
 

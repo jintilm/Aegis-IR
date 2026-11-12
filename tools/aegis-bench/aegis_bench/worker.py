@@ -29,6 +29,7 @@ from .seccomp import SeccompError, apply_socket_policy
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 NETNS_ENV = "AEGIS_NETWORK_NAMESPACE"
 METER_UNIX_ENV = "AEGIS_METER_UNIX_PATH"
+METER_PREFIX_ENV = "AEGIS_METER_PATH_PREFIX"
 BROKER_UNIX_ENV = "AEGIS_TOOL_BROKER_UNIX_PATH"
 
 
@@ -152,6 +153,7 @@ class ProcessIsolatedAgent(Agent):
                  tcp_ports: tuple[int, ...] = (),
                  network_namespace: bool = False,
                  meter_unix_path: str | None = None,
+                 meter_prefix: str = "",
                  broker_unix_path: str | None = None):
         self.name = inner.name
         self.adversary = inner.adversary
@@ -168,6 +170,7 @@ class ProcessIsolatedAgent(Agent):
         self.tcp_ports = tcp_ports
         self.network_namespace = network_namespace
         self.meter_unix_path = meter_unix_path
+        self.meter_prefix = meter_prefix.rstrip("/")
         self.broker_unix_path = broker_unix_path
         self.last_isolation: dict[str, Any] = {
             "adapter": "process",
@@ -223,6 +226,7 @@ class ProcessIsolatedAgent(Agent):
             env[NETNS_ENV] = "1"
             if self.meter_unix_path:
                 env[METER_UNIX_ENV] = self.meter_unix_path
+                env[METER_PREFIX_ENV] = self.meter_prefix
             if self.broker_unix_path:
                 env[BROKER_UNIX_ENV] = self.broker_unix_path
         with tempfile.TemporaryDirectory(prefix="aegis-worker-") as tmp:
@@ -325,7 +329,10 @@ def main(argv: list[str] | None = None) -> int:
                         continue
                     bridge = LoopbackBridge(unix_path).start()
                     bridges.append(bridge)
-                    os.environ[url_env] = bridge.url
+                    suffix = ""
+                    if path_env == METER_UNIX_ENV:
+                        suffix = os.environ.get(METER_PREFIX_ENV, "")
+                    os.environ[url_env] = bridge.url + suffix
                 if not bridges:
                     raise NetnsError(
                         "network namespace is enabled but no Unix-socket "

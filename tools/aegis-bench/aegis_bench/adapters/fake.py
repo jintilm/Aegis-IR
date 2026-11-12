@@ -110,6 +110,23 @@ class ModelStubAgent(StubAgent):
         self.name = f"model-stub-{model}"
 
 
+class MeterPathAgent(StubAgent):
+    """Check that the netns bridge preserves the provider base path."""
+
+    name = "meter-path"
+
+    def __init__(self, *, suffix: str = "/v1"):
+        super().__init__()
+        self.suffix = suffix
+
+    def solve(self, task: Any, workspace: Path) -> AgentResult:
+        url = os.environ.get("AEGIS_METER_BASE_URL", "")
+        if not url.endswith(self.suffix):
+            raise AdapterError(
+                f"meter URL {url!r} lost the {self.suffix!r} prefix")
+        return super().solve(task, workspace)
+
+
 class BrokerStubAgent(StubAgent):
     """Negative control that exercises the harness tool broker."""
 

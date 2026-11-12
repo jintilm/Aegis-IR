@@ -583,6 +583,8 @@ class Runner:
                     network_namespace=self.network_namespace,
                     meter_unix_path=(
                         meter.unix_path if meter is not None else None),
+                    meter_prefix=(
+                        meter.upstream_prefix if meter is not None else ""),
                     broker_unix_path=(
                         tool_broker.unix_path
                         if tool_broker is not None else None))
