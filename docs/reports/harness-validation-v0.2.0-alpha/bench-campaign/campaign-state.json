@@ -1,0 +1,16 @@
+{
+  "adapter_versions": {
+    "ground-truth-replay": "builtin-test-double-v1"
+  },
+  "campaign": "offline-harness-smoke",
+  "cells_completed": 1,
+  "cells_total": 1,
+  "complete": true,
+  "completed_cells": [
+    "rolling-token-v1|baseline|ground-truth-replay|0"
+  ],
+  "manifest_sha256": "4a1a4e35af451ea2bad5cdf5f020dae3add6780891b125dd5cb26786d6e03937",
+  "schema_version": 1,
+  "started_utc": "2026-11-12T13:52:34Z",
+  "updated_utc": "2026-11-12T13:52:43Z"
+}

@@ -8,7 +8,7 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for `v0.2.0-alpha` in the pinned container (`5/5` CTest,
-      292.02 s).
+      291.55 s).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
@@ -36,9 +36,10 @@ a blocker, and a box checked without evidence is worse.
       row carries `task_protocol` plus campaign provenance.
 - [x] `aegis-lint` reports eligible and ineligible selections without changing
       IR (`aegis-controlflow` + CI smoke test).
-- [ ] Generate a clean-tree `v0.2.0-alpha` validation report after committing
-      the release changes. A dirty-tree report may be used locally but must
-      not be presented as published evidence.
+- [x] Clean-tree `v0.2.0-alpha` validation report generated from commit
+      `4782ea7`: `docs/reports/harness-validation-v0.2.0-alpha/`. The rows
+      record `commit_dirty: no`; campaign audit reports 0 errors and 0
+      warnings.
 
 ## Claims and honesty
 

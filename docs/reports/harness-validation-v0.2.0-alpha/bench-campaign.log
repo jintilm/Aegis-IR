@@ -1,0 +1,6 @@
+[PASS] rolling-token-v1 / ground-truth-replay (baseline, rep 0) - 4.11s 
+[campaign 1/1] PASS rolling-token-v1|baseline|ground-truth-replay|0 -> /tmp/bench-campaign/aegis-bench.md
+campaign offline-harness-smoke: 1/1 cells complete (new) -> /tmp/bench-campaign
+raw rows: /tmp/bench-campaign/aegis-bench.jsonl
+campaign offline-harness-smoke: 1/1 cells complete (resumed) -> /tmp/bench-campaign
+raw rows: /tmp/bench-campaign/aegis-bench.jsonl
