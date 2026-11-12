@@ -41,13 +41,20 @@ fi
 COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 
 mkdir -p "$OUT"
-rm -rf "$DATA"
 
 if [ -n "${REUSE_DATA:-}" ]; then
   # Regenerate the report from a run produced by this same script/command
   # without spending the model budget again. The run.log is not recreated.
   echo "reusing existing run data from $REUSE_DATA" >&2
-  cp -r "$REUSE_DATA" "$DATA"
+  # Stage it first: REUSE_DATA may *be* this report's own data directory
+  # (regenerating in place is the common case), and the rm below would
+  # otherwise delete the only copy -- which it did once.
+  STAGE="$(mktemp -d)"
+  cp -r "$REUSE_DATA"/. "$STAGE"/
+  rm -rf "$DATA"
+  mkdir -p "$DATA"
+  cp -r "$STAGE"/. "$DATA"/
+  rm -rf "$STAGE"
   # The console log belongs at the report root, not inside data/.
   rm -f "$DATA/run.log"
   # The console log from the run that produced this data is evidence. A
@@ -58,6 +65,8 @@ if [ -n "${REUSE_DATA:-}" ]; then
   fi
   [ -s "$OUT/run.log" ] || : > "$OUT/run.log"
 else
+  # A fresh run replaces whatever is there; a regeneration stages first.
+  rm -rf "$DATA"
   MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$REPO_ROOT:/src" \
     -v "$ADAPTERS_DIR:/adapters" \
