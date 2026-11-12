@@ -142,15 +142,24 @@ The harness measures pass/fail, case counts, wall clock and — for
 binary-recovery tasks under `oracle` access — oracle queries. The broker sees
 the queries because the workspace holds a shim, not the probe. Under `binary`
 access it sees nothing: the probe is local, so `oracle.queries` is `null` (not
-`0`, which would claim a measurement) and the mode is stamped in every row. It
-**cannot** observe token usage or tool calls either: those come from the
-adapter and are recorded with `ledger_source: "self-reported by adapter"`, and
-the Markdown report repeats that caveat next to the numbers.
+`0`, which would claim a measurement) and the mode is stamped in every row.
 
-The broker is accounting, not a sandbox. An adapter that walks the filesystem
-can find the artifact cache and execute the probe directly; nothing would
-count that. Reports say so. A future adapter protocol can add harness-visible
-counters for tool calls too (e.g. a sandboxed tool proxy).
+Token usage is measured too, when the run has a meter: `--meter-upstream
+<relay-url>` puts a loopback proxy in front of the model endpoint, exports it as
+`AEGIS_METER_BASE_URL`, and records the provider's own `usage` report in the
+row's `metering` block. The proxy asks for usage on the adapter's behalf
+(`stream_options.include_usage`), so measurement does not depend on the
+measured party remembering to report. Without a meter the figures come from the
+adapter and are recorded with `ledger_source: "self-reported by adapter"`.
+Tool calls are always self-reported. The Markdown report repeats whichever
+caveat applies next to the numbers.
+
+Both the broker and the meter are accounting, not sandboxes. An adapter that
+walks the filesystem can find the artifact cache and execute the probe
+directly; an adapter that calls the relay directly bypasses the meter (its row
+then shows `metering.requests: 0`). Reports say so. A future adapter protocol
+can add harness-visible counters for tool calls too (e.g. a sandboxed tool
+proxy).
 
 The Markdown report states a Wilson 95% interval on every pass rate, aggregates
 per (agent, profile), and shows cost deltas against the `baseline` profile with

@@ -72,8 +72,30 @@ Every published row must state:
   it as `adapter_version` in every row);
 - date, harness commit, task content hash, repetition index.
 
-Token and tool-call figures are self-reported by the adapter. Oracle queries are
-counted by the harness. Reports label the two separately and never mix them.
+Token and tool-call figures are self-reported by the adapter unless the run
+went through the harness metering proxy. Oracle queries are counted by the
+harness. Reports label the kinds separately and never mix them.
+
+## Metering: `AEGIS_METER_BASE_URL`
+
+When the harness runs with `--meter-upstream`, it starts a loopback proxy in
+front of the relay and exports `AEGIS_METER_BASE_URL` for the duration of the
+run. **An adapter that makes model calls must prefer that variable over its own
+endpoint configuration**, read at `prepare`/`solve` time rather than at import
+time (the variable is per run). The proxy forwards requests unchanged, adds
+`stream_options.include_usage` to streaming requests so the provider reports
+token usage, and records those totals in the row's `metering` block.
+
+What this changes for the adapter author: nothing about the agent, and
+everything about the evidence. Tokens stop being the adapter's arithmetic and
+become the provider's own report, captured by the harness. An adapter that
+ignores the variable still runs; its rows simply stay labelled self-reported,
+and `metering.requests` is `0` for those runs — visible, not silently wrong.
+
+The proxy is not a sandbox: reaching the relay directly bypasses it. It also
+means the adapter must keep its own accounting, because
+`metering.adapter_exceeds_metered` compares the two and a large gap is
+evidence that traffic left the proxy.
 
 ## OpenAI-compatible endpoint notes
 

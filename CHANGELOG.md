@@ -7,6 +7,26 @@ versions follow SemVer once past alpha.
 
 ### Added
 
+- **Harness-owned token metering** — `--meter-upstream <relay-url>` (or
+  `Runner(meter_upstream=...)`) starts a per-run loopback reverse proxy in front
+  of the model endpoint and exports it to the adapter as
+  `AEGIS_METER_BASE_URL`. For streaming requests the proxy adds
+  `stream_options.include_usage` in flight, so the provider reports usage
+  whether or not the adapter asked for it; the totals in the row's `metering`
+  block are then the **provider's own** report rather than the adapter's
+  arithmetic, and `ledger_source` reads `metered by harness` when every request
+  carried usage. Verified against the reference relay before being written down
+  (injection → `usage` present → 37 prompt / 16 completion tokens counted). The
+  proxy forwards status codes unchanged, because an adapter's retry ladder is
+  part of the agent under measurement. Three limits are documented rather than
+  papered over: it is not a sandbox (bypassing it is possible and shows up as
+  `requests: 0`), a provider may ignore `include_usage` (`total_tokens` is then
+  `null`, never `0`), and the two measurements are kept side by side so an
+  adapter claiming more than the proxy saw is flagged
+  (`metering.adapter_exceeds_metered`). 19 offline tests cover injection,
+  byte-exact streaming pass-through, absent usage, forwarded 5xx, per-run
+  attribution, and the runner path; **the published pilots remain
+  self-reported**, since metering did not exist when they ran.
 - **Statistical-power rules for the benchmark's metrics** — the protocol now
   states which number can carry a result at which N, from measured data rather
   than convention. Success is a Bernoulli per run; the observed level-3 vs

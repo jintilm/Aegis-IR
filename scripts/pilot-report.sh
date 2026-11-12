@@ -113,6 +113,33 @@ groups = defaultdict(list)
 for row in rows:
     groups[row["profile"]].append(row)
 
+
+def tokens_of(row):
+    """Token cost for one run, preferring the metered figure.
+
+    A metered total is the provider's own `usage` report captured by the
+    harness proxy; the ledger figure is the adapter's arithmetic. They are
+    two different measurements of one quantity, so a report may use either
+    but must not silently blend them in one column.
+    """
+    metered = (row.get("metering") or {}).get("total_tokens")
+    if isinstance(metered, (int, float)):
+        return metered
+    ledger = row["ledger"].get("tokens")
+    return ledger if isinstance(ledger, (int, float)) else None
+
+
+costed = [r for r in rows if tokens_of(r) is not None]
+metered_rows = [r for r in costed
+                if isinstance((r.get("metering") or {}).get("total_tokens"),
+                              (int, float))]
+token_kind = ("metered" if costed and len(metered_rows) == len(costed)
+              else "self-reported" if not metered_rows else "mixed")
+meter_line = (f"- token metering: {len(metered_rows)} of {len(costed)} "
+              f"costed runs measured by the harness proxy (provider `usage`); "
+              f"the rest are adapter self-reports"
+              ) if costed else "- token metering: no costed runs"
+
 # Repetitions come from the data, not from a default: regenerating a report
 # must not relabel a 2-repetition run as 3.
 cell_counts: dict[tuple[str, str, str], int] = defaultdict(int)
@@ -178,6 +205,7 @@ lines = [
     f"- repetitions per cell: {reps}",
     f"- step budget: {steps}",
     f"- access: {access}",
+    meter_line,
     *cal_lines,
     "- adapter policy: streaming SSE, thinking enabled, reasoning watchdog, "
     "fresh conversation after repeated unproductive replies, repeated "
@@ -205,15 +233,13 @@ for profile in order:
     # rescued, and including one that failed to compile. Only the second has a
     # cost, and only the second is what the pass column is computed over.
     submitted = sum(1 for r in group if r["ledger"].get("stop_reason") == "submitted")
-    graded = sum(1 for r in group
-                 if isinstance(r["ledger"].get("tokens"), (int, float)))
+    graded = sum(1 for r in group if tokens_of(r) is not None)
     passed = sum(1 for r in group if r["grade"]["passed"])
     oracle = [r["oracle"]["queries"] for r in group
               if r.get("oracle")
               and isinstance(r["oracle"].get("queries"), (int, float))]
     wall = [r["duration_seconds"] for r in group]
-    tokens = [r["ledger"]["tokens"] for r in group
-              if isinstance(r["ledger"].get("tokens"), (int, float))]
+    tokens = [tokens_of(r) for r in group if tokens_of(r) is not None]
     oracle_cell = (f"{statistics.mean(oracle):.1f}" if oracle else
                    ("not counted (binary access)" if mode == "binary"
                     else "n/a"))
@@ -235,9 +261,7 @@ lines += [
     "graded runs.",
 ]
 
-incomplete = {p: len(g) - sum(1 for r in g
-                              if isinstance(r["ledger"].get("tokens"),
-                                            (int, float)))
+incomplete = {p: len(g) - sum(1 for r in g if tokens_of(r) is not None)
               for p, g in groups.items()}
 
 
@@ -282,8 +306,7 @@ if any(incomplete.values()):
 # computed only when both sides have graded runs.
 if "baseline" in groups and len(groups) > 1:
     def tok_mean(rows):
-        vals = [r["ledger"]["tokens"] for r in rows
-                if isinstance(r["ledger"].get("tokens"), (int, float))]
+        vals = [v for v in (tokens_of(r) for r in rows) if v is not None]
         return statistics.mean(vals) if vals else None
 
     base = tok_mean(groups["baseline"])
@@ -296,9 +319,17 @@ if "baseline" in groups and len(groups) > 1:
             ratios.append(f"{profile} **{other / base:.2f}×** baseline "
                           f"({other:.0f} vs {base:.0f} tokens)")
     if ratios:
+        provenance = {
+            "metered": "metered tokens — the provider's own `usage` report, "
+                       "captured by the harness proxy",
+            "self-reported": "self-reported tokens — the adapter's own "
+                             "arithmetic; the harness cannot corroborate it",
+            "mixed": "tokens from a mix of metered and self-reported runs; "
+                     "see `ledger_source` per row before quoting the ratio",
+        }[token_kind]
         lines += [
             "",
-            "**Cost delta (self-reported tokens, all graded runs).** "
+            f"**Cost delta ({provenance}).** "
             + "; ".join(ratios) + ". This is the number the harness exists to "
             "measure. Read it as a magnitude, not as a success-rate result: at "
             "this N a pass-rate difference is inside the interval, and the "

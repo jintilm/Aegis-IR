@@ -6,10 +6,18 @@ a raw row behind it.
 
 Two kinds of number appear here, labelled differently on purpose:
 
-* **measured** — pass/fail, case counts, wall clock, and oracle queries
-  (counted by the harness broker);
-* **self-reported** — tokens and tool calls, which come from the adapter and
-  which the harness cannot corroborate.
+* **measured** — pass/fail, case counts, wall clock, oracle queries (counted
+  by the harness broker), and tokens when the run went through the harness
+  metering proxy (the provider's own usage report);
+* **self-reported** — tokens on runs without a meter, and tool calls, which
+  come from the adapter and which the harness cannot corroborate.
+
+A row can therefore carry a metered token total *and* the adapter's figure.
+Where both exist the metered one is reported, and the disagreement between
+them is in the row (`metering.reported_by_adapter`,
+`metering.adapter_exceeds_metered`): an adapter that claims more than the
+proxy saw had traffic leave the proxy, which is the one direction the meter
+can catch.
 
 Pass rates carry a Wilson 95% interval, which behaves correctly at 0/n and
 n/n where the textbook normal interval collapses. A delta between groups gets
@@ -35,7 +43,8 @@ CSV_FIELDS = [
     "profile",
     "repetition", "started_utc", "duration_seconds", "passed", "stage",
     "reason", "cases_total", "cases_passed", "success_rate",
-    "tokens", "tool_calls", "ledger_source", "artifact_sha256",
+    "tokens", "metered_tokens", "metered_requests", "tool_calls", "ledger_source",
+    "artifact_sha256",
     "artifact_bytes", "artifact_text", "adapter_timeout", "oracle_queries",
     "oracle_refused", "oracle_budget", "task_calibration", "private", "commit",
     "commit_dirty",
@@ -134,6 +143,10 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
                 "cases_passed": row["grade"]["cases_passed"],
                 "success_rate": row["grade"]["success_rate"],
                 "tokens": _ledger_value(row["ledger"], "tokens"),
+                "metered_tokens": _ledger_value(row.get("metering") or {},
+                                                "total_tokens"),
+                "metered_requests": _ledger_value(row.get("metering") or {},
+                                                  "requests"),
                 "tool_calls": _ledger_value(row["ledger"], "tool_calls"),
                 "ledger_source": row["ledger"].get("ledger_source", ""),
                 "artifact_sha256": row.get("artifact", {}).get("sha256", ""),
@@ -153,7 +166,26 @@ def write_csv(records: Iterable[RunRecord], path: Path) -> None:
             })
 
 
+def _metered(record: RunRecord) -> Any:
+    """The provider-attested token total for this run, if there is one."""
+    block = record.metering or {}
+    value = block.get("total_tokens")
+    return value if isinstance(value, (int, float)) else None
+
+
 def _tokens(rows: list[RunRecord]) -> list[float]:
+    """Token cost per run, preferring the metered figure over the self-report.
+
+    Mixing the two within one column would make the column's provenance
+    unreadable, so a list is built from metered values only when every run
+    that has a cost has one; otherwise rows fall back to the adapter's number
+    and the report says which rows those were.
+    """
+    metered = [r for r in rows if _metered(r) is not None]
+    costed = [r for r in rows if isinstance(r.ledger.get("tokens"), (int, float))
+              or _metered(r) is not None]
+    if costed and len(metered) == len(costed):
+        return [float(_metered(r)) for r in metered]
     return [r.ledger["tokens"] for r in rows
             if isinstance(r.ledger.get("tokens"), (int, float))]
 
@@ -161,6 +193,36 @@ def _tokens(rows: list[RunRecord]) -> list[float]:
 def _oracle_queries(rows: list[RunRecord]) -> list[float]:
     return [r.oracle["queries"] for r in rows
             if r.oracle and isinstance(r.oracle.get("queries"), (int, float))]
+
+
+def _token_kind(records: list[RunRecord]) -> str:
+    """``metered`` / ``mixed`` / ``self-rep`` -- what the token column is."""
+    costed = [r for r in records if _metered(r) is not None
+              or isinstance(r.ledger.get("tokens"), (int, float))]
+    metered = [r for r in costed if _metered(r) is not None]
+    if not costed or not metered:
+        return "self-rep"
+    return "metered" if len(metered) == len(costed) else "mixed"
+
+
+def _token_provenance(records: list[RunRecord]) -> str:
+    """One sentence saying who produced the token column, and for which rows."""
+    costed = [r for r in records if _metered(r) is not None
+              or isinstance(r.ledger.get("tokens"), (int, float))]
+    metered = [r for r in costed if _metered(r) is not None]
+    if not costed:
+        return ("Token and tool-call figures are **self-reported by the "
+                "adapter**; the harness cannot corroborate them.")
+    if len(metered) == len(costed):
+        return ("Token figures are **measured**: each run went through a "
+                "harness-owned metering proxy and the totals are the "
+                "provider's own `usage` report. Tool-call figures remain "
+                "self-reported by the adapter.")
+    return (f"Token figures are **metered for {len(metered)} of "
+            f"{len(costed)} costed runs** (provider `usage` via the harness "
+            f"proxy) and **self-reported by the adapter** for the rest; the "
+            f"row's `ledger_source` says which. Tool-call figures are "
+            f"self-reported.")
 
 
 def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
@@ -182,11 +244,12 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         f"or user name is recorded)",
         f"- Runs: {len(records)}",
         "",
-        "Pass/fail, case counts, wall clock and oracle queries are measured by "
-        "the harness. Token and tool-call figures are **self-reported by the "
-        "adapter** and cannot be corroborated. Pass rates carry a Wilson 95% "
-        "interval; cost deltas carry an interval only when both groups have at "
-        "least two runs. A run row states which budgets were enforced.",
+        _token_provenance(records),
+        "",
+        "Pass/fail, case counts, wall clock and oracle queries are always "
+        "measured by the harness. Pass rates carry a Wilson 95% interval; "
+        "cost deltas carry an interval only when both groups have at least "
+        "two runs. A run row states which budgets were enforced.",
         "",
     ]
     versions = sorted({f"{r.agent} {r.adapter_version or '(no version)'}"
@@ -289,7 +352,8 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "## By (profile, agent, task)",
         "",
         "| profile | agent | task | runs | pass | pass rate (95% CI) | "
-        "wall s (mean±sd) | tokens (self-rep) | oracle queries (mean) |",
+        f"wall s (mean±sd) | tokens ({_token_kind(records)}) | "
+        "oracle queries (mean) |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for (profile, agent, task_id), rows in sorted(groups.items()):
@@ -314,7 +378,8 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         "## By (agent, profile), across tasks",
         "",
         "| agent | profile | tasks | runs | pass | pass rate (95% CI) | "
-        "wall s (mean±sd) | tokens (self-rep) | oracle queries (total) |",
+        f"wall s (mean±sd) | tokens ({_token_kind(records)}) | "
+        "oracle queries (total) |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for (agent, profile), rows in sorted(aggregates.items()):
@@ -356,15 +421,24 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
                 f"{_delta_cell(base_queries, queries, digits=1)} | "
                 f"{_delta_cell(base_tokens, tokens, digits=0)} |")
     if delta_rows:
+        kind = _token_kind(records)
+        token_note = {
+            "metered": "and the token delta come from the provider's own "
+                       "usage report, captured by the harness metering proxy.",
+            "mixed": "are measured, and so is the token delta for most rows; "
+                     "the rows whose `ledger_source` says self-reported use "
+                     "the adapter's own arithmetic instead.",
+            "self-rep": "are measured; the token delta is self-reported by "
+                        "the adapter and cannot be corroborated.",
+        }[kind]
         lines += [
             "## Cost delta vs baseline",
             "",
             "Positive means the protected profile cost more. Wall-clock and "
-            "oracle-query deltas are measured; the token delta is "
-            "self-reported.",
+            "oracle-query deltas " + token_note,
             "",
             "| agent | task | cell | Δ wall s (95% CI) | Δ oracle queries | "
-            "Δ tokens (self-rep) |",
+            f"Δ tokens ({kind}) |",
             "|---|---|---|---|---|---|",
             *delta_rows,
             "",

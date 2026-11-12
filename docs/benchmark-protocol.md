@@ -260,8 +260,10 @@ profiles are specified in
 [`reference-adapter.md`](reference-adapter.md).
 
 The harness records the budget config and environment stamp in every row.
-Token and tool-call figures are adapter self-reports and are labelled as such
-in the reports; the harness cannot corroborate them.
+Token figures are **self-reported** unless the run went through the harness
+metering proxy (§[Token metering](#token-metering)); tool-call figures are
+always adapter self-reports. The row's `ledger_source` says which, and the
+reports repeat it next to the numbers.
 
 Oracle queries are different: the broker counts them on the harness side, so
 `oracle.queries` and `oracle.refused` are **measured**. When the manifest sets
@@ -289,10 +291,53 @@ Each run row records both the configured budget and whether it was enforced:
 | Adapter wall clock | enforced (`SIGALRM` on POSIX; watchdog elsewhere, which detects but cannot interrupt) |
 | Candidate build/run time, address space, output size | enforced by the grader |
 | Oracle queries | counted by the harness broker; capped when `budgets.oracle_queries` is set |
+| Tokens | **measured** when `--meter-upstream` is given (provider `usage` via the harness proxy); otherwise adapter self-report |
 | Tool calls, output tokens | **not enforced**; adapter self-report only |
 
-A report may quote enforced numbers; unenforced ones are labelled
+A report may quote enforced numbers. Unenforced ones are labelled
 `self-reported by adapter` and cannot support a cost claim on their own.
+
+## Token metering
+
+Token cost is the metric the benchmark exists to measure, so the harness has
+to own the meter. With `--meter-upstream <relay-base-url>` — or
+`meter_upstream=` on `Runner` — each run starts a loopback reverse proxy in
+front of the model endpoint, exports it to the adapter as
+`AEGIS_METER_BASE_URL`, and records what passed through:
+
+- for a streaming request the proxy sets `stream_options.include_usage` on
+  the way through, so the provider reports usage on the terminal chunk
+  whether or not the adapter asked for it (verified against the reference
+  relay: injection → `usage` present → tokens counted);
+- the totals are the **provider's own** `usage` report, not a re-estimate
+  of characters, which would look like evidence while being a guess;
+- `metering.requests`, `metering.requests_with_usage`,
+  `metering.status_counts` and byte counts are counted by the harness.
+
+Attribution is by port: one proxy per run, so a cell cannot inherit another
+cell's traffic. The block is stamped in the row as `metering`, and
+`ledger_source` reads `metered by harness` only when **every** request in
+the run carried provider usage. Three limits are part of the design, not
+caveats to add later:
+
+1. **It is not a sandbox.** An adapter that calls the upstream directly
+   bypasses the meter. That run shows `requests: 0` and keeps the
+   self-reported label — visibly unmetered rather than quietly mislabelled.
+   A run that both uses and bypasses the proxy is undercounted, and the
+   harness cannot detect it. Process-level isolation is still required
+   before a published cost claim.
+2. **The provider may ignore `include_usage`.** Then requests are counted
+   but carry no usage; `requests_without_usage` says how many and
+   `total_tokens` is `null`, never a zero.
+3. **Deviations are detectable in one direction.** The adapter's own figure
+   is kept beside the metered one; `metering.adapter_exceeds_metered` is
+   true when the adapter claims more than the proxy saw, which means traffic
+   left the proxy. The adapter claiming *less* is normal — aborted calls are
+   estimated, never answered by the provider.
+
+An adapter that ignores `AEGIS_METER_BASE_URL` is not an error: its runs
+simply stay self-reported, and a comparison must not mix the two kinds of
+row in one headline number.
 
 ## Matrix
 
@@ -307,8 +352,10 @@ a count that can resolve a success-rate effect — see
 [statistical power](#statistical-power-which-number-carries-the-result). A
 success-rate claim needs the powered count (100–540 runs per arm for the effect
 sizes measured so far, depending on which runs are pooled); a cost claim can be
-made from the pilot counts, where the measured ratio is now unconditional
-because every run carries a ledger.
+made from the pilot counts, where every run carries a ledger and, under
+`--meter-upstream`, the token total comes from the provider rather than the
+adapter. A matrix row that mixes metered and self-reported runs cannot report a
+headline ratio.
 
 ## Oracle-budget curve
 

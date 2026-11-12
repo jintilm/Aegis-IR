@@ -14,6 +14,7 @@ truth, hidden cases or the grader into the workspace.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -33,6 +34,7 @@ from typing import Any
 from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .grader import Grade, Grader
+from .meter import MeterProxy, ledger_source_for
 from .oracle import OracleBroker, OracleError, install_shim
 from .schema import ACCESS_MODES, Task
 
@@ -89,6 +91,31 @@ class _Deadline:
     def _raise(self, signum: int, frame: Any) -> None:
         raise AdapterTimeout(
             f"adapter exceeded its {self.seconds}s wall-clock budget")
+
+
+#: Environment variable an adapter reads to find the run's metering proxy.
+#: The adapter's own endpoint configuration is left alone: silently rewriting
+#: ``LLM_BASE_URL`` would change the agent behind its back, and an adapter that
+#: ignores this variable is detectable (its run shows zero proxied requests)
+#: rather than quietly mislabelled.
+METER_ENV = "AEGIS_METER_BASE_URL"
+
+
+@contextlib.contextmanager
+def _metered_endpoint(meter: MeterProxy | None):
+    """Publish the meter's base URL to the adapter for the duration of a run."""
+    if meter is None:
+        yield
+        return
+    previous = os.environ.get(METER_ENV)
+    os.environ[METER_ENV] = meter.base_url
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(METER_ENV, None)
+        else:
+            os.environ[METER_ENV] = previous
 
 
 def _call_with_deadline(fn: Any, seconds: int) -> tuple[Any, bool]:
@@ -195,6 +222,10 @@ class RunRecord:
     #: Broker-observed oracle accounting for binary-recovery tasks. This is
     #: measured by the harness, unlike ``ledger``, which the adapter fills in.
     oracle: dict[str, Any] = field(default_factory=dict)
+    #: Harness-owned token metering: what the provider reported for every
+    #: request that passed through the run's proxy. Empty when the run had no
+    #: meter.
+    metering: dict[str, Any] = field(default_factory=dict)
     private: bool = False
     error: str = ""
 
@@ -218,6 +249,7 @@ class RunRecord:
             "environment": self.environment,
             "artifact": self.artifact,
             "oracle": self.oracle,
+            "metering": self.metering,
             "private": self.private,
             "error": self.error,
         }
@@ -230,10 +262,16 @@ class Runner:
                  artifact_cache: Path | None = None,
                  adapter_timeout: int = DEFAULT_ADAPTER_TIMEOUT,
                  keep_workspaces: bool = False,
-                 access: str = ACCESS_ORACLE):
+                 access: str = ACCESS_ORACLE,
+                 meter_upstream: str | None = None):
         if access not in ACCESS_MODES:
             raise ValueError(f"access must be one of {ACCESS_MODES}, "
                              f"got {access!r}")
+        if meter_upstream is not None:
+            # Validate now, not mid-cell: a bad URL should stop the run before
+            # the first repetition is paid for.
+            MeterProxy(meter_upstream)
+        self.meter_upstream = meter_upstream
         self.repo_root = Path(repo_root)
         self.out_dir = Path(out_dir)
         self.cxx = cxx
@@ -313,6 +351,8 @@ class Runner:
         ledger: dict[str, Any] = {}
         artifact: BuiltArtifact | None = None
         broker: OracleBroker | None = None
+        meter: MeterProxy | None = None
+        metering: dict[str, Any] = {}
         oracle: dict[str, Any] = {}
         access = self.access if task.artifact is not None else "n/a"
         budgets: dict[str, Any] = {
@@ -358,15 +398,29 @@ class Runner:
                 budgets["enforcement"]["oracle_queries"] = \
                     broker.stats.enforcement
                 self._install_oracle(broker, artifact, workspace)
-            agent.prepare(task, workspace)
+            if self.meter_upstream:
+                meter = MeterProxy(self.meter_upstream).start()
+                budgets["enforcement"]["tokens"] = \
+                    "measured by harness (provider usage via proxy)"
+            else:
+                budgets["enforcement"]["tokens"] = "not metered (no proxy)"
             timeout = self.adapter_timeout or task.budgets.timeout_seconds
             budgets["enforcement"]["adapter_timeout"] = _deadline_mode(timeout)
-            result, _enforced = _call_with_deadline(
-                lambda: agent.solve(task, workspace), timeout)
+            with _metered_endpoint(meter):
+                # Inside the block, so an adapter that reads its endpoint in
+                # ``prepare`` sees the meter too.
+                agent.prepare(task, workspace)
+                result, _enforced = _call_with_deadline(
+                    lambda: agent.solve(task, workspace), timeout)
             ledger = dict(result.ledger)
             ledger["ledger_source"] = "self-reported by adapter"
             if result.notes:
                 ledger["notes"] = result.notes
+            if meter is not None:
+                metering = meter.stop(
+                    reported_by_adapter=ledger.get("tokens"))
+                meter = None
+                ledger["ledger_source"] = ledger_source_for(metering)
             with Grader(task, cxx=self.cxx) as grader:
                 grade = grader.grade(result.sources)
         except ArtifactError as exc:
@@ -382,6 +436,13 @@ class Runner:
             grade = Grade(False, "agent", f"adapter crashed: {exc!r}")
             error = traceback.format_exc(limit=5)
         finally:
+            if meter is not None:
+                # Reached when the adapter raised or timed out before it
+                # returned a ledger. The traffic it did make still happened
+                # and is still cost.
+                metering = meter.stop(reported_by_adapter=ledger.get("tokens"))
+                if ledger:
+                    ledger["ledger_source"] = ledger_source_for(metering)
             if broker is not None:
                 broker.stop()
                 oracle = broker.stats.to_dict()
@@ -414,6 +475,7 @@ class Runner:
             environment=self.environment,
             artifact=artifact.to_dict() if artifact is not None else {},
             oracle=oracle,
+            metering=metering,
             private=task.private,
             error=error)
 

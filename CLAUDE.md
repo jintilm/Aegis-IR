@@ -107,9 +107,16 @@ Grader (independent) ──► hidden cases + seeded fuzz + property tests ─�
 - **Grader isolation**: no task root on the include path, scratch cwd, minimal env, rlimits,
   output caps, candidate-source policy tripwires (`policy.py`). Errors are returned as grades
   with stages (`build`/`artifact`/`hidden`/`fuzz`/`agent`), not exceptions.
-- **Cost honesty**: pass/fail, case counts, wall clock and oracle queries are measured; tokens
-  and tool calls are adapter self-reports. Reports must keep that distinction and repeat the
-  caveat next to the numbers.
+- **Cost honesty**: pass/fail, case counts, wall clock and oracle queries are measured; tool calls
+  are adapter self-reports. Tokens are **measured only when the run had a meter** (`--meter-upstream`
+  → provider `usage` via a per-run loopback proxy, stamped in `metering` and reflected in
+  `ledger_source`); otherwise they are self-reported. Reports must keep that distinction and repeat
+  the caveat next to the numbers, and must not mix metered and self-reported rows in one headline
+  ratio. The meter is accounting, not a sandbox — say so.
+- **Metering must not depend on adapter cooperation**: the proxy injects
+  `stream_options.include_usage` itself. Do not "fix" an adapter that ignores `AEGIS_METER_BASE_URL`
+  by rewriting `LLM_BASE_URL` — a run that bypasses the meter should stay visibly self-reported
+  (`metering.requests == 0`), not look measured.
 - **Private tasks** (`"private": true`) require `--allow-private`, are gitignored under
   `benchmarks/tasks-private/`, and produce a do-not-publish report banner.
 - **Adapters live outside this repository** by design (no credentials/network in tree or CI).

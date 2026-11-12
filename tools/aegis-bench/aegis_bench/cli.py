@@ -103,7 +103,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                     opt=args.opt, artifact_cache=args.artifact_cache,
                     adapter_timeout=args.adapter_timeout,
                     keep_workspaces=args.keep_workspaces,
-                    access=args.access)
+                    access=args.access,
+                    meter_upstream=args.meter_upstream)
     try:
         records = runner.run(tasks, [agent], profile=args.profile,
                              repetitions=args.repetitions)
@@ -165,6 +166,12 @@ def build_parser() -> argparse.ArgumentParser:
                             "(counted shim; black-box) or 'binary' (the "
                             "stripped probe itself; queries uncounted). "
                             "Default: oracle")
+    p_run.add_argument("--meter-upstream", default=None, metavar="URL",
+                       help="start a loopback metering proxy in front of this "
+                            "model endpoint and export it to the adapter as "
+                            "AEGIS_METER_BASE_URL; token counts then come from "
+                            "the provider's usage report instead of the "
+                            "adapter's own arithmetic")
     p_run.add_argument("--keep-workspaces", action="store_true")
     p_run.set_defaults(func=cmd_run)
     return ap
