@@ -184,12 +184,27 @@ costed = [r for r in rows if tokens_of(r) is not None]
 metered_rows = [r for r in costed
                 if isinstance((r.get("metering") or {}).get("total_tokens"),
                               (int, float))]
+complete_metered = [
+    r for r in metered_rows
+    if (r.get("metering") or {}).get("requests", 0) > 0
+    and (r.get("metering") or {}).get("requests_with_usage")
+    == (r.get("metering") or {}).get("requests")
+]
 token_kind = ("metered" if costed and len(metered_rows) == len(costed)
+              and len(complete_metered) == len(costed)
+              else "partly-metered" if costed
+              and len(metered_rows) == len(costed)
               else "self-reported" if not metered_rows else "mixed")
 meter_line = (f"- token metering: {len(metered_rows)} of {len(costed)} "
               f"costed runs measured by the harness proxy (provider `usage`); "
               f"the rest are adapter self-reports"
               ) if costed else "- token metering: no costed runs"
+if costed and len(metered_rows) == len(costed) \
+        and len(complete_metered) < len(costed):
+    meter_line = (
+        f"- token metering: all {len(costed)} costed runs passed through the "
+        f"harness proxy; {len(complete_metered)} had provider `usage` for "
+        f"every request, so the totals are **floors**")
 # Calls the agent abandoned mid-stream are closed upstream rather than drained,
 # so they carry no usage: a metered total is a floor, not an overstatement.
 disconnects = sum((r.get("metering") or {}).get("client_disconnects") or 0
@@ -419,6 +434,9 @@ if len(groups) > 1:
         provenance = {
             "metered": "metered tokens — the provider's own `usage` report, "
                        "captured by the harness proxy",
+            "partly-metered": "provider-metered token floors — requests that "
+                              "were abandoned before usage arrived are not in "
+                              "the totals",
             "self-reported": "self-reported tokens — the adapter's own "
                              "arithmetic; the harness cannot corroborate it",
             "mixed": "tokens from a mix of metered and self-reported runs; "

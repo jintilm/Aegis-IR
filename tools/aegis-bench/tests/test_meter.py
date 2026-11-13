@@ -33,6 +33,7 @@ sys.path.insert(0, str(TOOL_ROOT))
 from aegis_bench.adapters.fake import ReplayAgent  # noqa: E402
 from aegis_bench.meter import (  # noqa: E402
     MeterProxy, _prepare_request, _read_some, ledger_source_for)
+from aegis_bench.report import _token_kind  # noqa: E402
 from aegis_bench.runner import METER_ENV, Runner  # noqa: E402
 from aegis_bench.schema import load_task  # noqa: E402
 
@@ -428,6 +429,11 @@ class MeterRunnerTests(unittest.TestCase):
         self.assertEqual(row["metering"]["total_tokens"], 16)
         self.assertEqual(row["budgets"]["enforcement"]["tokens"],
                          "measured by harness (provider usage via proxy)")
+
+    def test_partial_provider_usage_is_called_a_floor(self):
+        record = self._record(use_meter=True)
+        record.metering["requests_with_usage"] = 0
+        self.assertEqual(_token_kind([record]), "partly-metered")
 
 
 if __name__ == "__main__":

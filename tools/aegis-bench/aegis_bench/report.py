@@ -247,13 +247,21 @@ def _oracle_queries(rows: list[RunRecord]) -> list[float]:
 
 
 def _token_kind(records: list[RunRecord]) -> str:
-    """``metered`` / ``mixed`` / ``self-rep`` -- what the token column is."""
+    """What the token column is: complete, partial, mixed or self-reported."""
     costed = [r for r in records if _metered(r) is not None
               or isinstance(r.ledger.get("tokens"), (int, float))]
     metered = [r for r in costed if _metered(r) is not None]
     if not costed or not metered:
         return "self-rep"
-    return "metered" if len(metered) == len(costed) else "mixed"
+    if len(metered) != len(costed):
+        return "mixed"
+    complete = all(
+        (r.metering or {}).get("requests", 0) > 0
+        and (r.metering or {}).get("requests_with_usage")
+        == (r.metering or {}).get("requests")
+        for r in metered
+    )
+    return "metered" if complete else "partly-metered"
 
 
 def _token_provenance(records: list[RunRecord]) -> str:
@@ -265,10 +273,22 @@ def _token_provenance(records: list[RunRecord]) -> str:
         return ("Token and tool-call figures are **self-reported by the "
                 "adapter**; the harness cannot corroborate them.")
     if len(metered) == len(costed):
-        return ("Token figures are **measured**: each run went through a "
-                "harness-owned metering proxy and the totals are the "
-                "provider's own `usage` report. Tool-call figures remain "
-                "self-reported by the adapter.")
+        complete = [
+            r for r in metered
+            if (r.metering or {}).get("requests", 0) > 0
+            and (r.metering or {}).get("requests_with_usage")
+            == (r.metering or {}).get("requests")
+        ]
+        if len(complete) == len(metered):
+            return ("Token figures are **measured**: each run went through a "
+                    "harness-owned metering proxy and the totals are the "
+                    "provider's own `usage` report. Tool-call figures remain "
+                    "self-reported by the adapter.")
+        return (f"Token totals are **provider-metered floors** for "
+                f"{len(metered)} runs. Every costed run passed through the "
+                f"harness proxy, but only {len(complete)} runs had provider "
+                f"`usage` for every request; abandoned calls without usage "
+                f"are excluded from the totals.")
     return (f"Token figures are **metered for {len(metered)} of "
             f"{len(costed)} costed runs** (provider `usage` via the harness "
             f"proxy) and **self-reported by the adapter** for the rest; the "
@@ -522,6 +542,9 @@ def write_markdown(records: Iterable[RunRecord], path: Path) -> None:
         token_note = {
             "metered": "and the token delta come from the provider's own "
                        "usage report, captured by the harness metering proxy.",
+            "partly-metered": "are measured; token totals are provider-metered "
+                              "floors because abandoned calls did not carry "
+                              "provider usage.",
             "mixed": "are measured, and so is the token delta for most rows; "
                      "the rows whose `ledger_source` says self-reported use "
                      "the adapter's own arithmetic instead.",
