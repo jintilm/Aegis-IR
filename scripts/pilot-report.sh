@@ -201,10 +201,13 @@ meter_line = (f"- token metering: {len(metered_rows)} of {len(costed)} "
               ) if costed else "- token metering: no costed runs"
 if costed and len(metered_rows) == len(costed) \
         and len(complete_metered) < len(costed):
+    complete_text = ("no run" if not complete_metered
+                     else f"{len(complete_metered)} run(s)")
     meter_line = (
         f"- token metering: all {len(costed)} costed runs passed through the "
-        f"harness proxy; {len(complete_metered)} had provider `usage` for "
-        f"every request, so the totals are **floors**")
+        f"harness proxy; {complete_text} had provider `usage` for every "
+        f"request, so "
+        f"the totals are **floors**")
 # Calls the agent abandoned mid-stream are closed upstream rather than drained,
 # so they carry no usage: a metered total is a floor, not an overstatement.
 disconnects = sum((r.get("metering") or {}).get("client_disconnects") or 0
@@ -416,6 +419,7 @@ if len(groups) > 1:
         return statistics.mean(vals) if vals else None
 
     ratios = []
+    rate_mismatches = []
     for agent_id in sorted(models_by_agent):
         base_rows = groups.get((agent_id, "baseline"))
         if not base_rows:
@@ -430,6 +434,15 @@ if len(groups) > 1:
                     f"{models_by_agent[agent_id]} `{profile}` "
                     f"**{other / base:.2f}×** baseline "
                     f"({other:.0f} vs {base:.0f} tokens)")
+                base_passes = sum(1 for row in base_rows
+                                  if row["grade"]["passed"])
+                other_passes = sum(1 for row in rows_for_profile
+                                   if row["grade"]["passed"])
+                if base_passes != other_passes:
+                    rate_mismatches.append(
+                        f"{models_by_agent[agent_id]} `{profile}` "
+                        f"{other_passes}/{len(rows_for_profile)} vs baseline "
+                        f"{base_passes}/{len(base_rows)}")
     if ratios:
         provenance = {
             "metered": "metered tokens — the provider's own `usage` report, "
@@ -446,12 +459,22 @@ if len(groups) > 1:
             "",
             f"**Cost delta ({provenance}).** "
             + "; ".join(ratios) + ". This is the number the harness exists to "
-            "measure. Read it as a magnitude, not as a success-rate result: at "
-            "this N a pass-rate difference is inside the interval, and the "
+            "measure. Read it as a descriptive magnitude, not as a success-rate "
+            "result: at this N a pass-rate difference is inside the interval, "
+            "and the "
             "protocol's [statistical power]"
             "(../benchmark-protocol.md#statistical-power-which-number-carries-the-result) "
             "section says how many runs a success-rate claim would need.",
         ]
+        if rate_mismatches:
+            lines += [
+                "",
+                "**The token ratio does not hold the success criterion fixed.** "
+                f"Observed pass counts differ between arms: "
+                + "; ".join(rate_mismatches)
+                + ". The ratio therefore mixes protection cost with different "
+                "failure modes and is not an effectiveness result.",
+            ]
 
 lines += [
     "",
@@ -494,9 +517,9 @@ lines += [
     "- **The worker is not a container-isolated service.** Rows record the "
     "private network namespace, Landlock and seccomp policy; non-Linux "
     "fallback is not part of this pilot.",
-    "- Token figures include an estimate for calls aborted by the reasoning "
-    "watchdog (`tokens_source` and `aborted_tokens_estimate` in the JSONL mark "
-    "the share).",
+    "- Provider-metered totals exclude calls abandoned before usage arrived. "
+    "The adapter's separate estimate is recorded in `aborted_tokens_estimate`; "
+    "it is not added to the metered floor.",
     "- Model and relay drift: rerunning later may produce different costs for "
     "the same model id.",
     "",

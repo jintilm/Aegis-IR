@@ -1,0 +1,339 @@
+{
+  "errors": 0,
+  "issues": [
+    {
+      "code": "metering",
+      "message": "provider usage covered 22/27 request(s)",
+      "run_id": "b16d715ecf72ffad",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "b16d715ecf72ffad",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "5 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "b16d715ecf72ffad",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 18/22 request(s)",
+      "run_id": "01c4e69b45d91ab7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "01c4e69b45d91ab7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "4 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "01c4e69b45d91ab7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 26/27 request(s)",
+      "run_id": "ca688bfca4eedb57",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "1 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "ca688bfca4eedb57",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 16/27 request(s)",
+      "run_id": "c567f533ab31141e",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "c567f533ab31141e",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "11 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "c567f533ab31141e",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 17/27 request(s)",
+      "run_id": "861552d25f1aa7e7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "861552d25f1aa7e7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "10 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "861552d25f1aa7e7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 23/28 request(s)",
+      "run_id": "77ec642fa70c0e13",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "77ec642fa70c0e13",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "5 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "77ec642fa70c0e13",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 25/27 request(s)",
+      "run_id": "34d59d37fdac94f5",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "2 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "34d59d37fdac94f5",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 22/27 request(s)",
+      "run_id": "6e7a11e3bb338ff2",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "6e7a11e3bb338ff2",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "5 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "6e7a11e3bb338ff2",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 26/29 request(s)",
+      "run_id": "78a1090e50768b1a",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "3 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "78a1090e50768b1a",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 18/27 request(s)",
+      "run_id": "9307907e6f4d7554",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "9307907e6f4d7554",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "9 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "9307907e6f4d7554",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 18/27 request(s)",
+      "run_id": "ddfa16ccdd32b6d7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "ddfa16ccdd32b6d7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "9 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "ddfa16ccdd32b6d7",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 23/30 request(s)",
+      "run_id": "abbbcfa4009b6ac1",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "abbbcfa4009b6ac1",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "7 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "abbbcfa4009b6ac1",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 18/27 request(s)",
+      "run_id": "e214c92154ee71c0",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "e214c92154ee71c0",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "9 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "e214c92154ee71c0",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 17/27 request(s)",
+      "run_id": "113fb2c5f98bd310",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "113fb2c5f98bd310",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "10 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "113fb2c5f98bd310",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 13/17 request(s)",
+      "run_id": "d2887cd171360667",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "d2887cd171360667",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "4 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "d2887cd171360667",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 24/31 request(s)",
+      "run_id": "66017a403f4f46ab",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "66017a403f4f46ab",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "7 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "66017a403f4f46ab",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 25/27 request(s)",
+      "run_id": "a5a4c1e0cd5b4b2d",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "2 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "a5a4c1e0cd5b4b2d",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 24/27 request(s)",
+      "run_id": "bbab129127828552",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "3 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "bbab129127828552",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 21/27 request(s)",
+      "run_id": "04c36c2f55006c37",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "04c36c2f55006c37",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "6 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "04c36c2f55006c37",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "provider usage covered 14/27 request(s)",
+      "run_id": "6678b7895fb40ec3",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "adapter reported more tokens than the proxy saw; traffic may have bypassed the meter",
+      "run_id": "6678b7895fb40ec3",
+      "severity": "warning"
+    },
+    {
+      "code": "metering",
+      "message": "13 abandoned call(s) carry no provider usage; the metered total is a floor",
+      "run_id": "6678b7895fb40ec3",
+      "severity": "warning"
+    }
+  ],
+  "ok": true,
+  "path": "/src/bench-out/pilot-2026-11-13-dual-model-n5/data/aegis-bench.jsonl",
+  "rows": 20,
+  "warnings": 55
+}
