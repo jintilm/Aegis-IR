@@ -157,6 +157,8 @@ jobs:
           name: aegis-report-${{ github.sha }}
           path: |
             build/differential-report.json
+            build/scorecard/scorecard.json
+            build/scorecard/scorecard.md
             build/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
           retention-days: 30

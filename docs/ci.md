@@ -18,10 +18,11 @@ pull request, and on demand. It has read-only repository permissions, a
 | Python sanity | harness sources are not importable (`compileall`) | cheap syntax gate |
 | Format check | `clang-format --dry-run -Werror` reports a diff | review noise reduction |
 | Repository hygiene | private material tracked, a file > 1 MiB, or a credential-shaped string | a benchmark repo that leaks hidden answers or keys is worse than one that fails |
-| Tests | any CTest suite fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `aegis-bench`) | behavioural gate; the bench suite builds binary-recovery probes at levels 0–3, enforces the candidate-source policy, exercises the adapter timeout, validates the loopback tool broker, proves Landlock/seccomp deny a repo read, an unapproved TCP port and UDP socket creation, tests the private network namespace/Unix-socket bridge when available, and runs/resumes/audits campaigns |
+| Tests | any CTest suite fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `protection-scorecard`, `aegis-bench`) | behavioural gate; the deterministic scorecard enforces default-profile correctness, `.text`, paired p95 and build-time budgets; the bench suite covers task artifacts, broker policy, process/network isolation and campaign resume/audit |
 
-Artifacts uploaded on every outcome: `differential-report.json` and the CTest
-log, retained 30 days. A failing run therefore always has numbers attached.
+Artifacts uploaded on every outcome: `differential-report.json`, the
+`scorecard.json`/`scorecard.md` budget result and the CTest log, retained 30
+days. A failing run therefore always has numbers attached.
 
 The format gate covers the plugin and test fixtures, not the immutable
 benchmark task sources. Those files are part of a task's `content_hash`; merely

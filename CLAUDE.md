@@ -6,14 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Two products in one repo:
 
-1. **Aegis-Bench** (`tools/aegis-bench/`, `benchmarks/`) — the main product: a reproducible
-   benchmark measuring the *cost delta* an AI agent pays to recover a binary's semantics with
-   and without a protection profile. "Can the AI be defeated" is explicitly not a metric.
+1. **Aegis-Bench** (`tools/aegis-bench/`, `benchmarks/`) — the main product: a deterministic
+   protection engineering scorecard plus an optional model-cost harness. Correctness, `.text`,
+   p95 and build-time budgets are the default release gate. AI attack campaigns are selective
+   research evidence, not routine validation.
 2. **Aegis-IR** (`lib/`, `include/`) — an LLVM New-PM obfuscation pass plugin, the subject
    under test. Also a companion deliverable.
 
-Read `docs/threat-model.md` and `docs/claims-ledger.md` before changing any claim, number, or
-README wording. Numbers without a report and a ledger entry are removed.
+Read `docs/protection-scorecard.md`, `docs/threat-model.md` and
+`docs/claims-ledger.md` before changing any claim, number, or README wording.
+Numbers without a report and a ledger entry are removed.
 
 ## Environment and commands
 
@@ -30,6 +32,12 @@ cmake -S . -B build -G Ninja -DLLVM_DIR=$LLVM_DIR -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ctest --test-dir build -R aegis-controlflow --output-on-failure   # single suite
+
+cd tools/aegis-bench
+python3 -m aegis_bench scorecard \
+  --differential ../../build/differential-report.json \
+  --budgets ../../experiments/protection-budgets.json \
+  --out ../../build/scorecard
 ```
 
 Bench harness (stdlib Python only; no network, no model in tests):

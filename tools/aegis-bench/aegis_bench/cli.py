@@ -5,6 +5,7 @@
     python -m aegis_bench run      --tasks-root DIR --profile NAME [options]
     python -m aegis_bench campaign --config EXPERIMENT.json [options]
     python -m aegis_bench audit    REPORT_DIR [--experiment EXPERIMENT.json]
+    python -m aegis_bench scorecard --differential REPORT --budgets JSON
 
 ``run`` requires an adapter chosen by ``--adapter``. Only offline adapters
 ship in this repository; a real-model adapter is passed as
@@ -28,6 +29,8 @@ from .campaign import (
 from .runner import (
     ACCESS_MODES, ACCESS_ORACLE, ADAPTER_ISOLATION_MODES, Runner)
 from .report import write_reports
+from .scorecard import (
+    ScorecardError, evaluate_scorecard, load_budgets, write_scorecard)
 
 
 def _repo_root() -> Path:
@@ -161,6 +164,25 @@ def cmd_audit(args: argparse.Namespace) -> int:
     return 0 if report.ok(strict=args.strict) else 1
 
 
+def cmd_scorecard(args: argparse.Namespace) -> int:
+    try:
+        differential = json.loads(
+            Path(args.differential).read_text(encoding="utf-8"))
+        if not isinstance(differential, dict):
+            raise ScorecardError(
+                "differential report must be a JSON object")
+        budgets = load_budgets(args.budgets)
+        result = evaluate_scorecard(differential, budgets)
+        paths = write_scorecard(result, args.out)
+    except (OSError, json.JSONDecodeError, ScorecardError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(f"scorecard: {'PASS' if result['passed'] else 'FAIL'}")
+    print(f"json: {paths['json']}")
+    print(f"markdown: {paths['markdown']}")
+    return 0 if result["passed"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="aegis-bench")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -269,6 +291,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_audit.add_argument("--json", action="store_true",
                          help="emit a machine-readable audit result")
     p_audit.set_defaults(func=cmd_audit)
+
+    p_scorecard = sub.add_parser(
+        "scorecard",
+        help="evaluate deterministic protection engineering budgets")
+    p_scorecard.add_argument(
+        "--differential", required=True,
+        help="tests/differential JSON report")
+    p_scorecard.add_argument(
+        "--budgets", required=True,
+        help="protection budget JSON")
+    p_scorecard.add_argument(
+        "--out", required=True,
+        help="directory for scorecard.json and scorecard.md")
+    p_scorecard.set_defaults(func=cmd_scorecard)
     return ap
 
 

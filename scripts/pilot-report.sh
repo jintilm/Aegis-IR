@@ -7,6 +7,9 @@
 # numbers do and do not show. The model run executes the harness-owned campaign
 # in gitignored bench-out/, then copies the finished rows into docs/reports/.
 #
+# This is optional research evidence. Routine releases use the deterministic
+# protection-scorecard gate and do not run a model campaign.
+#
 # Usage:
 #   ADAPTERS_DIR=/path/to/adapters LLM_API_KEY=... \
 #     scripts/pilot-report.sh pilot-2026-11-11

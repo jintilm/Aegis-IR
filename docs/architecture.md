@@ -70,10 +70,11 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 
 - **Harness** (`tools/aegis-bench/`): Python; agent adapters, task runner,
   resumable campaign planner, independent JSONL auditor, grader and report
-  generator. Fixed budgets (model version, prompt, tool set, timeouts, token
-  caps) are recorded per run. Task schema v3 records the declared tool policy,
-  input domain, experiment use, difficulty and model-specific calibration in
-  every row.
+  generator. The deterministic protection scorecard is the default release
+  path and needs no model. Optional model runs record fixed budgets (model
+  version, prompt, tool set, timeouts, token caps) per row. Task schema v3
+  records the declared tool policy, input domain, experiment use, difficulty
+  and model-specific calibration.
 - **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Tasks are
   either `reimplement` (brief + examples) or `binary-recovery` (a stripped
   probe built from ground truth at protection levels 0–3). Each task has
@@ -83,9 +84,9 @@ production debugging": rebuild the same commit with it, reproduce, fix.
 - **Scoring**: re-executability against hidden property tests, differential
   fuzzing against ground truth, and a double-blind rubric for descriptive
   answers. Text similarity is never a primary metric.
-- **Red teams**: C1 static, C2 dynamic, C3 symbolic-assisted, plus a
+- **Optional red teams**: C1 static, C2 dynamic, C3 symbolic-assisted, plus a
   *white-box* attacker holding this source code and training decoy filters.
-  The white-box attacker is the honest control.
+  These runs are targeted research evidence; they are not the release gate.
 - **Campaign boundary**: the campaign and atomic checkpoint are implemented.
   A per-cell loopback tool broker enforces the declared tool surface, call
   budget and workspace containment for mediated calls. Campaigns may run the

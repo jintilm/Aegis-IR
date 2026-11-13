@@ -5,8 +5,8 @@ stage 4).
 Builds the fixture algorithm library under every profile defined in
 profiles.json, runs the same input corpus through each binary, and compares
 stdout and exit codes against the baseline profile. Property-check and
-sanitizer failures in stderr fail the run. A JSON report with binary sizes
-and wall-clock times is written for the size/performance baseline.
+sanitizer failures in stderr fail the run. A JSON report with binary sizes,
+build times and wall-clock times is written for the engineering scorecard.
 
 Protected profiles run the full Aegis pipeline in one opt invocation:
   aegis-policy<policy=...>,aegis-decoys,default<O2>,aegis-verify
@@ -38,6 +38,7 @@ BOUNDARY_LENGTHS = [
 ]
 
 TIMEOUT_SECONDS = 10
+RUNTIME_ROUNDS = 3
 
 
 def run_cmd(cmd, timeout=TIMEOUT_SECONDS):
@@ -194,8 +195,10 @@ def main():
     try:
         exes = {}
         for name, spec in profiles.items():
+            build_started = time.perf_counter()
             exe, err = build_profile(name, spec, workdir / name,
                                      args.clang, args.opt, args.plugin)
+            build_ms = (time.perf_counter() - build_started) * 1000.0
             if err:
                 failures.append(f"[{name}] {err}")
                 continue
@@ -205,6 +208,7 @@ def main():
                 "binary_bytes": exe.stat().st_size,
                 "sections": sections,
                 "pipeline": spec.get("pipeline"),
+                "build_ms": build_ms,
                 "cases": 0,
                 "total_ms": 0.0,
                 "timings_ms": [],
@@ -217,63 +221,87 @@ def main():
             print("error: baseline profile failed to build", file=sys.stderr)
             return 1
 
-        baseline_outputs = []
-        for idx, payload in enumerate(corpus):
-            try:
-                out, code, err, ms = execute(exes["baseline"], payload)
-            except subprocess.TimeoutExpired:
-                failures.append(f"[baseline] timeout on case {idx}")
-                baseline_outputs.append(None)
-                continue
-            baseline_outputs.append((out, code))
-            report["profiles"]["baseline"]["cases"] += 1
-            report["profiles"]["baseline"]["total_ms"] += ms
-            report["profiles"]["baseline"]["timings_ms"].append(ms)
-
-        for name, exe in exes.items():
-            if name == "baseline":
-                continue
-            entry = report["profiles"][name]
+        # Interleave profiles per case and repeat the timing pass. The corpus
+        # consists of short-lived processes, so running one profile after
+        # another lets host drift and CPU scheduling masquerade as protection
+        # overhead. Correctness is compared on the first pass; the timing
+        # score is the p95 of per-case protected/baseline ratios across the
+        # repeated passes.
+        order = ["baseline", *[name for name in exes if name != "baseline"]]
+        case_timings = {
+            name: [[]
+                   for _ in corpus]
+            for name in exes
+        }
+        report["runtime_rounds"] = RUNTIME_ROUNDS
+        for round_index in range(RUNTIME_ROUNDS):
             for idx, payload in enumerate(corpus):
-                expected = baseline_outputs[idx]
-                if expected is None:
-                    continue
-                try:
-                    out, code, err, ms = execute(exe, payload)
-                except subprocess.TimeoutExpired:
-                    failures.append(f"[{name}] timeout on case {idx}")
-                    entry["mismatches"] += 1
-                    continue
-                entry["cases"] += 1
-                entry["total_ms"] += ms
-                entry["timings_ms"].append(ms)
-                if (out, code) != expected:
-                    entry["mismatches"] += 1
-                    failures.append(
-                        f"[{name}] case {idx}: output/exit mismatch "
-                        f"(expected {expected[1]}, got {code})")
-                stderr_text = err.decode(errors="replace")
-                if "PROPERTY FAIL" in stderr_text or \
-                        "ERROR: AddressSanitizer" in stderr_text or \
-                        "runtime error:" in stderr_text:
-                    entry["sanitizer_or_property_errors"] += 1
-                    failures.append(
-                        f"[{name}] case {idx}: property/sanitizer report:\n"
-                        f"{stderr_text[:1000]}")
+                expected = None
+                for name in order:
+                    exe = exes[name]
+                    entry = report["profiles"][name]
+                    try:
+                        out, code, err, ms = execute(exe, payload)
+                    except subprocess.TimeoutExpired:
+                        failures.append(
+                            f"[{name}] timeout on case {idx}")
+                        if round_index == 0:
+                            entry["mismatches"] += 1
+                        continue
+                    case_timings[name][idx].append(ms)
+                    if round_index == 0:
+                        entry["cases"] += 1
+                        entry["total_ms"] += ms
+                        entry["timings_ms"].append(ms)
+                    if name == "baseline":
+                        expected = (out, code)
+                        continue
+                    if expected is None:
+                        continue
+                    if round_index == 0:
+                        if (out, code) != expected:
+                            entry["mismatches"] += 1
+                            failures.append(
+                                f"[{name}] case {idx}: output/exit mismatch "
+                                f"(expected {expected[1]}, got {code})")
+                        stderr_text = err.decode(errors="replace")
+                        if "PROPERTY FAIL" in stderr_text or \
+                                "ERROR: AddressSanitizer" in stderr_text or \
+                                "runtime error:" in stderr_text:
+                            entry["sanitizer_or_property_errors"] += 1
+                            failures.append(
+                                f"[{name}] case {idx}: "
+                                f"property/sanitizer report:\n"
+                                f"{stderr_text[:1000]}")
 
         print()
-        # p95 rather than the mean: process startup dominates the corpus and a
-        # few outliers would otherwise hide a per-case slowdown.
         for entry in report["profiles"].values():
             entry["p95_ms"] = percentile(entry.pop("timings_ms"), 95)
-        print(f"{'profile':<16} {'bytes':>8} {'text':>7} {'data':>6} {'p95ms':>9} "
+        for name in report["profiles"]:
+            ratios = []
+            for base_samples, profile_samples in zip(
+                    case_timings["baseline"], case_timings[name]):
+                if not base_samples or not profile_samples:
+                    continue
+                base_ms = sum(base_samples) / len(base_samples)
+                profile_ms = sum(profile_samples) / len(profile_samples)
+                if base_ms > 0:
+                    ratios.append(profile_ms / base_ms)
+            ratio_p95 = percentile(ratios, 95)
+            report["profiles"][name]["relative_p95_ms"] = ratio_p95
+            report["profiles"][name]["relative_p95_delta_pct"] = (
+                ratio_p95 - 1.0) * 100.0
+        print(f"{'profile':<16} {'bytes':>8} {'text':>7} {'data':>6} "
+              f"{'buildms':>9} {'p95ms':>9} {'relp95':>8} "
               f"{'cases':>6} {'mismatch':>8} {'san-err':>7}")
         for name, entry in report["profiles"].items():
             sec = entry.get("sections") or {}
             p95 = entry["p95_ms"]
             print(f"{name:<16} {entry['binary_bytes']:>8} "
                   f"{sec.get('text', 0):>7} {sec.get('data', 0):>6} "
-                  f"{p95:>9.2f} {entry['cases']:>6} "
+                  f"{entry['build_ms']:>9.1f} {p95:>9.2f} "
+                  f"{entry['relative_p95_delta_pct']:>7.2f}% "
+                  f"{entry['cases']:>6} "
                   f"{entry['mismatches']:>8} "
                   f"{entry['sanitizer_or_property_errors']:>7}")
 

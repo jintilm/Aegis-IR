@@ -7,14 +7,18 @@ a blocker, and a box checked without evidence is worse.
 ## Build and tests
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
-      Verified for the `v0.3.0-alpha` candidate in the pinned container
-      (`5/5` CTest, 677.07 s).
+      Verified for the current post-`v0.3.0-alpha` candidate in the pinned
+      container (`6/6` CTest, 707.42 s).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
-      `aegis-controlflow`, `differential`, `aegis-bench`.
+      `aegis-controlflow`, `differential`, `protection-scorecard`,
+      `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
       shows flattening + verifier OK (`aegis-bench` integration test).
 - [x] Differential matrix: zero output mismatches, zero sanitizer reports on
       all eight profiles (`differential-report.json`).
+- [x] Deterministic protection scorecard passes the default-profile budgets:
+      correctness, `.text` <= 25%, paired relative p95 <= 3%, build time <=
+      25% (`scorecard.json`, `scorecard.md`). This is the primary release gate.
 - [x] Grader isolation: candidate include path excludes the task root;
       compile/run use scratch directories, minimal environment and rlimits;
       the candidate-source policy rejects oracle replay tripwires (tests).
@@ -52,9 +56,9 @@ a blocker, and a box checked without evidence is worse.
       broker and meter remain available through per-run Unix-socket bridges.
       Covered by `test_worker.py`, `tests/bench/run.sh` and the network
       namespace release campaign.
-- [x] Dual-model campaign support: experiment schema v2 constructor
-      `options`, worker replay, `agent_config` provenance and a shared adapter
-      source are covered by tests and a real 20-cell pilot.
+- [x] Optional dual-model research support exists (schema v2 options, worker
+      replay, `agent_config`), but model campaigns are not run for ordinary
+      releases. No new attack matrix is required from the release checklist.
 - [x] Clean-tree `v0.3.0-alpha` validation report generated from commit
       `92c375e`: `docs/reports/harness-validation-v0.3.0-alpha/`. CTest 5/5
       in 677.07 s; offline, process and network-namespace campaign audits each

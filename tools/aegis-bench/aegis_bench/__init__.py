@@ -1,9 +1,9 @@
-"""Aegis-Bench: a reproducible benchmark for AI-assisted reverse engineering.
+"""Aegis-Bench: deterministic engineering checks plus optional model evidence.
 
-The harness measures the *cost* an agent pays (tokens, tool calls, wall clock)
-to reach a fixed success criterion, and whether it reaches it at all. Scores
-come from executing the candidate against hidden property tests and a
-differential fuzz corpus, never from text similarity.
+The default release path is model-free: differential correctness, `.text`,
+p95 and build-time budgets are evaluated by the protection scorecard. External
+model adapters remain available for targeted cost studies, but are not needed
+for ordinary development or release validation.
 
 Design constraints (see docs/benchmark-protocol.md):
 
@@ -22,6 +22,7 @@ from .campaign import (
 from .grader import Grade, Grader
 from .runner import Runner, RunRecord
 from .report import write_reports
+from .scorecard import evaluate_scorecard, load_budgets, write_scorecard
 from .toolbroker import ToolBroker, ToolDenied, ToolError, call_tool
 from .worker import ProcessIsolatedAgent, TaskView
 from .seccomp import SeccompError, apply_socket_policy
@@ -50,11 +51,14 @@ __all__ = [
     "audit_path",
     "apply_socket_policy",
     "call_tool",
+    "evaluate_scorecard",
+    "load_budgets",
     "load_task",
     "load_experiment",
     "plan_cells",
     "run_campaign",
     "write_reports",
+    "write_scorecard",
 ]
 
 __version__ = "0.3.0-alpha"

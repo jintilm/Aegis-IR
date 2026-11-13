@@ -3,6 +3,27 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
+## [Unreleased]
+
+### Added
+
+- **Deterministic protection scorecard** - `aegis-bench scorecard` evaluates
+  correctness, `.text`, paired relative p95 and build-time budgets without
+  invoking a model. The default `aegis-standard` profile is the release gate;
+  research profiles are reported without blocking release.
+- **Build-time provenance** - the differential report now records each
+  profile's build wall time.
+- **Interleaved runtime measurement** - profiles are exercised per corpus case
+  over three rounds, and runtime regression uses the p95 of per-case
+  protected/baseline latency ratios. This reduces host and scheduling drift.
+
+### Changed
+
+- **AI campaigns are optional research evidence** - routine development and
+  release validation now use deterministic engineering gates. Model campaigns
+  remain available for targeted cost questions but are no longer the main
+  project loop.
+
 ## [0.3.0-alpha] - 2026-11-13
 
 ### Added

@@ -5,9 +5,10 @@ artifact profiles are implemented and tested offline; twelve public tasks
 (`rolling-token-v1`, `rolling-token-v2`, `packed-record-v1`,
 `lane-shift-v1`, `window-parser-v1`, `state-fold-v1`, `ring-drain-v1`,
 `grid-route-v1`, `delta-ledger-v1`, `sbox-cascade-v1`, `bit-mosaic-v1`,
-`packet-weave-v1`); real-model pilots are published under `docs/reports/`.
-They are pilots, not effectiveness claims. Every number in future reports must
-be traceable to a commit, a model version, and a date.
+`packet-weave-v1`). The default release path is the deterministic
+[protection scorecard](protection-scorecard.md), not a model campaign.
+Real-model pilots remain under `docs/reports/` as selective research evidence,
+not effectiveness claims.
 
 ## Unit of analysis
 
@@ -381,6 +382,9 @@ simply stay self-reported, and a comparison must not mix the two kinds of
 row in one headline number.
 
 ## Matrix
+
+This matrix applies only when a model campaign has a specific research question.
+It is not required for ordinary development or release validation.
 
 `{baseline, aegis-level1, aegis-level2, aegis-level3} × {C1, C2, C3,
 white-box} × {>= 2 model families} × N >= 5 repetitions`, reporting mean,

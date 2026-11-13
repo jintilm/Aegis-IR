@@ -1,32 +1,34 @@
 # Aegis-IR
 
-**LLVM IR-level protection + a reproducible benchmark for the cost of AI-assisted reverse engineering.**
+**LLVM IR-level protection with deterministic engineering scores and optional AI-cost studies.**
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token and tool brokers, independent grader, runner, report generator) exists and is tested offline. The latest **dual-model N=5 sandbox pilot** ([`docs/reports/pilot-2026-11-13-dual-model-n5/`](docs/reports/pilot-2026-11-13-dual-model-n5/README.md)) measured provider-metered token floors of **2.15×** for `deepseek-v4-pro` and **3.03×** for `deepseek-flash` on `packed-record-v1`, with observed pass counts of 2/5→1/5 and 2/5→0/5. Because success was not fixed and 125 abandoned calls carried no usage, those ratios are descriptive, not effectiveness claims. **No effectiveness claim is drawn from any report.**
+- **Aegis-Bench** *(main product)* — a deterministic protection engineering scorecard plus an optional model-cost harness. The default release path runs no LLM and gates correctness, `.text`, paired p95 and build-time budgets through [`docs/protection-scorecard.md`](docs/protection-scorecard.md). Model campaigns remain available for targeted research questions, but they are not routine release evidence. A historical dual-model N=5 pilot measured metered token floors of 2.15× and 3.03× on one task; its arms did not hold success fixed, so that result is descriptive only. **No effectiveness claim is drawn from any report.**
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
 
-Software shipped as binaries is increasingly fed to LLM-based reverse
-engineering. Teams deciding whether to spend effort on software protection have
-no honest, reproducible way to measure what that effort buys. Vendor claims are
-unfalsifiable, and "our obfuscator defeats AI" is not a measurable statement.
+Software protection is usually sold with unfalsifiable claims. Engineering
+teams need to know whether a transform preserves behaviour, how much code and
+runtime it costs, and whether it stays inside a release budget. Separately,
+LLM-based reverse engineering can be studied as an optional research question,
+but an AI-versus-AI loop is a poor substitute for deterministic engineering
+evidence.
 
-This project takes the position that the only defensible claim is a **cost
-delta at a fixed success criterion**, measured on self-authored tasks, with the
-attacker's budget and tooling recorded — and it publishes the unfavorable
-numbers too.
+This project therefore treats the deterministic scorecard as the normal gate
+and model campaigns as selective, explicitly scoped experiments.
 
 ## Status
 
-`v0.3.0-alpha` — reproducible measurement prototype, not a hardened
-protector. Campaign/resume/audit and harness-owned token/tool brokers are
-implemented, including an optional adapter subprocess boundary. Linux
-`require_sandbox`
-workers additionally use Landlock for workspace/runtime file access and
-broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
+`v0.3.0-alpha` — protection engineering prototype, not a hardened protector.
+The deterministic scorecard is the default release path. Campaign/resume/audit
+and harness-owned token/tool brokers remain available for optional model
+research. The harness also includes an optional adapter subprocess boundary.
+The current unreleased tree adds the scored default-profile gate described
+below; it has not yet been cut as a new version.
+Linux `require_sandbox` workers use Landlock for workspace/runtime file access
+and broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
 opt-in `require_network_namespace` path gives the worker a private loopback
 namespace and bridges broker/meter over per-run Unix sockets, removing direct
 host-network reachability.
@@ -50,41 +52,18 @@ bogus edges, volatile-state flattening) raise *static* reconstruction cost and
 are off by default; they are not the threat model's Tier 2/3. **No protection
 effectiveness has been measured, and none is claimed.**
 
-The final pilot ran both models in the same campaign through the same adapter
-source, process worker, Landlock/seccomp policy, private network namespace,
-tool broker and meter. All 20 cells completed binary access with five
-repetitions per model/profile and all 20 used the harness tool broker. The
-provider-metered totals are floors: abandoned calls were closed rather than
-drained, and 125 such calls carried no usage block.
+## Optional model research
 
-The earlier pilot series is retained because its corrections are part of the
-method. Under **`oracle` access** the shim made a protection delta impossible
-by construction. The first `binary` N=2 result (2/2 vs 2/2, ~90% more tokens)
-did not survive its own N=5 rerun (1/5 vs 0/5, with many non-submissions). A
-final-answer turn then made every run gradeable and costable, yielding a
-replicable **1.91×, 2.06×, 2.12×** self-reported token ratio across three
-30-step runs. The new dual-model pilot supersedes that evidence path with
-provider metering and full worker isolation, but does not turn a small-N cost
-magnitude into a protection effect.
+The model harness remains usable, but it is deliberately outside the normal
+release loop. It is appropriate when there is a narrow question such as
+"does this profile increase metered token cost on one calibrated task?" and
+inappropriate as a recurring AI-versus-AI ritual.
 
-Token cost is now a measured quantity rather than a trusted one:
-`--meter-upstream` puts a harness-owned loopback proxy in front of the model
-endpoint, asks the provider for `usage` on the adapter's behalf, and records
-the provider's own totals in the run row. A run that bypasses the proxy stays
-visibly self-reported (`metering.requests: 0`) instead of looking measured. The
-proxy is accounting, not itself a sandbox; the worker's network namespace is
-what removes direct host egress.
-
-The success rate does **not** resolve: pooled, baseline 3/12 vs level 3 2/11
-(Fisher p = 0.55), and pooling the 45-step arm instead moves the estimate nine
-points, which is exactly why no direction is claimed. Reaching 80% power
-against the measured difference would take ~540 runs per arm. **No protection
-effect is claimed.** The durable output is that the harness now records what a
-testable claim requires (access mode, task calibration, submission rate,
-adapter hash, commit), that the earlier null result was a property of the
-access mode rather than of the protection, and that
-[`docs/benchmark-protocol.md`](docs/benchmark-protocol.md) now states which
-metric can carry a result at which N.
+Published pilots are retained as historical research. The latest dual-model
+N=5 run measured descriptive token floors of 2.15× and 3.03× on one task, with
+success changing from 2/5 to 1/5 and 0/5. It did not hold success fixed and is
+not an effectiveness claim. No new model matrix is required to develop, test or
+release the deterministic scorecard.
 
 ## Honest expectations
 
@@ -178,11 +157,32 @@ fail-loud eligibility list and what the transforms do **not** do.
 cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
-Five suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
-`differential` (eight build profiles × 235 corpus cases), `aegis-bench`
-(offline harness tests — no model, no network, no credentials).
+Six suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
+`differential` (eight build profiles × 235 corpus cases),
+`protection-scorecard` (deterministic engineering budgets), and `aegis-bench`
+(offline harness tests, no model, network or credentials).
 
-## Benchmark
+## Protection scorecard
+
+The default validation path is deterministic:
+
+```bash
+python3 tests/differential/run.py \
+  --plugin build/lib/AegisPass.so \
+  --report build/differential-report.json
+
+cd tools/aegis-bench
+python3 -m aegis_bench scorecard \
+  --differential ../../build/differential-report.json \
+  --budgets ../../experiments/protection-budgets.json \
+  --out ../../build/scorecard
+```
+
+It gates the default profile on correctness, `.text`, paired relative p95 and
+build time. Details and limitations:
+[`docs/protection-scorecard.md`](docs/protection-scorecard.md).
+
+## Optional model research
 
 ```bash
 cd tools/aegis-bench
@@ -196,9 +196,9 @@ python3 -m aegis_bench audit ../../bench-out/offline-smoke \
     --experiment ../../experiments/offline-smoke.json
 ```
 
-Real runs pass an adapter from outside this repository, so no vendor SDK or API
-key enters the tree or CI; run it with only the workspace mounted, since the
-harness isolates the workspace but defaults to an in-process adapter.
+This path is optional and is not run for ordinary releases. Real runs pass an
+adapter from outside this repository, so no vendor SDK or API key enters the
+tree or CI; run it with only the workspace mounted.
 `aegis-bench campaign` owns the matrix, interleaves repetitions, writes
 atomically after every cell and resumes from the raw JSONL. `aegis-bench
 audit` checks duplicate/missing cells, stale task hashes, mixed meter

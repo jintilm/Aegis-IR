@@ -60,7 +60,8 @@ through the protection pipeline.
 4. **Fails on**: output/exit mismatches, timeouts, `PROPERTY FAIL` lines from
    the driver's contract assertions, and any ASan/UBSan report in stderr.
 5. **Records the size/time baseline** — binary bytes, `.text`/`.data` section
-   totals, and per-profile p95 wall time into
+   totals, single-sample build time, and interleaved per-profile p95 wall
+   time into
    `build/differential-report.json`. Section totals matter because file size
    is page-quantised: small transforms change `.text` without changing the
    file size. These numbers are the denominator for the cost ledger.
@@ -92,4 +93,5 @@ When a profile breaks:
   profiles; flattening is not recommended for hot paths (volatile state access
   per block).
 - Wall-clock numbers are process-startup dominated for this small fixture; use
-  them as a regression tripwire, not as a performance claim.
+  the paired relative p95 as a regression tripwire, not as a performance
+  claim.

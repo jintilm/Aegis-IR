@@ -59,6 +59,18 @@ cmake --build build -j
 cd build && ctest --output-on-failure
 ' 2>&1 | tee -a "$WORK/ctest.log"
 
+echo "== protection engineering scorecard ==" | tee "$WORK/scorecard.log"
+run_in_container '
+set -e
+cd tools/aegis-bench
+python3 -m aegis_bench scorecard \
+  --differential ../../build/differential-report.json \
+  --budgets ../../experiments/protection-budgets.json \
+  --out ../../build/scorecard
+' 2>&1 | tee -a "$WORK/scorecard.log"
+cp "$REPO_ROOT/build/scorecard/scorecard.json" "$WORK/"
+cp "$REPO_ROOT/build/scorecard/scorecard.md" "$WORK/"
+
 echo "== bench: ground-truth replay (positive control) =="
 echo "== bench: stub (negative control) =="
 # Both runs write to /tmp inside the container; the worktree is touched only
@@ -173,6 +185,9 @@ scripts/release-report.sh $NAME
   same corpus with zero output mismatches and zero sanitizer reports
   (\`differential-report.json\`, including \`.text\`/\`.data\` totals and p95
   wall time per profile);
+- the deterministic protection scorecard enforces the default profile's
+  correctness, \`.text\`, p95 and build-time budgets
+  (\`scorecard.md\`, \`scorecard.json\`);
 - Aegis-Bench builds \`rolling-token-v2\`'s stripped baseline probe and scores
   a known-correct solution at 100% and a compiling-but-wrong one at ~0%
   (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end to
@@ -196,8 +211,8 @@ scripts/release-report.sh $NAME
   was involved, so the token and tool-call columns are \`n/a\` by construction.
   Protection effectiveness against any attacker class is unmeasured and is
   not claimed anywhere in this repository.
-- No performance claim. The fixture is synthetic and small; wall times are
-  process-startup dominated. Treat them as a regression tripwire only.
+- No production-performance claim. The fixture is synthetic and small; the
+  scorecard is a release regression tripwire, not a representative benchmark.
 
 Claims that do exist for this stage are in \`docs/claims-ledger.md\`; each
 entry names its own validation or pilot artifact.

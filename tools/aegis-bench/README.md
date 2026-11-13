@@ -1,9 +1,11 @@
 # Aegis-Bench (main product)
 
-A reproducible benchmark for the *cost* of AI-assisted reverse engineering.
-The measured quantity is the cost delta an agent pays (tokens, tool calls,
-wall clock) to reach a fixed success criterion on a task, with and without a
-protection profile. "Can the AI be defeated" is not a metric.
+A deterministic protection engineering scorecard, plus an optional harness
+for targeted model-cost studies. The default release path checks correctness,
+`.text`, paired p95 and build-time budgets without invoking a model.
+
+Model campaigns remain available when there is a specific cost question, but
+AI-versus-AI loops are not the routine development or release loop.
 
 Protocol: [`docs/benchmark-protocol.md`](../../docs/benchmark-protocol.md).
 This README documents what is implemented today.
@@ -25,8 +27,9 @@ aegis_bench/
 ├── landlock.py  Linux filesystem/TCP-port worker policy
 ├── seccomp.py   Linux non-stream socket denial
 ├── report.py    JSONL / CSV / Markdown reports
+├── scorecard.py deterministic correctness/size/runtime/build budgets
 ├── adapters/    offline deterministic adapters (test doubles)
-└── cli.py       `hash`, `check`, `run`, `campaign`, `audit`
+└── cli.py       `hash`, `check`, `run`, `campaign`, `audit`, `scorecard`
 tests/
 ├── test_harness.py   offline harness tests
 ├── test_campaign.py  campaign, resume and audit tests
@@ -41,6 +44,12 @@ cd tools/aegis-bench
 
 # validate every task manifest and verify its content hash
 python3 -m aegis_bench check --tasks-root ../../benchmarks/tasks-public
+
+# evaluate deterministic protection budgets
+python3 -m aegis_bench scorecard \
+  --differential ../../build/differential-report.json \
+  --budgets ../../experiments/protection-budgets.json \
+  --out ../../build/scorecard
 
 # after editing a task, re-record its hash
 python3 -m aegis_bench hash ../../benchmarks/tasks-public/rolling-token-v1
@@ -65,8 +74,8 @@ python3 -m aegis_bench run --tasks-root ../../benchmarks/tasks-public \
     --plugin ../../build/lib/AegisPass.so --out /tmp/bench-l3-binary
 ```
 
-A real matrix uses a campaign manifest. The adapter still lives **outside**
-this repository:
+An optional model study uses a campaign manifest. The adapter still lives
+**outside** this repository:
 
 ```bash
 PYTHONPATH=/path/to/adapters python3 -m aegis_bench campaign \
@@ -75,8 +84,9 @@ PYTHONPATH=/path/to/adapters python3 -m aegis_bench campaign \
     --meter-upstream https://relay.example/v1
 ```
 
-Credentials are read by that external adapter; nothing in this tree imports a
-vendor SDK or reads an API key. The optional metering proxy is the only
+This path is research evidence, not a release requirement. Credentials are read
+by the external adapter; nothing in this tree imports a vendor SDK or reads an
+API key. The optional metering proxy is the only
 harness-owned path to the model endpoint, and it exists only when
 `--meter-upstream` is explicitly given. The tool broker is loopback-only. The
 adapter must be run in an environment whose filesystem view contains only the

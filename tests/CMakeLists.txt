@@ -20,6 +20,20 @@ add_test(
           --report "${CMAKE_BINARY_DIR}/differential-report.json"
 )
 
+add_test(
+  NAME protection-scorecard
+  COMMAND python3 -m aegis_bench scorecard
+          --differential "${CMAKE_BINARY_DIR}/differential-report.json"
+          --budgets "${CMAKE_SOURCE_DIR}/experiments/protection-budgets.json"
+          --out "${CMAKE_BINARY_DIR}/scorecard"
+)
+set_tests_properties(
+  protection-scorecard
+  PROPERTIES
+    DEPENDS differential
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/aegis-bench"
+)
+
 # Offline harness tests: deterministic adapters only, no model, no network.
 add_test(
   NAME aegis-bench
