@@ -8,7 +8,7 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for the `v0.3.0-alpha` candidate in the pinned container
-      (`5/5` CTest); the final clean-tree report records the exact duration.
+      (`5/5` CTest, 694.17 s).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
@@ -28,7 +28,7 @@ a blocker, and a box checked without evidence is worse.
       the protected profiles exceed the size target and say so in the claims
       ledger (C-001/C-003/C-004) rather than hiding it.
 - [x] At least one reproducible report linked from release notes:
-      `docs/reports/harness-validation/`.
+      `docs/reports/harness-validation-v0.3.0-alpha/`.
 - [x] Campaign orchestration is covered end to end: the offline manifest runs,
       resumes without duplicating its cell, and passes `aegis-bench audit`
       (`tests/bench/run.sh` + `test_campaign.py`).
@@ -55,9 +55,10 @@ a blocker, and a box checked without evidence is worse.
 - [x] Dual-model campaign support: experiment schema v2 constructor
       `options`, worker replay, `agent_config` provenance and a shared adapter
       source are covered by tests and a real 20-cell pilot.
-- [ ] Final clean-tree `v0.3.0-alpha` validation report. Populate this line
-      with the report path, source commit, CTest duration and audit counts
-      after `scripts/release-report.sh`.
+- [x] Clean-tree `v0.3.0-alpha` validation report generated from commit
+      `0df7684`: `docs/reports/harness-validation-v0.3.0-alpha/`. CTest 5/5
+      in 694.17 s; offline, process and network-namespace campaign audits each
+      report 0 errors and 0 warnings.
 
 ## Claims and honesty
 

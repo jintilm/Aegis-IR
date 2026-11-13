@@ -199,8 +199,8 @@ scripts/release-report.sh $NAME
 - No performance claim. The fixture is synthetic and small; wall times are
   process-startup dominated. Treat them as a regression tripwire only.
 
-Claims that do exist for this stage are in \`docs/claims-ledger.md\`, and each
-one links back to an artifact in this directory.
+Claims that do exist for this stage are in \`docs/claims-ledger.md\`; each
+entry names its own validation or pilot artifact.
 EOF
 
 echo
