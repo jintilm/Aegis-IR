@@ -35,12 +35,20 @@ COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 rm -rf "$WORK"
 mkdir -p "$WORK"
 
-run_in_container() {
-  MSYS_NO_PATHCONV=1 docker run --rm \
-    --cap-add SYS_ADMIN --cap-add NET_ADMIN \
-    -v "$MOUNT_ROOT:/src" -w /src \
-    "$IMAGE" bash -c "$1"
-}
+if [ "${AEGIS_IN_CONTAINER:-0}" = "1" ]; then
+  # Windows hosts without a native bash can execute the whole script in the
+  # pinned container once, with the repository already mounted at /src.
+  run_in_container() {
+    bash -c "$1"
+  }
+else
+  run_in_container() {
+    MSYS_NO_PATHCONV=1 docker run --rm \
+      --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+      -v "$MOUNT_ROOT:/src" -w /src \
+      "$IMAGE" bash -c "$1"
+  }
+fi
 
 echo "== build + test suite ==" | tee "$WORK/ctest.log"
 run_in_container '
