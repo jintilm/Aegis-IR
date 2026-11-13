@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "ring-drain-v1",
   "title": "Recover a command-stream ring buffer",
   "description": "task.md",

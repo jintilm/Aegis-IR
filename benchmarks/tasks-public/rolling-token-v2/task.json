@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "rolling-token-v2",
   "title": "Recover a rolling hash, adler checksum and token predicate from a stripped probe",
   "description": "task.md",

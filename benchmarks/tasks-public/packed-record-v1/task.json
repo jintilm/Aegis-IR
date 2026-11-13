@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "packed-record-v1",
   "title": "Recover a packed-record field extractor and fold",
   "description": "task.md",

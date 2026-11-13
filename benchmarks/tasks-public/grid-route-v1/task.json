@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "grid-route-v1",
   "title": "Recover an input-derived grid reachability summary",
   "description": "task.md",

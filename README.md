@@ -4,7 +4,7 @@
 
 Aegis-IR is an open-source project with two deliverables:
 
-- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token and tool brokers, independent grader, runner, report generator) exists and is tested offline. Four real-model **pilots** are published ([`docs/reports/`](docs/reports/README.md)): one under oracle access, where no protection effect is measurable by construction, and three under binary access, where the replicable result is a **~2× token cost** for level 3 (1.91×, 2.06×, 2.12× across three runs) with a success-rate difference that is inside the interval. A fifth N=1 sandbox smoke validates the hardened process-isolation path but is not a calibration or effectiveness result. **No effectiveness claim is drawn from any report.**
+- **Aegis-Bench** *(main product)* — a reproducible benchmark that measures what an LLM-based reverse-engineering agent actually pays to recover a binary's semantics: tokens, wall-clock time, tool calls, and corrected task rate. Its unit of analysis is the *cost delta* produced by a protection transform, not "can an AI be defeated". Binary-recovery tasks present a query-counted oracle built from a stripped probe at protection levels 0–3; the harness (task schema, artifact builder, oracle broker, harness-owned token and tool brokers, independent grader, runner, report generator) exists and is tested offline. The latest **dual-model N=5 sandbox pilot** ([`docs/reports/pilot-2026-11-13-dual-model-n5/`](docs/reports/pilot-2026-11-13-dual-model-n5/README.md)) measured provider-metered token floors of **2.15×** for `deepseek-v4-pro` and **3.03×** for `deepseek-flash` on `packed-record-v1`, with observed pass counts of 2/5→1/5 and 2/5→0/5. Because success was not fixed and 125 abandoned calls carried no usage, those ratios are descriptive, not effectiveness claims. **No effectiveness claim is drawn from any report.**
 - **Aegis-IR pass plugin** *(companion)* — an LLVM New-PM plugin that applies policy-driven, semantics-preserving protection transforms at the IR level (decoys, bogus flow, control-flow flattening). It is the subject under test for the benchmark, not the project's headline.
 
 ## The problem
@@ -21,7 +21,7 @@ numbers too.
 
 ## Status
 
-`v0.2.0-alpha` — reproducible measurement prototype, not a hardened
+`v0.3.0-alpha` — reproducible measurement prototype, not a hardened
 protector. Campaign/resume/audit and harness-owned token/tool brokers are
 implemented, including an optional adapter subprocess boundary. Linux
 `require_sandbox`
@@ -50,32 +50,30 @@ bogus edges, volatile-state flattening) raise *static* reconstruction cost and
 are off by default; they are not the threat model's Tier 2/3. **No protection
 effectiveness has been measured, and none is claimed.**
 
-Four real-model pilots are published, and what they establish is mostly
-methodological. Under **`oracle` access** (`deepseek-v4.1-flash`, N=3) the
-agent received a counted oracle shim, never the binary: every profile
-presented the same black box, so the delta was zero by construction — 0/3 in
-both. Under **`binary` access** (`deepseek-v4-pro`) the probe is in the
-workspace and the task becomes solvable, but the first N=2 pilot (both profiles
-2/2, level 3 ~90% more tokens) **did not survive its own N=5 rerun**: baseline
-1/5, level 3 0/5, and 6 of 10 runs never submitted within 30 steps — a missing
-measurement, not a result.
+The final pilot ran both models in the same campaign through the same adapter
+source, process worker, Landlock/seccomp policy, private network namespace,
+tool broker and meter. All 20 cells completed binary access with five
+repetitions per model/profile and all 20 used the harness tool broker. The
+provider-metered totals are floors: abandoned calls were closed rather than
+drained, and 125 such calls carried no usage block.
 
-The fourth pilot added a tool-free final turn so a run that exhausts its step
-budget is still graded and costed. Nine of ten runs then produced a candidate
-and a token ledger, and the cost ratio is the one number that replicates:
-level 3 over baseline was **1.91×, 2.06×, 2.12×** tokens across three 30-step
-runs, 2.05× on the pooled means (457 k vs 935 k). That is the benchmark's
-deliverable, and it is a magnitude, not a success-rate result. Those runs
-predate the metering proxy described below, so their tokens are **adapter
-self-reports** and every published report says so next to the number.
+The earlier pilot series is retained because its corrections are part of the
+method. Under **`oracle` access** the shim made a protection delta impossible
+by construction. The first `binary` N=2 result (2/2 vs 2/2, ~90% more tokens)
+did not survive its own N=5 rerun (1/5 vs 0/5, with many non-submissions). A
+final-answer turn then made every run gradeable and costable, yielding a
+replicable **1.91×, 2.06×, 2.12×** self-reported token ratio across three
+30-step runs. The new dual-model pilot supersedes that evidence path with
+provider metering and full worker isolation, but does not turn a small-N cost
+magnitude into a protection effect.
 
 Token cost is now a measured quantity rather than a trusted one:
 `--meter-upstream` puts a harness-owned loopback proxy in front of the model
 endpoint, asks the provider for `usage` on the adapter's behalf, and records
 the provider's own totals in the run row. A run that bypasses the proxy stays
 visibly self-reported (`metering.requests: 0`) instead of looking measured. The
-proxy is accounting, not a sandbox — an adapter that reaches the relay directly
-is undetected.
+proxy is accounting, not itself a sandbox; the worker's network namespace is
+what removes direct host egress.
 
 The success rate does **not** resolve: pooled, baseline 3/12 vs level 3 2/11
 (Fisher p = 0.55), and pooling the 45-step arm instead moves the estimate nine

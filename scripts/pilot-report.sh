@@ -306,6 +306,10 @@ lines = [
     tool_line,
     isolation_line,
     *cal_lines,
+    "- calibration provenance: the manifest records above are derived from "
+    "these baseline repetitions and were written back after the run; each "
+    "row still carries the pre-run calibration snapshot that was in force "
+    "while it executed",
     "- adapter policy: streaming SSE, thinking enabled, reasoning watchdog, "
     "fresh conversation after repeated unproductive replies, repeated "
     "submit prompt in the wrap phase "

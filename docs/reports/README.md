@@ -35,18 +35,20 @@ Rules:
 | [`pilot-2026-11-12-binary-cost/`](pilot-2026-11-12-binary-cost/README.md) | the same configuration with a tool-free final turn, so an exhausted step budget still yields a candidate: 9 of 10 runs are graded and costed, baseline 0/5 vs level 3 0/5, and level 3 costs **2.12×** the tokens (1,008 k vs 475 k). Across the three 30-step runs the ratio is 1.91×, 2.06×, 2.12× — the replicable result. The pass-rate difference is inside the interval (pooled 3/12 vs 2/11; ~540 runs per arm would be needed to resolve it) | none — pilot, not cited |
 | [`pilot-2026-11-13-sandbox-smoke/`](pilot-2026-11-13-sandbox-smoke/README.md) | N=1 sanity smoke of the real-model path through process isolation, Landlock/seccomp, the loopback broker and the meter. Both candidates compiled and were graded; baseline 2/76 and level3 0/76 on a 6-step budget. Relay retries and abandoned calls are recorded, so it is **not** a comparison or claim | none — smoke, not cited |
 | [`pilot-2026-11-13-sandbox-n5/`](pilot-2026-11-13-sandbox-n5/README.md) | formal N=5 sandbox-pilot evidence for `packed-record-v1` under `binary` access: baseline 0/5, level3 0/5; metered tokens 1.507M vs 2.532M, a **1.68×** level-3 cost ratio. All 10 runs used the sandboxed worker and broker; 97 abandoned calls make metered totals floors. The success difference is unresolved and this is not an effectiveness claim | none — pilot, not cited |
+| [`pilot-2026-11-13-dual-model-n5/`](pilot-2026-11-13-dual-model-n5/README.md) | final dual-model sandbox pilot: one campaign, 20 cells, `deepseek-v4-pro` and `deepseek-flash`, `packed-record-v1` baseline vs level 3, N=5, all rows process+Landlock/seccomp+network-namespace isolated with broker traffic and provider metering. Pass counts are pro 2/5→1/5 and flash 2/5→0/5; metered token floors are 422,646→909,318 (**2.15×**) and 210,224→636,195 (**3.03×**). Success was not fixed and 125 abandoned calls carried no usage, so the ratios are descriptive and **not** an effectiveness claim | none — pilot, not cited |
 
 Still missing, and therefore unclaimed: any effectiveness measurement, any
 statement about attacker difficulty, and any success-rate effect. The pilots are
 listed above to document what the pipeline can and cannot measure; none of them
 is evidence that protection changed an outcome, and none may be cited as such.
-What they do establish is a **cost** magnitude: level 3 costs about twice the
-tokens of the baseline under `binary` access, unconditionally across graded
-runs, in three independent runs at one step budget.
+What they do establish is a **cost** magnitude on one task family: level 3
+costs more tokens under `binary` access, with the latest dual-model pilot
+measuring 2.15× and 3.03× across two model configurations. Those arms did not
+hold success fixed, and the totals are floors, so this remains descriptive.
 
 The N=5 runs also correct the N=2 pilot that precedes them, which is the reason
 all are kept: a two-run cell cannot distinguish a protection effect from the
 agent's own variance, and these tasks are bimodal — the agent either solves one
 or produces almost nothing. Earlier cost figures were conditioned on submission;
-the newest run gives every non-infrastructure run a ledger, which is why its
-ratio is unconditional.
+the newest run gives every run a ledger, but its protected arms also changed
+pass counts, so the ratio is not a fixed-success comparison.

@@ -7,8 +7,8 @@ a blocker, and a box checked without evidence is worse.
 ## Build and tests
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
-      Verified for `v0.2.0-alpha` in the pinned container (`5/5` CTest,
-      516.61 s).
+      Verified for the `v0.3.0-alpha` candidate in the pinned container
+      (`5/5` CTest); the final clean-tree report records the exact duration.
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
@@ -32,8 +32,9 @@ a blocker, and a box checked without evidence is worse.
 - [x] Campaign orchestration is covered end to end: the offline manifest runs,
       resumes without duplicating its cell, and passes `aegis-bench audit`
       (`tests/bench/run.sh` + `test_campaign.py`).
-- [x] Task schema v2 is accepted, v1 remains readable as legacy, and every run
-      row carries `task_protocol` plus campaign provenance.
+- [x] Task schema v3 is accepted, v1/v2 remain readable as legacy, and every
+      run row carries `task_protocol` plus campaign provenance. Calibration is
+      keyed by access mode and model.
 - [x] `aegis-lint` reports eligible and ineligible selections without changing
       IR (`aegis-controlflow` + CI smoke test).
 - [x] Harness-owned loopback tool broker enforces the declared tool set,
@@ -46,17 +47,21 @@ a blocker, and a box checked without evidence is worse.
       broker/meter ports; tests deny a repo read and an unapproved TCP port.
 - [x] Seccomp worker policy denies UDP/raw/RDM/SEQPACKET IP socket creation;
       the UDP denial is covered by `test_worker.py`.
-- [ ] Full network-namespace egress isolation. Landlock cannot block UDP or
-      distinguish IP addresses for the allowed TCP ports. (UDP is now blocked
-      separately by seccomp; same-port IP targeting remains.)
-- [x] Clean-tree `v0.2.0-alpha` validation report generated from commit
-      `8757538`: `docs/reports/harness-validation-v0.2.0-alpha/`. The rows
-      record `commit_dirty: no`; campaign audit reports 0 errors and 0
-      warnings.
+- [x] Full network-namespace egress isolation. The worker runs under
+      `unshare` with only loopback; a host listener is unreachable, while the
+      broker and meter remain available through per-run Unix-socket bridges.
+      Covered by `test_worker.py`, `tests/bench/run.sh` and the network
+      namespace release campaign.
+- [x] Dual-model campaign support: experiment schema v2 constructor
+      `options`, worker replay, `agent_config` provenance and a shared adapter
+      source are covered by tests and a real 20-cell pilot.
+- [ ] Final clean-tree `v0.3.0-alpha` validation report. Populate this line
+      with the report path, source commit, CTest duration and audit counts
+      after `scripts/release-report.sh`.
 
 ## Claims and honesty
 
-- [x] README claims each link to a claims-ledger entry (C-001–C-005).
+- [x] README claims each link to a claims-ledger entry (C-001–C-006).
 - [x] No claim implies protection against C2+ attackers beyond measured data —
       in fact no effectiveness claim of any kind is made.
 - [x] Known limitations in `docs/threat-model.md`, `docs/decoys.md` and
@@ -86,7 +91,7 @@ a blocker, and a box checked without evidence is worse.
 
 ## Packaging
 
-- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.2.0-alpha) and
+- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.3.0-alpha) and
       `CHANGELOG.md` written.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
       writes `SHA256SUMS`).

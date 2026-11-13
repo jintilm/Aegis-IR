@@ -6,7 +6,7 @@
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
 - Runs: 20
 
-Token figures are **measured**: each run went through a harness-owned metering proxy and the totals are the provider's own `usage` report. Tool-call figures remain self-reported by the adapter.
+Token totals are **provider-metered floors** for 20 runs. Every costed run passed through the harness proxy, but only 0 runs had provider `usage` for every request; abandoned calls without usage are excluded from the totals.
 
 Tool calls are **measured by the harness-owned broker** for every costed run that used tools; workspace reads, probe executions, disassembly and submissions pass through its policy and budget checks.
 
@@ -33,27 +33,27 @@ A binary-recovery row records an **access mode**. Under `oracle` the workspace h
 
 ## By (profile, agent, task)
 
-| profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (metered) | oracle queries (mean) |
+| profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (partly-metered) | oracle queries (mean) |
 |---|---|---|---|---|---|---|---|---|
 | aegis-level3 | openai-deepseek-flash | packed-record-v1 | 5 | 0/5 | 0% [0%-43%] | 583.21±131.33 | 636195 | n/a |
-| aegis-level3 | openai-deepseek-v4-pro | packed-record-v1 | 5 | 1/5 | 20% [4%-62%] | 635.18±145.81 | 909318 | n/a |
+| aegis-level3 | openai-deepseek-v4-pro | packed-record-v1 | 5 | 1/5 | 20% [4%-62%] | 635.18±145.80 | 909318 | n/a |
 | baseline | openai-deepseek-flash | packed-record-v1 | 5 | 2/5 | 40% [12%-77%] | 661.52±81.83 | 210224 | n/a |
 | baseline | openai-deepseek-v4-pro | packed-record-v1 | 5 | 2/5 | 40% [12%-77%] | 728.84±182.05 | 422646 | n/a |
 
 ## By (agent, profile), across tasks
 
-| agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (metered) | oracle queries (total) |
+| agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (partly-metered) | oracle queries (total) |
 |---|---|---|---|---|---|---|---|---|
 | openai-deepseek-flash | aegis-level3 | 1 | 5 | 0/5 | 0% [0%-43%] | 583.21±131.33 | 636195 | n/a |
 | openai-deepseek-flash | baseline | 1 | 5 | 2/5 | 40% [12%-77%] | 661.52±81.83 | 210224 | n/a |
-| openai-deepseek-v4-pro | aegis-level3 | 1 | 5 | 1/5 | 20% [4%-62%] | 635.18±145.81 | 909318 | n/a |
+| openai-deepseek-v4-pro | aegis-level3 | 1 | 5 | 1/5 | 20% [4%-62%] | 635.18±145.80 | 909318 | n/a |
 | openai-deepseek-v4-pro | baseline | 1 | 5 | 2/5 | 40% [12%-77%] | 728.84±182.05 | 422646 | n/a |
 
 ## Cost delta vs baseline
 
-Positive means the protected profile cost more. Wall-clock and oracle-query deltas and the token delta come from the provider's own usage report, captured by the harness metering proxy.
+Positive means the protected profile cost more. Wall-clock and oracle-query deltas are measured; token totals are provider-metered floors because abandoned calls did not carry provider usage.
 
-| agent | task | cell | Δ wall s (95% CI) | Δ oracle queries | Δ tokens (metered) |
+| agent | task | cell | Δ wall s (95% CI) | Δ oracle queries | Δ tokens (partly-metered) |
 |---|---|---|---|---|---|
 | openai-deepseek-flash | packed-record-v1 | baseline → aegis-level3 | -78.31 [-229.95, +73.33] s | n/a | +425971 [+220499, +631442] |
 | openai-deepseek-v4-pro | packed-record-v1 | baseline → aegis-level3 | -93.66 [-322.24, +134.92] s | n/a | +486672 [+308527, +664818] |

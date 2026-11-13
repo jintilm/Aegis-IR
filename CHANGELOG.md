@@ -3,6 +3,53 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
+## [0.3.0-alpha] - 2026-11-13
+
+### Added
+
+- **Twelve-task public benchmark** - `delta-ledger-v1`, `sbox-cascade-v1`,
+  `bit-mosaic-v1` and `packet-weave-v1` join the previous eight fixtures.
+  Each new task has sample I/O, ground truth, property tests, hidden cases,
+  seeded fuzz coverage, all four artifact profiles and model-specific
+  calibration records. A dual-model baseline campaign calibrated all four;
+  `delta-ledger-v1`, `bit-mosaic-v1` and `packet-weave-v1` reached the ceiling
+  for `deepseek-flash` at N=1, while `packet-weave-v1` reached the ceiling for
+  `deepseek-v4-pro`. N=1 labels are explicitly provisional, not
+  comparison-ready effects.
+- **Multi-model campaigns through one adapter** - experiment schema v2 agent
+  entries carry JSON `options`; the harness preflights them, records
+  `agent_config` in every row, and replays them in the process worker. One
+  campaign can therefore run `deepseek-v4-pro` and `deepseek-flash` through the
+  same adapter source hash and recovery policy.
+- **Model-specific task calibration** - task schema v3 stores calibration
+  records under `calibration.<access>.models.<model>`. A model with no exact
+  record is not silently assigned another model's calibration.
+- **Private-network-namespace worker** - `require_network_namespace` runs the
+  process worker under `unshare` with only loopback available. Broker and
+  meter stay in the host namespace behind per-run Unix sockets, and a
+  loopback bridge carries their HTTP traffic. The worker has no route to a
+  host listener, while brokered calls and provider metering continue to work.
+- **Dual-model N=5 sandbox pilot** -
+  [`docs/reports/pilot-2026-11-13-dual-model-n5/`](docs/reports/pilot-2026-11-13-dual-model-n5/README.md)
+  completed 20/20 cells on `packed-record-v1`, baseline vs level 3, for both
+  DeepSeek models. Pass counts were pro 2/5→1/5 and flash 2/5→0/5.
+  Provider-metered token floors were 422,646→909,318 (**2.15×**) and
+  210,224→636,195 (**3.03×**). All 20 rows used Landlock/seccomp, the private
+  network namespace, the tool broker and the meter; campaign audit reported
+  0 errors. The arms did not hold success fixed and 125 abandoned calls had no
+  usage, so the ratios are descriptive and no effectiveness claim is made.
+
+### Changed
+
+- **Partial metering is labelled as a floor** - report generation now
+  distinguishes complete provider usage from totals in which some requests
+  were abandoned before a usage block arrived. It no longer calls the latter
+  fully metered.
+- **Release validation** - the release script runs with namespace
+  capabilities, executes all 12 tasks, and adds a network-namespace campaign
+  that proves host egress is blocked while the Unix-socket broker bridge keeps
+  its counters.
+
 ## [0.2.0-alpha] - 2026-11-12
 
 ### Added

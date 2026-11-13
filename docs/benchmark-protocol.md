@@ -80,9 +80,9 @@ semantic answer). Scoring:
 Implementation status: (1) and (2) are implemented and tested; (3) is not,
 and descriptive tasks are therefore not accepted yet. Binary-recovery artifact
 building is implemented for levels 0–3, tested offline with deterministic
-adapters and a harness self-check. Four real-model pilots are published under
-`docs/reports/`; all are pilots, and the oracle-access run cannot show a
-protection effect — see below.
+adapters and a harness self-check. Real-model pilots, including the final
+dual-model N=5 sandbox run, are published under `docs/reports/`; all remain
+pilots, and the oracle-access runs cannot show a protection effect.
 
 ### Access modes
 

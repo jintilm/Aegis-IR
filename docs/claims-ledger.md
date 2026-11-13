@@ -11,6 +11,7 @@ ledger, it must not appear in README, release notes, or talks.
 | C-003 | "Level-2 control-flow transforms change the protected fixture's `.text` from 5023 to 5672 bytes (+12.9%) while producing byte-identical program output and exit codes on all 235 differential corpus cases." | `docs/reports/harness-validation/differential-report.json`, `aegis-research` profile (seed 777), main after `v0.1.0-alpha` | LLVM/Clang 23.1.5 | correctness/cost only; synthetic fixture; **no adversarial claim** |
 | C-004 | "Level-3 flattening changes the protected fixture's `.text` from 5023 to 6642 bytes (+32.2%) while producing byte-identical program output and exit codes on all 235 differential corpus cases." | `docs/reports/harness-validation/differential-report.json`, `aegis-flattened` profile (seed 778), main after `v0.1.0-alpha` | LLVM/Clang 23.1.5 | correctness/cost only; synthetic fixture; **no adversarial claim** |
 | C-005 | "The verify gate fails the build when `aegis-cff` is skipped for a level>=2 function, when the dispatcher state or salt load loses `volatile`, when the dispatcher no longer derives from the volatile state load, when a level-2 bogus arm is made live, and when level 3 is requested for an `indirectbr` function." | `tests/controlflow/run.sh` (CTest `aegis-controlflow`), main after `v0.1.0-alpha` | n/a | build-gate behaviour, not protection strength |
+| C-006 | "On `packed-record-v1` under binary access and sandboxed N=5, level-3 provider-metered token floors were 2.15× baseline for `deepseek-v4-pro` (909,318 vs 422,646 mean tokens) and 3.03× for `deepseek-flash` (636,195 vs 210,224); observed pass counts were 2/5→1/5 and 2/5→0/5. The token totals exclude 125 abandoned calls without usage, success was not held fixed, and this is not an effectiveness claim." | `docs/reports/pilot-2026-11-13-dual-model-n5/`, source commit `7b2ba67`, 2026-11-13 | `deepseek-v4-pro`, `deepseek-flash` via the reference adapter source hash `3cfa0466724c` | C2 binary-recovery agent; one task, one step budget, two configurations; **descriptive cost only** |
 
 The level-2 and level-3 profiles use different seeds (777/778), so C-003 and
 C-004 are each comparable to the shared baseline, not to each other as a
@@ -59,6 +60,18 @@ what a published cost figure has to rest on
 ([protocol](benchmark-protocol.md#token-metering)). Any future ratio is quoted
 from metered rows; a ratio pooled across metered and self-reported rows is not
 admissible.
+
+The final dual-model pilot
+([`reports/pilot-2026-11-13-dual-model-n5/`](reports/pilot-2026-11-13-dual-model-n5/README.md))
+puts both `deepseek-v4-pro` and `deepseek-flash` in one 20-cell campaign under
+binary access, process isolation, Landlock/seccomp, a private network
+namespace, the harness tool broker and the meter. Baseline/level-3 pass counts
+were 2/5→1/5 for pro and 2/5→0/5 for flash. Provider-metered token floors were
+422,646→909,318 (**2.15×**) and 210,224→636,195 (**3.03×**). This does **not**
+enter the ledger as an effectiveness claim: the arms did not hold success
+fixed, the totals exclude 125 abandoned calls without usage, and the pass-count
+difference at N=5 is not powered. The report is methodological evidence that
+the dual-model, metered and isolated path works.
 
 Rules:
 
