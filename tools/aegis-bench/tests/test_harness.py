@@ -367,7 +367,7 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(row["artifact"]["level"], 0)
             self.assertEqual(len(row["artifact"]["sha256"]), 64)
             self.assertGreater(row["artifact"]["text_bytes"], 0)
-            self.assertEqual(row["task_protocol"]["schema_version"], 2)
+            self.assertEqual(row["task_protocol"]["schema_version"], 3)
             self.assertEqual(
                 row["task_protocol"]["tool_policy"]["network"],
                 "metered_model")
