@@ -8,7 +8,7 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for the `v0.3.0-alpha` candidate in the pinned container
-      (`5/5` CTest, 694.17 s).
+      (`5/5` CTest, 677.07 s).
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `aegis-bench`.
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
@@ -56,8 +56,8 @@ a blocker, and a box checked without evidence is worse.
       `options`, worker replay, `agent_config` provenance and a shared adapter
       source are covered by tests and a real 20-cell pilot.
 - [x] Clean-tree `v0.3.0-alpha` validation report generated from commit
-      `0df7684`: `docs/reports/harness-validation-v0.3.0-alpha/`. CTest 5/5
-      in 694.17 s; offline, process and network-namespace campaign audits each
+      `92c375e`: `docs/reports/harness-validation-v0.3.0-alpha/`. CTest 5/5
+      in 677.07 s; offline, process and network-namespace campaign audits each
       report 0 errors and 0 warnings.
 
 ## Claims and honesty

@@ -1,6 +1,6 @@
 # Aegis-Bench run report
 
-- Commit: `0df7684f1124448bbef994abdb86745492f4b372` (dirty: no)
+- Commit: `92c375e0e99c41187d2c3f27a6a797645bc397d3` (dirty: no)
 - Platform: Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
 - Python: 3.12.3
 - Machine: `1a4f52c2f4c7` (salted hash; no host or user name is recorded)
@@ -24,13 +24,13 @@ Pass/fail, case counts, wall clock and oracle queries are always measured by the
 
 | profile | agent | task | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (mean) |
 |---|---|---|---|---|---|---|---|---|
-| baseline | broker-stub | rolling-token-v1 | 1 | 0/1 | 0% [0%-79%] | 4.63±0.00 | n/a | n/a |
+| baseline | broker-stub | rolling-token-v1 | 1 | 0/1 | 0% [0%-79%] | 4.12±0.00 | n/a | n/a |
 
 ## By (agent, profile), across tasks
 
 | agent | profile | tasks | runs | pass | pass rate (95% CI) | wall s (mean±sd) | tokens (self-rep) | oracle queries (total) |
 |---|---|---|---|---|---|---|---|---|
-| broker-stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.63±0.00 | n/a | n/a |
+| broker-stub | baseline | 1 | 1 | 0/1 | 0% [0%-79%] | 4.12±0.00 | n/a | n/a |
 
 
 ## Failures
