@@ -1,0 +1,195 @@
+{
+  "fixture": "fixtures",
+  "fixture_dir": "/src/tests/differential/fixtures",
+  "profiles_source": "/src/tests/differential/profiles.json",
+  "build_samples_required": 3,
+  "profiles": {
+    "baseline": {
+      "binary_bytes": 17176,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": null,
+      "build_samples_ms": [
+        495.78023300273344,
+        501.95886701112613,
+        597.4848650221247
+      ],
+      "build_median_ms": 501.95886701112613,
+      "build_ms": 501.95886701112613,
+      "cases": 235,
+      "total_ms": 436.02596782147884,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.288243005750701,
+      "relative_p95_ms": 1.0,
+      "relative_p95_delta_pct": 0.0
+    },
+    "release": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": null,
+      "build_samples_ms": [
+        614.6858219872229,
+        549.4577809877228,
+        548.1300380197354
+      ],
+      "build_median_ms": 549.4577809877228,
+      "build_ms": 549.4577809877228,
+      "cases": 235,
+      "total_ms": 392.4416300142184,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.1062889718450606,
+      "relative_p95_ms": 1.0551878820534037,
+      "relative_p95_delta_pct": 5.518788205340375
+    },
+    "release-opt": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 5023,
+        "data": 720,
+        "bss": 8
+      },
+      "pipeline": "default<O2>",
+      "build_samples_ms": [
+        498.6106190190185,
+        495.1658580102958,
+        511.9300500082318
+      ],
+      "build_median_ms": 498.6106190190185,
+      "build_ms": 498.6106190190185,
+      "cases": 235,
+      "total_ms": 379.3925401114393,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.028824994340539,
+      "relative_p95_ms": 1.036274314502495,
+      "relative_p95_delta_pct": 3.6274314502495075
+    },
+    "aegis-standard": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 6132,
+        "data": 720,
+        "bss": 16
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "build_samples_ms": [
+        537.7757330134045,
+        498.64994100062177,
+        499.1498939925805
+      ],
+      "build_median_ms": 499.1498939925805,
+      "build_ms": 499.1498939925805,
+      "cases": 235,
+      "total_ms": 378.51043182308786,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.044901979388669,
+      "relative_p95_ms": 1.062625583996299,
+      "relative_p95_delta_pct": 6.262558399629903
+    },
+    "aegis-research": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 5672,
+        "data": 720,
+        "bss": 16
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "build_samples_ms": [
+        568.6594450089615,
+        523.4987610019743,
+        681.5081259992439
+      ],
+      "build_median_ms": 568.6594450089615,
+      "build_ms": 568.6594450089615,
+      "cases": 235,
+      "total_ms": 378.7731132179033,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.0032690081279725,
+      "relative_p95_ms": 1.0635218878502866,
+      "relative_p95_delta_pct": 6.352188785028656
+    },
+    "aegis-flattened": {
+      "binary_bytes": 14720,
+      "sections": {
+        "text": 6642,
+        "data": 720,
+        "bss": 16
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "build_samples_ms": [
+        588.9034039864782,
+        583.990945975529,
+        521.8915340083186
+      ],
+      "build_median_ms": 583.990945975529,
+      "build_ms": 583.990945975529,
+      "cases": 235,
+      "total_ms": 378.7540730263572,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.169243001844734,
+      "relative_p95_ms": 1.0772476043688222,
+      "relative_p95_delta_pct": 7.7247604368822165
+    },
+    "aegis-debug": {
+      "binary_bytes": 78576,
+      "sections": {
+        "text": 13722,
+        "data": 760,
+        "bss": 8
+      },
+      "pipeline": null,
+      "build_samples_ms": [
+        520.2467250055633,
+        527.710643975297,
+        439.91820799419656
+      ],
+      "build_median_ms": 520.2467250055633,
+      "build_ms": 520.2467250055633,
+      "cases": 235,
+      "total_ms": 380.13266303460114,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.077801007544622,
+      "relative_p95_ms": 1.0553886639536394,
+      "relative_p95_delta_pct": 5.538866395363939
+    },
+    "baseline-asan": {
+      "binary_bytes": 1809040,
+      "sections": {
+        "text": 1430735,
+        "data": 15152,
+        "bss": 9781580
+      },
+      "pipeline": null,
+      "build_samples_ms": [
+        636.6910130018368,
+        598.2112539932132,
+        588.6856729921419
+      ],
+      "build_median_ms": 598.2112539932132,
+      "build_ms": 598.2112539932132,
+      "cases": 235,
+      "total_ms": 2337.5489719910547,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 11.38392899883911,
+      "relative_p95_ms": 6.053621716513856,
+      "relative_p95_delta_pct": 505.3621716513856
+    }
+  },
+  "corpus_size": 235,
+  "seed": 1234,
+  "runtime_rounds": 3
+}

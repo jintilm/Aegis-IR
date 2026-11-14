@@ -8,7 +8,7 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for the schema-v4/double-scorecard candidate in the pinned
-      container; the authoritative rerun completed 8/8 CTest in 874.50 s.
+      container; the final clean-tree report completed 8/8 CTest in 900.82 s.
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `differential-representative`,
       `protection-scorecard`, `protection-scorecard-representative`,
@@ -72,13 +72,15 @@ a blocker, and a box checked without evidence is worse.
       releases. No new attack matrix is required from the release checklist.
 - [x] Clean-tree final validation report is required at
       `docs/reports/harness-validation-final/`, generated only after the code
-      and documentation commit. It records 8/8 CTest, both differential
-      reports, both scorecard results, and offline, process and
-      network-namespace campaign audits.
+      and documentation commit `921c0e2`. It records 8/8 CTest in 900.82 s,
+      both differential reports, both passing scorecards, and offline,
+      process and network-namespace campaign audits with 0 errors and
+      0 warnings. The network-namespace row records process isolation,
+      Landlock/seccomp, a private namespace, and 3 broker-measured calls.
 
 ## Claims and honesty
 
-- [x] README claims each link to a claims-ledger entry (C-001–C-006).
+- [x] README claims each link to a claims-ledger entry (C-001–C-007).
 - [x] No claim implies protection against C2+ attackers beyond measured data —
       in fact no effectiveness claim of any kind is made.
 - [x] Known limitations in `docs/threat-model.md`, `docs/decoys.md` and

@@ -1,0 +1,245 @@
+{
+  "baseline_profile": "baseline",
+  "passed": true,
+  "profiles": {
+    "aegis-flattened": {
+      "baseline_build_sample_count": 3,
+      "build_delta_pct": -24.50601028739905,
+      "build_ms": 599.6838650025893,
+      "build_sample_count": 3,
+      "build_samples_ms": [
+        658.3469180040993,
+        592.9012790147681,
+        599.6838650025893
+      ],
+      "cases": 75,
+      "checks": [
+        {
+          "actual": 75,
+          "name": "cases",
+          "ok": true,
+          "requirement": "> 0"
+        },
+        {
+          "actual": 0,
+          "name": "output_mismatches",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": 0,
+          "name": "sanitizer_or_property_errors",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": {
+            "baseline": 3,
+            "profile": 3
+          },
+          "name": "build_samples",
+          "ok": true,
+          "requirement": ">= 3 for both arms"
+        },
+        {
+          "actual": 58.64221615294577,
+          "name": "text_delta_pct",
+          "ok": true,
+          "requirement": "<= 80.00% (.text)"
+        },
+        {
+          "actual": 923.7912418763045,
+          "name": "runtime_delta_pct",
+          "ok": false,
+          "requirement": "<= 100.00% (runtime p95)"
+        },
+        {
+          "actual": -24.50601028739905,
+          "name": "build_delta_pct",
+          "ok": true,
+          "requirement": "<= 60.00% (build time)"
+        }
+      ],
+      "gate": false,
+      "mismatches": 0,
+      "p95_delta_pct": 698.5744527575348,
+      "p95_ms": 479.2592670128215,
+      "passed": false,
+      "profile": "aegis-flattened",
+      "relative_p95_delta_pct": 923.7912418763045,
+      "role": "research",
+      "runtime_delta_pct": 923.7912418763045,
+      "sanitizer_or_property_errors": 0,
+      "text_bytes": 12198,
+      "text_delta_pct": 58.64221615294577
+    },
+    "aegis-research": {
+      "baseline_build_sample_count": 3,
+      "build_delta_pct": -13.247697199949013,
+      "build_ms": 689.1138809733093,
+      "build_sample_count": 3,
+      "build_samples_ms": [
+        689.1138809733093,
+        642.459572001826,
+        729.2005950002931
+      ],
+      "cases": 75,
+      "checks": [
+        {
+          "actual": 75,
+          "name": "cases",
+          "ok": true,
+          "requirement": "> 0"
+        },
+        {
+          "actual": 0,
+          "name": "output_mismatches",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": 0,
+          "name": "sanitizer_or_property_errors",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": {
+            "baseline": 3,
+            "profile": 3
+          },
+          "name": "build_samples",
+          "ok": true,
+          "requirement": ">= 3 for both arms"
+        },
+        {
+          "actual": 12.875536480686694,
+          "name": "text_delta_pct",
+          "ok": true,
+          "requirement": "<= 50.00% (.text)"
+        },
+        {
+          "actual": 29.950666170299446,
+          "name": "runtime_delta_pct",
+          "ok": true,
+          "requirement": "<= 30.00% (runtime p95)"
+        },
+        {
+          "actual": -13.247697199949013,
+          "name": "build_delta_pct",
+          "ok": true,
+          "requirement": "<= 45.00% (build time)"
+        }
+      ],
+      "gate": false,
+      "mismatches": 0,
+      "p95_delta_pct": 17.299837495330753,
+      "p95_ms": 70.39673501276411,
+      "passed": true,
+      "profile": "aegis-research",
+      "relative_p95_delta_pct": 29.950666170299446,
+      "role": "research",
+      "runtime_delta_pct": 29.950666170299446,
+      "sanitizer_or_property_errors": 0,
+      "text_bytes": 8679,
+      "text_delta_pct": 12.875536480686694
+    },
+    "aegis-standard": {
+      "baseline_build_sample_count": 3,
+      "build_delta_pct": -3.825018681306601,
+      "build_ms": 763.9625979936682,
+      "build_sample_count": 3,
+      "build_samples_ms": [
+        842.9454940196592,
+        763.9625979936682,
+        747.9049180110451
+      ],
+      "cases": 75,
+      "checks": [
+        {
+          "actual": 75,
+          "name": "cases",
+          "ok": true,
+          "requirement": "> 0"
+        },
+        {
+          "actual": 0,
+          "name": "output_mismatches",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": 0,
+          "name": "sanitizer_or_property_errors",
+          "ok": true,
+          "requirement": "== 0"
+        },
+        {
+          "actual": {
+            "baseline": 3,
+            "profile": 3
+          },
+          "name": "build_samples",
+          "ok": true,
+          "requirement": ">= 3 for both arms"
+        },
+        {
+          "actual": 20.535830407075043,
+          "name": "text_delta_pct",
+          "ok": true,
+          "requirement": "<= 30.00% (.text)"
+        },
+        {
+          "actual": 21.788946782018193,
+          "name": "runtime_delta_pct",
+          "ok": true,
+          "requirement": "<= 25.00% (runtime p95)"
+        },
+        {
+          "actual": -3.825018681306601,
+          "name": "build_delta_pct",
+          "ok": true,
+          "requirement": "<= 30.00% (build time)"
+        }
+      ],
+      "gate": true,
+      "mismatches": 0,
+      "p95_delta_pct": 9.198043454202818,
+      "p95_ms": 65.53449598141015,
+      "passed": true,
+      "profile": "aegis-standard",
+      "relative_p95_delta_pct": 21.788946782018193,
+      "role": "default",
+      "runtime_delta_pct": 21.788946782018193,
+      "sanitizer_or_property_errors": 0,
+      "text_bytes": 9268,
+      "text_delta_pct": 20.535830407075043
+    },
+    "baseline": {
+      "baseline_build_sample_count": 3,
+      "build_delta_pct": 0.0,
+      "build_ms": 794.3465000134893,
+      "build_sample_count": 3,
+      "build_samples_ms": [
+        743.7766899820417,
+        794.3465000134893,
+        852.582410996547
+      ],
+      "cases": 75,
+      "checks": [],
+      "gate": false,
+      "mismatches": 0,
+      "p95_delta_pct": 0.0,
+      "p95_ms": 60.01434999052435,
+      "passed": null,
+      "profile": "baseline",
+      "relative_p95_delta_pct": 0.0,
+      "role": "observation",
+      "runtime_delta_pct": 0.0,
+      "sanitizer_or_property_errors": 0,
+      "text_bytes": 7689,
+      "text_delta_pct": 0.0
+    }
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,30 @@
+{
+  "access": "oracle",
+  "agents": [
+    {
+      "adapter": "ground-truth",
+      "expected_version": "builtin-test-double-v1",
+      "id": "ground-truth-replay"
+    }
+  ],
+  "allow_oracle_comparison": false,
+  "name": "offline-harness-smoke",
+  "order": "interleaved",
+  "out": "../bench-out/offline-smoke",
+  "primary_metric": "pass_rate",
+  "profiles": [
+    "baseline"
+  ],
+  "purpose": "harness-validation",
+  "repetition_start": 0,
+  "repetitions": 1,
+  "require_broker_tools": true,
+  "require_clean": false,
+  "require_meter": false,
+  "schema_version": 1,
+  "seed": 17,
+  "tasks": [
+    "rolling-token-v1"
+  ],
+  "tasks_root": "../benchmarks/tasks-public"
+}

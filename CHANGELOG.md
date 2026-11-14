@@ -49,6 +49,10 @@ versions follow SemVer once past alpha.
   default p95 gate is 25%, with observed results recorded by the final release
   report. It remains an engineering regression budget, not a production
   performance claim.
+- **Final clean-tree validation** - commit `921c0e2` produced
+  [`docs/reports/harness-validation-final/`](docs/reports/harness-validation-final/README.md):
+  8/8 CTest in 900.82 s, both differential matrices, both passing scorecards,
+  and offline, process and network-namespace audits at 0 errors / 0 warnings.
 
 ## [0.3.0-alpha] - 2026-11-13
 

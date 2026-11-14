@@ -194,7 +194,9 @@ p95 <= 25% and build-time growth <= 25%. The representative workload has its
 own calibrated default gate: `.text` <= 30%, paired relative p95 <= 25% and
 build-time growth <= 30%. Build comparisons use the median of three
 independent clean builds. Details and limitations:
-[`docs/protection-scorecard.md`](docs/protection-scorecard.md).
+[`docs/protection-scorecard.md`](docs/protection-scorecard.md). Final
+clean-tree evidence is in
+[`docs/reports/harness-validation-final/`](docs/reports/harness-validation-final/README.md).
 
 ## Optional model research
 

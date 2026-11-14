@@ -1,0 +1,4 @@
+[PASS] rolling-token-v2 / ground-truth-replay (baseline, rep 0) - 5.29s
+jsonl: /tmp/bench-ground-truth/aegis-bench.jsonl
+csv: /tmp/bench-ground-truth/aegis-bench.csv
+markdown: /tmp/bench-ground-truth/aegis-bench.md

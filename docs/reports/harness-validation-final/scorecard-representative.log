@@ -1,0 +1,4 @@
+== representative protection scorecard ==
+scorecard: PASS
+json: ../../build/scorecard-representative/scorecard.json
+markdown: ../../build/scorecard-representative/scorecard.md

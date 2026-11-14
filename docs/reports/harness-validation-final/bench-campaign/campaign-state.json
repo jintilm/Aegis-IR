@@ -1,0 +1,20 @@
+{
+  "adapter_isolation": "in-process",
+  "adapter_versions": {
+    "ground-truth-replay": "builtin-test-double-v1"
+  },
+  "campaign": "offline-harness-smoke",
+  "cells_completed": 1,
+  "cells_total": 1,
+  "complete": true,
+  "completed_cells": [
+    "rolling-token-v1|baseline|ground-truth-replay|0"
+  ],
+  "manifest_sha256": "bb5b4148a7ff059087f7de4dce7c726281a075d1980bc19676e64f85b5a41fcc",
+  "require_broker_tools": true,
+  "require_network_namespace": false,
+  "require_sandbox": false,
+  "schema_version": 1,
+  "started_utc": "2026-11-14T15:56:25Z",
+  "updated_utc": "2026-11-14T15:56:41Z"
+}

@@ -1,0 +1,20 @@
+{
+  "adapter_isolation": "process",
+  "adapter_versions": {
+    "broker-stub": "builtin-test-double-v1"
+  },
+  "campaign": "process-sandbox-smoke",
+  "cells_completed": 1,
+  "cells_total": 1,
+  "complete": true,
+  "completed_cells": [
+    "rolling-token-v1|baseline|broker-stub|0"
+  ],
+  "manifest_sha256": "fb15d95536b84471946eed874692554cd143fa22cb3c83fa5333adc97d0efe5b",
+  "require_broker_tools": true,
+  "require_network_namespace": false,
+  "require_sandbox": true,
+  "schema_version": 1,
+  "started_utc": "2026-11-14T15:56:58Z",
+  "updated_utc": "2026-11-14T15:57:05Z"
+}
