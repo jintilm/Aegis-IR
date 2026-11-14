@@ -7,15 +7,36 @@ versions follow SemVer once past alpha.
 
 ### Added
 
+- **Task schema v4 and explicit task tiers** - every public manifest declares
+  `tier: core` or `tier: exploratory`. Schema v4 requires the field; versions
+  1-3 remain readable and default legacy rows to `exploratory`. The tier is
+  copied into the worker view and every run row's `task_protocol`.
+- **Eight CTest release gates** - adds `differential-representative` and
+  `protection-scorecard-representative` beside the existing six targets.
+- **Representative differential workload** - a larger algorithm suite with at
+  least 1 MiB of work per run separates the small regression fixture from a
+  workload intended to expose stable hot-path overhead. Its default release
+  gate is calibrated to paired p95 <= 25%, `.text` <= 30% and build <= 30%.
+- **Lint remediation advisories** - `aegis-lint` now emits
+  `protect-and-measure`, `move-to-server`, or a reason-specific
+  `repair_selections` advisory without changing IR.
+
 - **Deterministic protection scorecard** - `aegis-bench scorecard` evaluates
   correctness, `.text`, paired relative p95 and build-time budgets without
   invoking a model. The default `aegis-standard` profile is the release gate;
   research profiles are reported without blocking release.
-- **Build-time provenance** - the differential report now records each
-  profile's build wall time.
+- **Build-time provenance** - the differential report records three
+  independent clean-build samples per profile, their median, and the legacy
+  scalar field for older readers. The scorecard rejects a gated comparison
+  with fewer than three samples in either arm.
 - **Interleaved runtime measurement** - profiles are exercised per corpus case
   over three rounds, and runtime regression uses the p95 of per-case
   protected/baseline latency ratios. This reduces host and scheduling drift.
+
+- **Dual-model calibration coverage** - all eleven binary-recovery tasks carry
+  explicit records for `deepseek-v4-pro` and `deepseek-flash`. Six remain
+  `uncalibrated` for both models; four have N=1 screening records only; only
+  `packed-record-v1` is N=5 `comparison-ready` at 0.4 for both models.
 
 ### Changed
 
@@ -23,6 +44,11 @@ versions follow SemVer once past alpha.
   release validation now use deterministic engineering gates. Model campaigns
   remain available for targeted cost questions but are no longer the main
   project loop.
+- **Representative overhead calibration** - repeated small-fixture noise was
+  separated from stable protected-workload overhead. The representative
+  default p95 gate is 25%, with observed results recorded by the final release
+  report. It remains an engineering regression budget, not a production
+  performance claim.
 
 ## [0.3.0-alpha] - 2026-11-13
 

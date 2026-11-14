@@ -25,11 +25,16 @@ opt-23 -load-pass-plugin=build/lib/AegisPass.so \
 ```
 
 For every definition it prints the selected level, block/instruction counts,
-and either `eligible=yes` or `eligible=no reason=...`. A summary reports
-selected, eligible, ineligible and unsupported counts. This lets policy review
-catch an `indirectbr`, EH terminator, coroutine, inline assembly or other
-fail-closed construct before invoking the transforms. `aegis-lint` is advisory
-and exits successfully; the transforms remain the enforcement point.
+and either `eligible=yes` or `eligible=no reason=...`. Eligible functions carry
+an advisory: `move-to-server` for a small memory-free function whose complete
+behaviour is visible, otherwise `protect-and-measure`. Ineligible functions
+carry a reason-specific repair advisory, and higher-level selections can
+recommend `lower-level-or-fix-selection`. A summary reports selected, eligible,
+ineligible, unsupported, protect/measure, move-to-server and repair counts.
+This lets policy review catch an `indirectbr`, EH terminator, coroutine, inline
+assembly or other fail-closed construct before invoking the transforms.
+`aegis-lint` is advisory and exits successfully; the transforms remain the
+enforcement point.
 
 ## Level 2 — bogus flow plus an input-driven live split
 
@@ -159,7 +164,11 @@ demotion on a hand-written IR fixture, the gate failing when `aegis-cff` is
 skipped, when the state or salt loses `volatile`, when the dispatcher is
 detached from the state load, when a level-2 bogus arm is made live, when
 decoys are skipped, and when level 3 is requested for an `indirectbr`
-function. Lint checks cover both an eligible level-3 selection and the
-reason-naming path for an ineligible construct. The differential matrix
+function. Lint checks cover an eligible level-3 selection, the
+reason-specific repair path for an ineligible construct, and the
+`move-to-server` path for a tiny stateless function. The differential matrix
 adds level-2 (`aegis-research`) and level-3 (`aegis-flattened`) profiles over
-the 235-case corpus.
+the 235-case corpus. The representative suite separately measures the same
+profiles on a sustained algorithm workload and a deterministic 75-case corpus;
+flattening remains non-gating research data because its overhead is expected
+to be high.

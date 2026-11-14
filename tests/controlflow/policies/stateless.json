@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261114,
+  "functions": [
+    {
+      "name": "tiny_pure",
+      "level": 1,
+      "reason": "lint: small stateless migration candidate"
+    }
+  ]
+}

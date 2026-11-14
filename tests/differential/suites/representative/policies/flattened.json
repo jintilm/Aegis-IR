@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261116,
+  "functions": [
+    {
+      "name": "aegis_rep_parse",
+      "level": 3,
+      "reason": "representative: parser flattening"
+    },
+    {
+      "name": "aegis_rep_fold",
+      "level": 3,
+      "reason": "representative: folding flattening"
+    },
+    {
+      "name": "aegis_rep_rounds",
+      "level": 3,
+      "reason": "representative: loop flattening"
+    },
+    {
+      "name": "aegis_rep_digest",
+      "level": 3,
+      "reason": "representative: digest flattening"
+    }
+  ]
+}

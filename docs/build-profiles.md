@@ -34,13 +34,19 @@ an explicit policy change. The research profiles use different seeds
 (777/778), so their sizes are each comparable to the shared baseline, not to
 each other as a ladder.
 
-## Fixture
+## Fixtures
 
 The differential fixture mirrors the primary target scenario: an **offline
 C++ algorithm library** (`tests/differential/fixtures/algorithm_lib.cpp`,
 FNV-1a hash, Adler-32-style checksum, token predicate) built as its own
 translation unit, plus an unprotected driver. Only the library TU passes
 through the protection pipeline.
+
+The representative suite
+(`tests/differential/suites/representative/`) uses the same runner and a
+larger parser/fold/round/digest workload that performs at least 1 MiB of work
+per invocation. It is intended to expose stable protected hot-path overhead;
+it is not a production benchmark and does not generalize to arbitrary code.
 
 ## What the runner does
 
@@ -60,16 +66,20 @@ through the protection pipeline.
 4. **Fails on**: output/exit mismatches, timeouts, `PROPERTY FAIL` lines from
    the driver's contract assertions, and any ASan/UBSan report in stderr.
 5. **Records the size/time baseline** — binary bytes, `.text`/`.data` section
-   totals, single-sample build time, and interleaved per-profile p95 wall
-   time into
-   `build/differential-report.json`. Section totals matter because file size
-   is page-quantised: small transforms change `.text` without changing the
-   file size. These numbers are the denominator for the cost ledger.
+   totals, three independent clean-build samples and their median, plus
+   interleaved per-profile p95 wall time. Section totals matter because file
+   size is page-quantised: small transforms change `.text` without changing
+   the file size. These numbers are the denominator for the cost ledger.
 
 Run it directly:
 
 ```bash
 python3 tests/differential/run.py --plugin build/lib/AegisPass.so
+python3 tests/differential/run.py --plugin build/lib/AegisPass.so \
+  --fixture-dir tests/differential/suites/representative \
+  --profiles tests/differential/suites/representative/profiles.json \
+  --fuzz-cases 40 \
+  --report build/representative-differential-report.json
 ctest --test-dir build --output-on-failure      # all suites
 ```
 
@@ -85,13 +95,13 @@ When a profile breaks:
 
 ## Known limitations
 
-- The corpus is synthetic; size/time baselines from it do not extrapolate to
-  real large software.
+- Both corpora are synthetic; size/time baselines do not extrapolate to real
+  large software.
 - stderr is not compared across profiles (diagnostic noise); only property and
   sanitizer signatures are scanned.
 - `aegis-standard` remains level 1 by default. Levels 2/3 are research
   profiles; flattening is not recommended for hot paths (volatile state access
   per block).
-- Wall-clock numbers are process-startup dominated for this small fixture; use
-  the paired relative p95 as a regression tripwire, not as a performance
-  claim.
+- The small fixture remains process-startup dominated. The representative
+  workload performs at least 1 MiB of work per run, but it is still an
+  engineering regression workload, not a production-performance claim.

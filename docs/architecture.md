@@ -18,6 +18,7 @@ passes exist in code; further transforms are sketches.
    ├── harness   — agent adapters (C1–C3 red teams), runner, budget control
    ├── artifacts — stripped probe per protection profile (levels 0–3)
    ├── tasks     — self-authored fixtures + ground truth + property tests
+   ├── scorecard — deterministic correctness/size/runtime/build gates
    └── protocol  — scoring rules, private-set custody, drift reports
 ```
 
@@ -73,8 +74,9 @@ production debugging": rebuild the same commit with it, reproduce, fix.
   generator. The deterministic protection scorecard is the default release
   path and needs no model. Optional model runs record fixed budgets (model
   version, prompt, tool set, timeouts, token caps) per row. Task schema v3
-  records the declared tool policy, input domain, experiment use, difficulty
-  and model-specific calibration.
+  introduced declared protocol fields and model-specific calibration. Schema
+  v4 adds a required `core`/`exploratory` tier; versions 1-3 remain readable
+  and default to `exploratory`.
 - **Tasks** (`benchmarks/`): self-authored C/C++ programs only. Tasks are
   either `reimplement` (brief + examples) or `binary-recovery` (a stripped
   probe built from ground truth at protection levels 0–3). Each task has

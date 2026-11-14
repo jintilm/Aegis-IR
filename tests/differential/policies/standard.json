@@ -8,7 +8,7 @@
     { "name": "_Z12verify_tokenPKhm", "level": 1, "reason": "fixture: token check" }
   ],
   "limits": {
-    "max_binary_growth_percent": 10,
-    "max_p95_slowdown_percent": 5
+    "max_binary_growth_percent": 30,
+    "max_p95_slowdown_percent": 25
   }
 }

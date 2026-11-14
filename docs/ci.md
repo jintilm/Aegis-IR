@@ -12,22 +12,26 @@ pull request, and on demand. It has read-only repository permissions, a
 | Smoke test (audit) | the pass plugin stops loading / reporting | catches registration and loading regressions |
 | Smoke test (decoy pipeline) | policy → decoys → `default<O2>` → verify does not produce a guarded, verified module | proves the transform still survives the optimizer |
 | Smoke test (control-flow pipeline) | a level-3 policy → decoys → cff → `default<O2>` → verify does not keep the volatile dispatch state | proves flattening survives the optimizer outside CTest |
-| Smoke test (policy lint) | `aegis-lint` does not report the selected function or summary | keeps the pre-transform eligibility report loadable and registered |
+| Smoke test (policy lint) | `aegis-lint` does not report the selected function, advisory or summary | keeps the pre-transform eligibility and remediation report loadable and registered |
 | Smoke test (gate fails closed) | skipping `aegis-decoys` does **not** break the build | the verifier's entire value is failing loudly; a gate that silently passes is worse than none |
 | Bench task integrity | a task file changed without re-recording `content_hash`, an artifact policy is missing/mislabelled, or an artifact path escapes the task | a result must name the task it actually ran |
 | Python sanity | harness sources are not importable (`compileall`) | cheap syntax gate |
 | Format check | `clang-format --dry-run -Werror` reports a diff | review noise reduction |
 | Repository hygiene | private material tracked, a file > 1 MiB, or a credential-shaped string | a benchmark repo that leaks hidden answers or keys is worse than one that fails |
-| Tests | any CTest suite fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `protection-scorecard`, `aegis-bench`) | behavioural gate; the deterministic scorecard enforces default-profile correctness, `.text`, paired p95 and build-time budgets; the bench suite covers task artifacts, broker policy, process/network isolation and campaign resume/audit |
+| Tests | any of the eight CTest suites fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `differential-representative`, `protection-scorecard`, `protection-scorecard-representative`, `aegis-bench`) | behavioural gate; both deterministic scorecards enforce fixture/representative correctness, `.text`, paired p95 and three-build median budgets; the bench suite covers twelve task manifests, broker policy, process/network isolation and campaign resume/audit |
 
 Artifacts uploaded on every outcome: `differential-report.json`, the
-`scorecard.json`/`scorecard.md` budget result and the CTest log, retained 30
-days. A failing run therefore always has numbers attached.
+`representative-differential-report.json`, both
+`scorecard.json`/`scorecard.md` budget results and the CTest log, retained 30
+days. A failing run therefore always has numbers attached. The small fixture
+is a fast regression tripwire; the representative suite adds sustained work
+but neither is a production benchmark.
 
-The format gate covers the plugin and test fixtures, not the immutable
-benchmark task sources. Those files are part of a task's `content_hash`; merely
-reformatting one would invalidate the frozen task id. New tasks are reviewed
-for format before their first hash is recorded.
+The format gate covers the plugin, the small differential fixture and the
+representative suite, not the immutable benchmark task sources. Those files
+are part of a task's `content_hash`; merely reformatting one would invalidate
+the frozen task id. New tasks are reviewed for format before their first hash
+is recorded.
 
 ## Merge rules
 

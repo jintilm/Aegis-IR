@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "profile": "release",
+  "seed": 20261114,
+  "functions": [
+    {
+      "name": "aegis_rep_parse",
+      "level": 1,
+      "reason": "representative: parser boundary"
+    },
+    {
+      "name": "aegis_rep_fold",
+      "level": 1,
+      "reason": "representative: state folding"
+    },
+    {
+      "name": "aegis_rep_rounds",
+      "level": 1,
+      "reason": "representative: repeated update loop"
+    },
+    {
+      "name": "aegis_rep_digest",
+      "level": 1,
+      "reason": "representative: output digest"
+    }
+  ],
+  "limits": {
+    "max_binary_growth_percent": 30,
+    "max_p95_slowdown_percent": 25
+  }
+}

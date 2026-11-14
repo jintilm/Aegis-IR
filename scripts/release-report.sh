@@ -68,8 +68,22 @@ python3 -m aegis_bench scorecard \
   --budgets ../../experiments/protection-budgets.json \
   --out ../../build/scorecard
 ' 2>&1 | tee -a "$WORK/scorecard.log"
-cp "$REPO_ROOT/build/scorecard/scorecard.json" "$WORK/"
-cp "$REPO_ROOT/build/scorecard/scorecard.md" "$WORK/"
+rm -rf "$WORK/scorecard"
+cp -r "$REPO_ROOT/build/scorecard" "$WORK/scorecard"
+
+echo "== representative protection scorecard ==" \
+  | tee "$WORK/scorecard-representative.log"
+run_in_container '
+set -e
+cd tools/aegis-bench
+python3 -m aegis_bench scorecard \
+  --differential ../../build/representative-differential-report.json \
+  --budgets ../../experiments/protection-budgets-representative.json \
+  --out ../../build/scorecard-representative
+' 2>&1 | tee -a "$WORK/scorecard-representative.log"
+rm -rf "$WORK/scorecard-representative"
+cp -r "$REPO_ROOT/build/scorecard-representative" \
+  "$WORK/scorecard-representative"
 
 echo "== bench: ground-truth replay (positive control) =="
 echo "== bench: stub (negative control) =="
@@ -164,7 +178,8 @@ cat /tmp/netns-campaign-audit.json
 
 mkdir -p "$OUT"
 cp -r "$WORK"/. "$OUT"/
-cp "$REPO_ROOT/build/differential-report.json" "$OUT/" 2>/dev/null || true
+cp "$REPO_ROOT/build/differential-report.json" "$OUT/"
+cp "$REPO_ROOT/build/representative-differential-report.json" "$OUT/"
 find "$OUT" -type f -name '*.log' -exec \
   sed -E -i 's/[[:space:]]+$//' {} +
 
@@ -180,20 +195,29 @@ scripts/release-report.sh $NAME
 
 ## What this shows
 
-- the CTest suite passes in the pinned container (\`ctest.log\`);
-- the differential matrix runs eight build profiles (levels 0/1/2/3) over the
-  same corpus with zero output mismatches and zero sanitizer reports
+- all 8/8 CTest targets pass in the pinned container (\`ctest.log\`);
+- task schema v4 is validated with an explicit \`core\` or \`exploratory\` tier
+  in every public manifest; the set contains twelve tasks, eleven of them
+  binary-recovery tasks;
+- the fixture differential matrix runs eight build profiles (levels 0/1/2/3)
+  over the same corpus with zero output mismatches and zero sanitizer reports
   (\`differential-report.json\`, including \`.text\`/\`.data\` totals and p95
   wall time per profile);
-- the deterministic protection scorecard enforces the default profile's
-  correctness, \`.text\`, p95 and build-time budgets
-  (\`scorecard.md\`, \`scorecard.json\`);
+- the representative differential matrix runs baseline, standard, research and
+  flattened profiles over a larger algorithm workload with at least 1 MiB of
+  work per invocation (\`representative-differential-report.json\`);
+- both deterministic protection scorecards enforce correctness, \`.text\`,
+  p95 and build-time budgets. Build time is the median of three independent
+  clean builds in each arm (\`scorecard/scorecard.md\`,
+  \`scorecard/scorecard.json\`, \`scorecard-representative/scorecard.md\`,
+  \`scorecard-representative/scorecard.json\`);
 - Aegis-Bench builds \`rolling-token-v2\`'s stripped baseline probe and scores
   a known-correct solution at 100% and a compiling-but-wrong one at ~0%
   (\`bench-ground-truth/\`, \`bench-stub/\`), which validates the grader end to
-  end; CTest additionally builds baseline and all protected artifact profiles
-  for the twelve public tasks, including parser, state-machine, ring-buffer,
-  graph-routing, delta-ledger, S-box, bit-matrix and packet-framing families;
+  end; CTest checks all twelve public manifests and builds every protected
+  artifact profile for the eight tasks added in the v0.2/v0.3 families,
+  including parser, state-machine, ring-buffer, graph-routing, delta-ledger,
+  S-box, bit-matrix and packet-framing families;
 - the offline campaign writes a row, checkpoints it, resumes without rerunning
   the cell, and passes the campaign-aware audit
   (\`bench-campaign/\`, \`bench-campaign-audit.json\`);
@@ -211,8 +235,14 @@ scripts/release-report.sh $NAME
   was involved, so the token and tool-call columns are \`n/a\` by construction.
   Protection effectiveness against any attacker class is unmeasured and is
   not claimed anywhere in this repository.
-- No production-performance claim. The fixture is synthetic and small; the
-  scorecard is a release regression tripwire, not a representative benchmark.
+- No production-performance claim. The small fixture is a regression tripwire.
+  The representative suite adds sustained algorithm work, but both workloads
+  are synthetic and self-authored. Neither scorecard is a production
+  benchmark.
+- No N=5 claim for N=1 screening calibration. Only
+  \`packed-record-v1\` has N=5 records for both pilot models; the other
+  populated binary-task calibration records are screening data and the
+  remaining tasks are explicitly uncalibrated.
 
 Claims that do exist for this stage are in \`docs/claims-ledger.md\`; each
 entry names its own validation or pilot artifact.

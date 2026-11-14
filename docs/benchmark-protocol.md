@@ -27,13 +27,19 @@ Each task declares:
 - hidden edge cases and a differential-fuzz input set;
 - domain size and a protectability rating (same rules as `aegis-lint`);
 - an experiment-use class, difficulty, input domain and declared tool policy;
+- a `core` or `exploratory` tier;
 - a unique ID and content hash.
 
-Task manifests use schema version 2. The loader still accepts version 1 for
-frozen historical tasks and labels those rows with a legacy tool policy.
-Schema version 2 requires `experiment_use`, `protectability`, `tool_policy` and
-`input_domain`; these fields are copied into every run row as `task_protocol`
-so a report can be audited without reopening a possibly changed manifest.
+Task manifests use schema version 4. The loader still accepts versions 1-3 for
+historical tasks; legacy rows without a tier are recorded as `exploratory`.
+Schema version 2 introduced `experiment_use`, `protectability`, `tool_policy`
+and `input_domain`; schema version 4 additionally requires `tier`. These fields
+are copied into every run row as `task_protocol`, so a report can be audited
+without reopening a possibly changed manifest.
+
+`core` tasks form the stable comparison set. `exploratory` tasks exercise
+additional families but are not implied to be comparison-ready. The public set
+currently has twelve tasks: six `core` and six `exploratory`.
 
 ### Task types
 
@@ -135,13 +141,13 @@ one per model:
     "models": {
       "deepseek-v4-pro": {
         "status": "comparison-ready",
-        "baseline_pass_rate": 0.2,
+        "baseline_pass_rate": 0.4,
         "runs": 5,
         "date": "2026-11-13"
       },
       "deepseek-flash": {
-        "status": "floor",
-        "baseline_pass_rate": 0.0,
+        "status": "comparison-ready",
+        "baseline_pass_rate": 0.4,
         "runs": 5,
         "date": "2026-11-13"
       }
@@ -169,6 +175,10 @@ one per model:
   `content_hash` and does not require a new task id.
 - Reports of binary-recovery runs print the calibration and warn when a
   comparison was run on a task that is not comparison-ready.
+- An `uncalibrated` record is an explicit statement that no usable model
+  baseline exists. N=1 `floor` or `ceiling` records are screening only. Only
+  `packed-record-v1` currently has N=5 `comparison-ready` records for both
+  pilot models; N=1 screening records are never described as N=5 evidence.
 
 ### Submission rate and cost conditioning
 
@@ -319,7 +329,7 @@ Each run row records both the configured budget and whether it was enforced:
 | Candidate build/run time, address space, output size | enforced by the grader |
 | Oracle queries | counted by the harness broker; capped when `budgets.oracle_queries` is set |
 | Tokens | **measured** when `--meter-upstream` is given (provider `usage` via the harness proxy); otherwise adapter self-report |
-| Tool calls | broker-measured and capped for mediated calls; direct tool use remains unobserved until process isolation |
+| Tool calls | broker-measured and capped for mediated calls; direct tool use remains unobserved unless the worker is run with process isolation and broker-only tools |
 | Output tokens | **not enforced**; adapter self-report only |
 
 A report may quote enforced numbers. Unenforced ones are labelled

@@ -250,13 +250,55 @@ class SchemaTests(unittest.TestCase):
                 (copy / "task.json").read_text(encoding="utf-8"))
             manifest["schema_version"] = 1
             for key in ("tool_policy", "input_domain", "experiment_use",
-                        "difficulty"):
+                        "difficulty", "tier"):
                 manifest.pop(key, None)
             (copy / "task.json").write_text(
                 json.dumps(manifest), encoding="utf-8")
             task = load_task(copy, verify_hash=False)
         self.assertEqual(task.schema_version, 1)
         self.assertEqual(task.tool_policy.network, "legacy-unspecified")
+        self.assertEqual(task.tier, "exploratory")
+
+    def test_schema_v1_through_v3_default_to_exploratory_tier(self):
+        for version in (1, 2, 3):
+            with self.subTest(version=version), \
+                    tempfile.TemporaryDirectory() as tmp:
+                copy = Path(tmp) / "task"
+                shutil.copytree(REIMPLEMENT_DIR, copy)
+                manifest = json.loads(
+                    (copy / "task.json").read_text(encoding="utf-8"))
+                manifest["schema_version"] = version
+                manifest.pop("tier", None)
+                if version == 1:
+                    for key in ("tool_policy", "input_domain",
+                                "experiment_use", "difficulty"):
+                        manifest.pop(key, None)
+                (copy / "task.json").write_text(
+                    json.dumps(manifest), encoding="utf-8")
+                task = load_task(copy, verify_hash=False)
+            self.assertEqual(task.tier, "exploratory")
+            self.assertEqual(
+                task.protocol_dict()["tier"], "exploratory")
+
+    def test_schema_v4_requires_a_known_tier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "task"
+            shutil.copytree(REIMPLEMENT_DIR, copy)
+            manifest = json.loads(
+                (copy / "task.json").read_text(encoding="utf-8"))
+            manifest.pop("tier")
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("requires tier", str(ctx.exception))
+
+            manifest["tier"] = "benchmark"
+            (copy / "task.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(TaskError) as ctx:
+                load_task(copy, verify_hash=False)
+            self.assertIn("tier must be one of", str(ctx.exception))
 
     def test_hash_is_line_ending_stable(self):
         """A CRLF checkout must hash the same as an LF checkout.
@@ -367,7 +409,8 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(row["artifact"]["level"], 0)
             self.assertEqual(len(row["artifact"]["sha256"]), 64)
             self.assertGreater(row["artifact"]["text_bytes"], 0)
-            self.assertEqual(row["task_protocol"]["schema_version"], 3)
+            self.assertEqual(row["task_protocol"]["schema_version"], 4)
+            self.assertEqual(row["task_protocol"]["tier"], "exploratory")
             self.assertEqual(
                 row["task_protocol"]["tool_policy"]["network"],
                 "metered_model")
@@ -554,6 +597,24 @@ class PublicTaskSetTests(unittest.TestCase):
                          "delta-ledger-v1", "sbox-cascade-v1",
                          "bit-mosaic-v1", "packet-weave-v1"):
             self.assertIn(expected, ids)
+
+    def test_binary_tasks_calibrate_both_pilot_models(self):
+        binary_tasks = [
+            task for task in discover_tasks(TASKS_ROOT)
+            if task.task_type == "binary-recovery"
+        ]
+        self.assertEqual(len(binary_tasks), 11)
+        for task in binary_tasks:
+            for model in ("deepseek-flash", "deepseek-v4-pro"):
+                with self.subTest(task=task.id, model=model):
+                    calibration = task.calibration_for("binary", model)
+                    self.assertIsNotNone(
+                        calibration,
+                        f"{task.id} has no binary calibration for {model}")
+                    self.assertIn(
+                        calibration.status,
+                        ("uncalibrated", "floor", "ceiling",
+                         "comparison-ready"))
 
     def test_new_tasks_ground_truth_passes(self):
         for task_id in ("packed-record-v1", "lane-shift-v1",

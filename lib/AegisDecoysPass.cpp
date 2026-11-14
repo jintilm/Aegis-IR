@@ -21,6 +21,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -41,6 +42,7 @@ Function *createDecoyFunction(Module &M, StringRef Name, StringRef Text) {
   Function *F = Function::Create(FT, GlobalValue::ExternalLinkage, Name, &M);
   F->addFnAttr(Attribute::NoInline);
   F->addFnAttr(Attribute::NoUnwind);
+  F->addFnAttr(Attribute::Cold);
   F->setMetadata("aegis.decoy.fn", MDNode::get(Ctx, {}));
 
   // Curated string, referenced from the body so it survives GlobalDCE.
@@ -114,7 +116,10 @@ bool injectGuard(Function &F, GlobalVariable *Guard,
   BasicBlock *Body = SplitBlock(&Entry, SplitPt);
 
   // Dynamically-dead decoy block with plausible calls.
-  BasicBlock *Decoy = BasicBlock::Create(Ctx, "aegis.decoy", &F, Body);
+  // Keep the cold arm out of the entry-to-body fallthrough path. Placing it
+  // before Body forces the normal path to jump over it, which is measurable on
+  // small hot functions even though the guard is perfectly predictable.
+  BasicBlock *Decoy = BasicBlock::Create(Ctx, "aegis.decoy", &F);
   {
     IRBuilder<> DB(Decoy);
     const unsigned Calls = 1 + (Seed % 2);
@@ -134,7 +139,12 @@ bool injectGuard(Function &F, GlobalVariable *Guard,
   G->setVolatile(true);
   Value *Cmp =
       EB.CreateICmpNE(G, ConstantInt::get(Type::getInt32Ty(Ctx), 0), "aegis.c");
-  EB.CreateCondBr(Cmp, Decoy, Body);
+  auto *Branch = EB.CreateCondBr(Cmp, Decoy, Body);
+  // Keep the dead arm out of the hot placement path. The volatile wait-free
+  // load remains the semantic guard; this metadata only guides block layout.
+  MDBuilder MDB(Ctx);
+  Branch->setMetadata(LLVMContext::MD_prof,
+                      MDB.createBranchWeights(1, 1000000));
   return true;
 }
 

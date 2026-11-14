@@ -92,6 +92,7 @@ jobs:
           cat build/lint.log
           grep -q "\[aegis-lint\] summary:" build/lint.log
           grep -q "eligible=yes" build/lint.log
+          grep -q "advisory=protect-and-measure" build/lint.log
 
       # Fail-closed behaviour must be tested, not assumed: a protected build
       # whose decoys were skipped has to break, not warn.
@@ -122,6 +123,8 @@ jobs:
           clang-format-23 --dry-run -Werror \
             lib/*.cpp lib/*.h include/aegis/*.h \
             tests/differential/fixtures/*.cpp tests/differential/fixtures/*.h \
+            tests/differential/suites/representative/*.cpp \
+            tests/differential/suites/representative/*.h \
             tests/decoys/fixtures/*.cpp \
             tests/controlflow/fixtures/*.cpp
 
@@ -157,8 +160,11 @@ jobs:
           name: aegis-report-${{ github.sha }}
           path: |
             build/differential-report.json
+            build/representative-differential-report.json
             build/scorecard/scorecard.json
             build/scorecard/scorecard.md
+            build/scorecard-representative/scorecard.json
+            build/scorecard-representative/scorecard.md
             build/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
           retention-days: 30

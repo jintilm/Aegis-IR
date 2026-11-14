@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "sbox-cascade-v1",
   "title": "Recover a cascaded nibble S-box",
   "description": "task.md",
@@ -59,6 +59,7 @@
   },
   "experiment_use": "harness-validation",
   "difficulty": "medium",
+  "tier": "core",
   "tool_policy": {
     "allowed_tools": [
       "list_files",

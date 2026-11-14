@@ -14,6 +14,7 @@ POL2="$HERE/policies/level2.json"
 POL3="$HERE/policies/level3.json"
 POLBAD="$HERE/policies/ineligible.json"
 POLPHI="$HERE/policies/phi.json"
+POLSTATELESS="$HERE/policies/stateless.json"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -21,6 +22,7 @@ trap 'rm -rf "$TMP"' EXIT
 FAILED=0
 pass_case() { printf 'PASS  %s\n' "$1"; }
 fail_case() { printf 'FAIL  %s\n' "$1"; FAILED=1; }
+has_text() { grep -Fq -- "$1" <<< "$2"; }
 
 # run_opt <output.ll|/dev/null> <passes> [input]; sets OUT and CODE
 run_opt() {
@@ -53,21 +55,31 @@ PIPE3="aegis-policy<policy=$POL3>,aegis-decoys,aegis-cff,default<O2>,aegis-verif
 
 echo "== lint: policy selection before transforms =="
 run_opt /dev/null "aegis-policy<policy=$POL3>,aegis-lint"
-if [ "$CODE" -eq 0 ] && \
-   printf '%s\n' "$OUT" | grep -q 'eligible=yes' && \
-   printf '%s\n' "$OUT" | grep -q '\[aegis-lint\] summary:'; then
+if [ "$CODE" -eq 0 ] && has_text 'eligible=yes' "$OUT" && \
+   has_text 'advisory=protect-and-measure' "$OUT" && \
+   has_text '[aegis-lint] summary:' "$OUT"; then
   pass_case "lint reports eligible level-3 selections"
 else
   fail_case "lint reports eligible level-3 selections (exit=$CODE)"
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
 fi
 run_opt /dev/null "aegis-policy<policy=$POLBAD>,aegis-lint"
-if [ "$CODE" -eq 0 ] && \
-   printf '%s\n' "$OUT" | grep -q 'eligible=no' && \
-   printf '%s\n' "$OUT" | grep -q 'indirectbr'; then
-  pass_case "lint names the flattening-ineligible construct"
+if [ "$CODE" -eq 0 ] && has_text 'eligible=no' "$OUT" && \
+   has_text 'indirectbr' "$OUT" && \
+   has_text 'advisory=rewrite-computed-goto-or-select-another-function' \
+     "$OUT"; then
+  pass_case "lint names the flattening-ineligible construct and repair"
 else
-  fail_case "lint names the flattening-ineligible construct (exit=$CODE)"
+  fail_case "lint names the flattening-ineligible construct and repair (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
+fi
+run_opt /dev/null "aegis-policy<policy=$POLSTATELESS>,aegis-lint" \
+  "$HERE/fixtures/stateless.ll"
+if [ "$CODE" -eq 0 ] && has_text 'advisory=move-to-server' "$OUT" && \
+   has_text 'move_to_server=1' "$OUT"; then
+  pass_case "lint recommends server migration for a small stateless function"
+else
+  fail_case "lint recommends server migration for a small stateless function (exit=$CODE)"
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
 fi
 

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "baseline_profile": "baseline",
+  "min_build_samples": 3,
+  "profiles": {
+    "aegis-standard": {
+      "role": "default",
+      "gate": true,
+      "max_text_delta_pct": 30.0,
+      "max_p95_delta_pct": 25.0,
+      "max_build_delta_pct": 30.0,
+      "require_zero_mismatches": true,
+      "require_zero_sanitizer_or_property_errors": true
+    },
+    "aegis-research": {
+      "role": "research",
+      "gate": false,
+      "max_text_delta_pct": 50.0,
+      "max_p95_delta_pct": 30.0,
+      "max_build_delta_pct": 45.0,
+      "require_zero_mismatches": true,
+      "require_zero_sanitizer_or_property_errors": true
+    },
+    "aegis-flattened": {
+      "role": "research",
+      "gate": false,
+      "max_text_delta_pct": 80.0,
+      "max_p95_delta_pct": 100.0,
+      "max_build_delta_pct": 60.0,
+      "require_zero_mismatches": true,
+      "require_zero_sanitizer_or_property_errors": true
+    }
+  }
+}

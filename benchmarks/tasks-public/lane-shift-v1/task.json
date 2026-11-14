@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "id": "lane-shift-v1",
   "title": "Recover a lane mixer and windowed rotation",
   "description": "task.md",
@@ -59,6 +59,7 @@
   },
   "experiment_use": "harness-validation",
   "difficulty": "small",
+  "tier": "exploratory",
   "tool_policy": {
     "allowed_tools": [
       "list_files",

@@ -34,9 +34,30 @@ tasks-private/   # layout notes only; actual content stored separately
 | [`packet-weave-v1`](tasks-public/packet-weave-v1/task.md) | small | recover big-endian word masks, odd-byte tails and a rolling weave | binary-recovery; initially calibrated on both pilot models |
 
 Twelve tasks cover parser, state-machine, data-structure, graph-routing,
-tagged-delta, S-box, bit-matrix and packet-framing families. Calibration is
-published per access mode and model; a task that has only a floor or ceiling
-record supports a cost comparison, not a success-rate effect.
+tagged-delta, S-box, bit-matrix and packet-framing families. Manifests use
+schema v4 and declare a tier:
+
+- `core`: `rolling-token-v1`, `packed-record-v1`, `delta-ledger-v1`,
+  `sbox-cascade-v1`, `bit-mosaic-v1`, `packet-weave-v1`;
+- `exploratory`: `rolling-token-v2`, `lane-shift-v1`, `window-parser-v1`,
+  `state-fold-v1`, `ring-drain-v1`, `grid-route-v1`.
+
+Calibration is published per access mode and model. Six binary-recovery tasks
+remain explicitly `uncalibrated` for both `deepseek-v4-pro` and
+`deepseek-flash`. `delta-ledger-v1`, `sbox-cascade-v1`, `bit-mosaic-v1` and
+`packet-weave-v1` have N=1 screening records only:
+
+| Task | `deepseek-v4-pro` | `deepseek-flash` |
+|---|---|---|
+| `delta-ledger-v1` | floor, 0/1 | ceiling, 1/1 |
+| `sbox-cascade-v1` | floor, 0/1 | floor, 0/1 |
+| `bit-mosaic-v1` | floor, 0/1 | ceiling, 1/1 |
+| `packet-weave-v1` | ceiling, 1/1 | ceiling, 1/1 |
+
+Only `packed-record-v1` has N=5 records for both pilot models, both at 0.4 and
+marked `comparison-ready`. An N=1 screening result cannot support an N=5
+comparison claim. A floor or ceiling record can frame a cost question, but it
+does not establish a success-rate effect.
 
 ## Harness
 
@@ -56,9 +77,9 @@ together with the edit.
 
 1. Write the interface, brief and real sample I/O that the agent may see.
 2. Write ground truth, a driver, property tests and hidden cases.
-3. Fill in the schema-v3 `task.json`: budgets, protectability, experiment use,
-   difficulty, input domain, declared `tool_policy`, and model-specific
-   calibration records.
+3. Fill in the schema-v4 `task.json`: budgets, protectability, experiment use,
+   difficulty, `tier`, input domain, declared `tool_policy`, and
+   model-specific calibration records. Schema v4 requires `tier`.
 4. `python3 -m aegis_bench hash <task-dir>`, then `check`.
 5. Confirm the ground truth scores 100% and a deliberately wrong but
    compiling candidate scores ~0% — the harness test does both for the

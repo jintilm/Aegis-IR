@@ -48,6 +48,7 @@ class TaskView:
     schema_version: int
     experiment_use: str
     difficulty: str
+    tier: str
     tool_policy: dict[str, Any]
     input_domain: dict[str, Any]
     protectability: dict[str, Any]
@@ -67,6 +68,7 @@ class TaskView:
             schema_version=task.schema_version,
             experiment_use=task.experiment_use,
             difficulty=task.difficulty,
+            tier=task.tier,
             tool_policy=protocol["tool_policy"],
             input_domain=protocol["input_domain"],
             protectability=protocol["protectability"],
@@ -87,6 +89,7 @@ class TaskView:
             schema_version=int(raw["schema_version"]),
             experiment_use=str(raw["experiment_use"]),
             difficulty=str(raw["difficulty"]),
+            tier=str(raw["tier"]),
             tool_policy=dict(raw["tool_policy"]),
             input_domain=dict(raw["input_domain"]),
             protectability=dict(raw["protectability"]),
@@ -105,6 +108,7 @@ class TaskView:
             "task_type": self.task_type,
             "experiment_use": self.experiment_use,
             "difficulty": self.difficulty,
+            "tier": self.tier,
             "tool_policy": self.tool_policy,
             "input_domain": self.input_domain,
             "protectability": self.protectability,
@@ -140,6 +144,7 @@ class TaskView:
             "schema_version": self.schema_version,
             "experiment_use": self.experiment_use,
             "difficulty": self.difficulty,
+            "tier": self.tier,
             "tool_policy": self.tool_policy,
             "input_domain": self.input_domain,
             "protectability": self.protectability,

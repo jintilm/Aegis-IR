@@ -4,10 +4,10 @@ A task is a directory containing a ``task.json`` manifest plus the files it
 names. Everything the agent may see is listed under ``visible``; everything
 else (ground truth, property tests, hidden cases) stays out of the workspace.
 
-Manifest shape (schema_version 2; version 1 remains readable)::
+Manifest shape (schema_version 4; versions 1-3 remain readable)::
 
     {
-      "schema_version": 3,
+      "schema_version": 4,
       "id": "fnv-rolling-hash-v1",
       "title": "Recover a rolling hash and token predicate",
       "description": "task.md",
@@ -25,6 +25,7 @@ Manifest shape (schema_version 2; version 1 remains readable)::
       "protectability": {"domain_size": "small", "rating": "high"},
       "experiment_use": "harness-validation",
       "difficulty": "small",
+      "tier": "core",
       "tool_policy": {
         "allowed_tools": ["list_files", "read_file", "run_probe",
                           "disassemble", "submit_solution"],
@@ -67,8 +68,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 3
-SUPPORTED_SCHEMA_VERSIONS = (1, 2, 3)
+SCHEMA_VERSION = 4
+SUPPORTED_SCHEMA_VERSIONS = (1, 2, 3, 4)
 _PROFILE_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -124,6 +125,7 @@ TASK_TOOLS = (
 NETWORK_POLICIES = ("none", "metered_model", "legacy-unspecified")
 EXPERIMENT_USES = ("harness-validation", "pilot", "comparison")
 DIFFICULTIES = ("small", "medium", "large")
+TASK_TIERS = ("core", "exploratory")
 INPUT_DOMAIN_KINDS = ("bytes", "structured")
 DOMAIN_SIZES = ("small", "medium", "large", "unbounded")
 PROTECTABILITY_RATINGS = ("low", "medium", "high")
@@ -364,6 +366,7 @@ class Task:
     input_domain: dict[str, Any] = field(default_factory=dict)
     experiment_use: str = "harness-validation"
     difficulty: str = "small"
+    tier: str = "exploratory"
 
     # -- helpers ---------------------------------------------------------
 
@@ -400,6 +403,7 @@ class Task:
             "task_type": self.task_type,
             "experiment_use": self.experiment_use,
             "difficulty": self.difficulty,
+            "tier": self.tier,
             "tool_policy": self.tool_policy.to_dict(),
             "input_domain": dict(self.input_domain),
             "protectability": dict(self.protectability),
@@ -641,6 +645,12 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
     if difficulty not in DIFFICULTIES:
         raise TaskError(
             f"{task_id}: difficulty must be one of {DIFFICULTIES}")
+    if version >= 4 and "tier" not in raw:
+        raise TaskError(f"{task_id}: schema_version 4 requires tier")
+    tier = raw.get("tier", "exploratory")
+    if tier not in TASK_TIERS:
+        raise TaskError(
+            f"{task_id}: tier must be one of {TASK_TIERS}, got {tier!r}")
 
     task = Task(
         root=root,
@@ -667,6 +677,7 @@ def load_task(task_dir: str | Path, *, verify_hash: bool = True,
         input_domain=input_domain,
         experiment_use=experiment_use,
         difficulty=difficulty,
+        tier=tier,
     )
 
     # Private tasks live outside the public tree and their results are never

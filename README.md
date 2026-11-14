@@ -25,8 +25,10 @@ and model campaigns as selective, explicitly scoped experiments.
 The deterministic scorecard is the default release path. Campaign/resume/audit
 and harness-owned token/tool brokers remain available for optional model
 research. The harness also includes an optional adapter subprocess boundary.
-The current unreleased tree adds the scored default-profile gate described
-below; it has not yet been cut as a new version.
+The current unreleased tree adds task schema v4 (`core`/`exploratory` tiers),
+twelve validated public tasks, three-build median reporting, a larger
+representative differential workload, and eight release-gating CTest targets.
+It has not yet been cut as a new version.
 Linux `require_sandbox` workers use Landlock for workspace/runtime file access
 and broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
 opt-in `require_network_namespace` path gives the worker a private loopback
@@ -64,6 +66,13 @@ N=5 run measured descriptive token floors of 2.15× and 3.03× on one task, with
 success changing from 2/5 to 1/5 and 0/5. It did not hold success fixed and is
 not an effectiveness claim. No new model matrix is required to develop, test or
 release the deterministic scorecard.
+
+Task calibration distinguishes screening from comparison evidence. The six
+remaining binary-recovery tasks have explicit `uncalibrated` records for both
+pilot models; `delta-ledger-v1`, `sbox-cascade-v1`, `bit-mosaic-v1` and
+`packet-weave-v1` have N=1 screening records only. Only `packed-record-v1` has
+N=5 records for both `deepseek-v4-pro` and `deepseek-flash`, both at 0.4 and
+marked `comparison-ready`. An N=1 screening label is never described as N=5.
 
 ## Honest expectations
 
@@ -157,10 +166,12 @@ fail-loud eligibility list and what the transforms do **not** do.
 cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
-Six suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
+Eight suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
 `differential` (eight build profiles × 235 corpus cases),
-`protection-scorecard` (deterministic engineering budgets), and `aegis-bench`
-(offline harness tests, no model, network or credentials).
+`differential-representative` (four profiles over a 1 MiB minimum-work
+algorithm workload), `protection-scorecard` (fixture regression budgets),
+`protection-scorecard-representative` (calibrated workload budgets), and
+`aegis-bench` (offline harness tests, no model, network or credentials).
 
 ## Protection scorecard
 
@@ -178,8 +189,11 @@ python3 -m aegis_bench scorecard \
   --out ../../build/scorecard
 ```
 
-It gates the default profile on correctness, `.text`, paired relative p95 and
-build time. Details and limitations:
+The small fixture gates the default profile at `.text` <= 25%, paired relative
+p95 <= 25% and build-time growth <= 25%. The representative workload has its
+own calibrated default gate: `.text` <= 30%, paired relative p95 <= 25% and
+build-time growth <= 30%. Build comparisons use the median of three
+independent clean builds. Details and limitations:
 [`docs/protection-scorecard.md`](docs/protection-scorecard.md).
 
 ## Optional model research

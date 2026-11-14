@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 20261115,
+  "functions": [
+    {
+      "name": "aegis_rep_parse",
+      "level": 2,
+      "reason": "representative: parser control flow"
+    },
+    {
+      "name": "aegis_rep_fold",
+      "level": 2,
+      "reason": "representative: folding control flow"
+    },
+    {
+      "name": "aegis_rep_rounds",
+      "level": 2,
+      "reason": "representative: loop control flow"
+    },
+    {
+      "name": "aegis_rep_digest",
+      "level": 2,
+      "reason": "representative: digest control flow"
+    }
+  ]
+}

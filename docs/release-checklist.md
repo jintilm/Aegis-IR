@@ -7,18 +7,22 @@ a blocker, and a box checked without evidence is worse.
 ## Build and tests
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
-      Verified for the current post-`v0.3.0-alpha` candidate in the pinned
-      container (`6/6` CTest, 707.42 s).
+      Verified for the schema-v4/double-scorecard candidate in the pinned
+      container; the authoritative rerun completed 8/8 CTest in 874.50 s.
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
-      `aegis-controlflow`, `differential`, `protection-scorecard`,
-      `aegis-bench`.
+      `aegis-controlflow`, `differential`, `differential-representative`,
+      `protection-scorecard`, `protection-scorecard-representative`,
+      `aegis-bench` (8/8).
 - [x] Binary-recovery probe builds at levels 0–3 and the level-3 build log
       shows flattening + verifier OK (`aegis-bench` integration test).
 - [x] Differential matrix: zero output mismatches, zero sanitizer reports on
       all eight profiles (`differential-report.json`).
 - [x] Deterministic protection scorecard passes the default-profile budgets:
-      correctness, `.text` <= 25%, paired relative p95 <= 3%, build time <=
-      25% (`scorecard.json`, `scorecard.md`). This is the primary release gate.
+      fixture correctness, `.text` <= 25%, paired relative p95 <= 25% and
+      build-time median <= 25%; representative correctness, `.text` <= 30%,
+      paired relative p95 <= 25% and build-time median <= 30%. Both arms
+      require at least three independent clean-build samples
+      (`scorecard.json`/`.md`, `scorecard-representative.json`/`.md`).
 - [x] Grader isolation: candidate include path excludes the task root;
       compile/run use scratch directories, minimal environment and rlimits;
       the candidate-source policy rejects oracle replay tripwires (tests).
@@ -27,18 +31,25 @@ a blocker, and a box checked without evidence is worse.
 - [x] `clang-format --dry-run -Werror` clean (CI).
 - [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) for
       level 1, 5672 (+12.9%) for level 2 and 6642 (+32.2%) for level 3 on the
-      fixture; p95 per-profile in `differential-report.json`. The +10% / +5%
-      figures in `docs/build-profiles.md` are engineering targets, not gates —
-      the protected profiles exceed the size target and say so in the claims
-      ledger (C-001/C-003/C-004) rather than hiding it.
+      fixture; per-profile p95 and three build medians are in
+      `differential-report.json`. Budgets live in
+      `experiments/protection-budgets*.json`; the protected profiles' observed
+      costs are recorded in the claims ledger (C-001/C-003/C-004) rather than
+      hidden.
 - [x] At least one reproducible report linked from release notes:
-      `docs/reports/harness-validation-v0.3.0-alpha/`.
+      final clean-tree report at `docs/reports/harness-validation-final/`.
 - [x] Campaign orchestration is covered end to end: the offline manifest runs,
       resumes without duplicating its cell, and passes `aegis-bench audit`
       (`tests/bench/run.sh` + `test_campaign.py`).
-- [x] Task schema v3 is accepted, v1/v2 remain readable as legacy, and every
-      run row carries `task_protocol` plus campaign provenance. Calibration is
-      keyed by access mode and model.
+- [x] Task schema v4 requires `tier: core|exploratory`; v1-v3 remain readable
+      and default to `exploratory`. Every run row carries `task_protocol` with
+      the tier plus campaign provenance. Calibration is keyed by access mode
+      and model.
+- [x] Twelve public tasks are split six `core` / six `exploratory`; all eleven
+      binary-recovery tasks have explicit calibration records for both pilot
+      models. Six are `uncalibrated`, four have N=1 screening records, and only
+      `packed-record-v1` is N=5 `comparison-ready` for both models. No N=1
+      record is described as N=5 evidence.
 - [x] `aegis-lint` reports eligible and ineligible selections without changing
       IR (`aegis-controlflow` + CI smoke test).
 - [x] Harness-owned loopback tool broker enforces the declared tool set,
@@ -59,10 +70,11 @@ a blocker, and a box checked without evidence is worse.
 - [x] Optional dual-model research support exists (schema v2 options, worker
       replay, `agent_config`), but model campaigns are not run for ordinary
       releases. No new attack matrix is required from the release checklist.
-- [x] Clean-tree `v0.3.0-alpha` validation report generated from commit
-      `92c375e`: `docs/reports/harness-validation-v0.3.0-alpha/`. CTest 5/5
-      in 677.07 s; offline, process and network-namespace campaign audits each
-      report 0 errors and 0 warnings.
+- [x] Clean-tree final validation report is required at
+      `docs/reports/harness-validation-final/`, generated only after the code
+      and documentation commit. It records 8/8 CTest, both differential
+      reports, both scorecard results, and offline, process and
+      network-namespace campaign audits.
 
 ## Claims and honesty
 

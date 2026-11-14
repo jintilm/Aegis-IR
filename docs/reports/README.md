@@ -23,6 +23,9 @@ Rules:
 - A protection comparison must also name the task's **calibration**. A task
   whose unprotected baseline sits at the floor or the ceiling cannot show an
   effect; the report warns when that is the case.
+- An N=1 calibration run is screening evidence only. It may be listed as
+  floor/ceiling screening, but it must never be described as an N=5 result.
+  Only `packed-record-v1` currently has N=5 records for both pilot models.
 
 | Report | What it establishes | Claim ID |
 |---|---|---|

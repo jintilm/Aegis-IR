@@ -1,0 +1,27 @@
+{
+  "profiles": {
+    "baseline": {
+      "optflags": ["-O2"],
+      "pipeline": "default<O2>",
+      "strip": true
+    },
+    "aegis-standard": {
+      "optflags": ["-O2"],
+      "policy": "policies/standard.json",
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "strip": true
+    },
+    "aegis-research": {
+      "optflags": ["-O2"],
+      "policy": "policies/research.json",
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "strip": true
+    },
+    "aegis-flattened": {
+      "optflags": ["-O2"],
+      "policy": "policies/flattened.json",
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "strip": true
+    }
+  }
+}

@@ -51,6 +51,12 @@ python3 -m aegis_bench scorecard \
   --budgets ../../experiments/protection-budgets.json \
   --out ../../build/scorecard
 
+# evaluate the larger calibrated representative workload
+python3 -m aegis_bench scorecard \
+  --differential ../../build/representative-differential-report.json \
+  --budgets ../../experiments/protection-budgets-representative.json \
+  --out ../../build/scorecard-representative
+
 # after editing a task, re-record its hash
 python3 -m aegis_bench hash ../../benchmarks/tasks-public/rolling-token-v1
 
@@ -90,7 +96,10 @@ API key. The optional metering proxy is the only
 harness-owned path to the model endpoint, and it exists only when
 `--meter-upstream` is explicitly given. The tool broker is loopback-only. The
 adapter must be run in an environment whose filesystem view contains only the
-workspace; the harness enforces workspace isolation, not process sandboxing.
+workspace. For real-model runs, configure process isolation plus
+`require_sandbox` and `require_network_namespace`; the worker then receives a
+workspace-only `TaskView`, Landlock/seccomp restrictions and a private network
+namespace.
 `adapter.solve` is
 bounded by `--adapter-timeout` (default 600 s, SIGALRM on POSIX).
 Campaigns create a fresh adapter instance for every cell, require a non-empty
@@ -114,6 +123,10 @@ Campaign schema v2 agent entries can carry constructor `options`. A single
 `{"model": "deepseek-v4-pro"}` and `{"model": "deepseek-flash"}`, inside one
 matrix. The harness records the options as `agent_config` and replays them in
 the process worker.
+
+Task schema v4 requires a `core` or `exploratory` tier. The public set contains
+twelve tasks: six in each tier. Eleven are binary-recovery tasks and one is the
+frozen reimplementation task.
 
 Binary-recovery tasks need `clang++-23` and `opt-23` (override with
 `--clang` / `--opt` or `BENCH_CLANG` / `BENCH_OPT`); profiles at level >= 1
@@ -229,7 +242,7 @@ toolchain, and build log. A task edited after its hash was recorded fails
 that was run.
 
 Rows also carry `record_schema_version`, `agent_config`, `task_protocol`
-(schema version, tool policy, input domain, experiment use, difficulty,
+(schema version, tier, tool policy, input domain, experiment use, difficulty,
 protectability) and a `campaign` block with campaign id, purpose, primary
 metric, manifest SHA-256, cell key and order index. `aegis-bench audit` checks
 duplicates, missing cells, commit/hash/version drift, agent configuration,
@@ -254,6 +267,11 @@ are in [`docs/isolation.md`](../../docs/isolation.md).
   parsers, state folds, ring buffers, grid routing, delta ledgers, S-boxes,
   bit mosaics and packet weaving. Task count is not itself evidence; cost
   numbers still require calibration and a completed model matrix.
+- Calibration records default to `uncalibrated` when no model baseline exists.
+  Six binary-recovery tasks remain uncalibrated for both pilot models; four
+  have N=1 screening records; only `packed-record-v1` is N=5
+  `comparison-ready` for both `deepseek-v4-pro` and `deepseek-flash`. N=1
+  screening results are never represented as N=5 comparison evidence.
 - No model adapters in-tree, by design. The contract a published result must
   satisfy is [`docs/reference-adapter.md`](../../docs/reference-adapter.md).
 - Oracle queries are counted and optionally capped by the broker, but the
@@ -273,3 +291,6 @@ are in [`docs/isolation.md`](../../docs/isolation.md).
   numbers run on Linux.
 - The run report is machine-written and not peer-reviewed; it is evidence
   for the claims ledger, not a substitute for it.
+- No report establishes production performance or attack effectiveness. The
+  deterministic workloads are engineering regression gates, and the model
+  pilots are descriptive cost studies with unresolved success-rate effects.

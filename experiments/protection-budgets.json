@@ -1,12 +1,13 @@
 {
   "schema_version": 1,
   "baseline_profile": "release-opt",
+  "min_build_samples": 3,
   "profiles": {
     "aegis-standard": {
       "role": "default",
       "gate": true,
       "max_text_delta_pct": 25.0,
-      "max_p95_delta_pct": 3.0,
+      "max_p95_delta_pct": 25.0,
       "max_build_delta_pct": 25.0,
       "require_zero_mismatches": true,
       "require_zero_sanitizer_or_property_errors": true

@@ -23,6 +23,7 @@ import json
 import os
 import random
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,8 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-FIXTURES = HERE / "fixtures"
+DEFAULT_FIXTURES = HERE / "fixtures"
+DEFAULT_PROFILES = HERE / "profiles.json"
 
 BOUNDARY_LENGTHS = [
     0, 1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129, 255,
@@ -45,7 +47,8 @@ def run_cmd(cmd, timeout=TIMEOUT_SECONDS):
     return subprocess.run(cmd, capture_output=True, timeout=timeout)
 
 
-def build_profile(name, spec, outdir, clang, opt, plugin):
+def build_profile(name, spec, outdir, fixture_dir, config_dir,
+                  clang, opt, plugin):
     """Build one profile. Returns (exe_path, error_string)."""
     outdir.mkdir(parents=True, exist_ok=True)
     flags = spec.get("optflags", ["-O2"])
@@ -59,8 +62,8 @@ def build_profile(name, spec, outdir, clang, opt, plugin):
         # copy. default<O2> runs inside the opt pipeline instead.
         src_flags += ["-Xclang", "-disable-llvm-passes"]
     r = run_cmd([clang, *src_flags, "-S", "-emit-llvm",
-                 str(FIXTURES / "algorithm_lib.cpp"),
-                 "-I", str(FIXTURES), "-o", str(lib_ll)])
+                 str(fixture_dir / "algorithm_lib.cpp"),
+                 "-I", str(fixture_dir), "-o", str(lib_ll)])
     if r.returncode != 0:
         return None, f"compile library failed:\n{r.stderr.decode(errors='replace')}"
 
@@ -68,7 +71,7 @@ def build_profile(name, spec, outdir, clang, opt, plugin):
     if pipeline:
         # Relative policy paths are resolved against this directory so the
         # profile file stays location-independent.
-        policy = HERE / spec["policy"] if spec.get("policy") else None
+        policy = config_dir / spec["policy"] if spec.get("policy") else None
         passes = pipeline.format(policy=policy) if policy else pipeline
         protected_ll = outdir / "lib.protected.ll"
         r = run_cmd([opt, f"-load-pass-plugin={plugin}",
@@ -85,8 +88,8 @@ def build_profile(name, spec, outdir, clang, opt, plugin):
         return None, f"compile protected IR failed:\n{r.stderr.decode(errors='replace')}"
 
     driver_o = outdir / "driver.o"
-    r = run_cmd([clang, *flags, "-c", str(FIXTURES / "driver.cpp"),
-                 "-I", str(FIXTURES), "-o", str(driver_o)])
+    r = run_cmd([clang, *flags, "-c", str(fixture_dir / "driver.cpp"),
+                 "-I", str(fixture_dir), "-o", str(driver_o)])
     if r.returncode != 0:
         return None, f"compile driver failed:\n{r.stderr.decode(errors='replace')}"
 
@@ -175,6 +178,13 @@ def main():
     ap.add_argument("--opt", default=os.environ.get("OPT", "opt-23"))
     ap.add_argument("--fuzz-cases", type=int, default=200)
     ap.add_argument("--seed", type=int, default=1234)
+    ap.add_argument("--build-samples", type=int, default=3,
+                    help="independent cold builds per profile (default: 3)")
+    ap.add_argument("--fixture-dir", default=str(DEFAULT_FIXTURES),
+                    help="directory containing algorithm_lib.cpp and driver.cpp")
+    ap.add_argument("--profiles", default=str(DEFAULT_PROFILES),
+                    help="profile matrix JSON; relative policies resolve "
+                         "against its directory")
     ap.add_argument("--report", default=None,
                     help="write JSON report to this path")
     ap.add_argument("--keep", action="store_true",
@@ -185,37 +195,75 @@ def main():
         if shutil.which(tool) is None:
             print(f"error: tool not found: {tool}", file=sys.stderr)
             return 2
+    if args.build_samples < 1:
+        print("error: --build-samples must be at least 1", file=sys.stderr)
+        return 2
 
-    profiles = json.loads((HERE / "profiles.json").read_text())["profiles"]
+    fixture_dir = Path(args.fixture_dir).resolve()
+    profiles_path = Path(args.profiles).resolve()
+    config_dir = profiles_path.parent
+    for path in (fixture_dir, profiles_path):
+        if not path.exists():
+            print(f"error: path not found: {path}", file=sys.stderr)
+            return 2
+    profiles = json.loads(profiles_path.read_text())["profiles"]
     corpus = build_corpus(args.fuzz_cases, args.seed)
     workdir = Path(tempfile.mkdtemp(prefix="aegis-differential-"))
     failures = []
-    report = {"profiles": {}, "corpus_size": len(corpus), "seed": args.seed}
+    report = {
+        "fixture": fixture_dir.name,
+        "fixture_dir": str(fixture_dir),
+        "profiles_source": str(profiles_path),
+        "build_samples_required": args.build_samples,
+        "profiles": {},
+        "corpus_size": len(corpus),
+        "seed": args.seed,
+    }
 
     try:
         exes = {}
         for name, spec in profiles.items():
-            build_started = time.perf_counter()
-            exe, err = build_profile(name, spec, workdir / name,
-                                     args.clang, args.opt, args.plugin)
-            build_ms = (time.perf_counter() - build_started) * 1000.0
-            if err:
-                failures.append(f"[{name}] {err}")
+            build_samples_ms = []
+            exe = None
+            profile_failed = False
+            for sample_index in range(args.build_samples):
+                build_started = time.perf_counter()
+                sample_exe, err = build_profile(
+                    name, spec,
+                    workdir / name / f"sample-{sample_index:02d}",
+                    fixture_dir, config_dir, args.clang, args.opt,
+                    args.plugin)
+                build_samples_ms.append(
+                    (time.perf_counter() - build_started) * 1000.0)
+                if err:
+                    failures.append(
+                        f"[{name}] build sample {sample_index + 1}/"
+                        f"{args.build_samples}: {err}")
+                    profile_failed = True
+                    break
+                if exe is None:
+                    exe = sample_exe
+            if profile_failed or exe is None:
                 continue
             exes[name] = exe
             sections = section_sizes(exe)
+            build_median_ms = statistics.median(build_samples_ms)
             report["profiles"][name] = {
                 "binary_bytes": exe.stat().st_size,
                 "sections": sections,
                 "pipeline": spec.get("pipeline"),
-                "build_ms": build_ms,
+                "build_samples_ms": build_samples_ms,
+                "build_median_ms": build_median_ms,
+                "build_ms": build_median_ms,
                 "cases": 0,
                 "total_ms": 0.0,
                 "timings_ms": [],
                 "mismatches": 0,
                 "sanitizer_or_property_errors": 0,
             }
-            print(f"built {name}: {exe.stat().st_size} bytes")
+            print(f"built {name}: {exe.stat().st_size} bytes, "
+                  f"median build {build_median_ms:.1f} ms "
+                  f"({len(build_samples_ms)} samples)")
 
         if "baseline" not in exes:
             print("error: baseline profile failed to build", file=sys.stderr)

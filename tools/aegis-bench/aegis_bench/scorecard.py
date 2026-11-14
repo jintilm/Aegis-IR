@@ -43,6 +43,11 @@ def load_budgets(path: str | Path) -> dict[str, Any]:
     baseline = raw.get("baseline_profile")
     if not isinstance(baseline, str) or not baseline:
         raise ScorecardError("baseline_profile must be a non-empty string")
+    min_build_samples = raw.get("min_build_samples", 1)
+    if (isinstance(min_build_samples, bool)
+            or not isinstance(min_build_samples, int)
+            or min_build_samples < 1):
+        raise ScorecardError("min_build_samples must be a positive integer")
     profiles = raw.get("profiles")
     if not isinstance(profiles, dict) or not profiles:
         raise ScorecardError("profiles must be a non-empty object")
@@ -79,8 +84,20 @@ def _profile_metrics(
     p95 = entry.get("p95_ms")
     base_p95 = baseline.get("p95_ms")
     relative_p95 = entry.get("relative_p95_delta_pct")
-    build = entry.get("build_ms")
-    base_build = baseline.get("build_ms")
+    build_samples = entry.get("build_samples_ms")
+    if not isinstance(build_samples, list):
+        build_samples = []
+    build_sample_count = len(build_samples)
+    base_samples = baseline.get("build_samples_ms")
+    if not isinstance(base_samples, list):
+        base_samples = []
+    base_sample_count = len(base_samples)
+    build = entry.get("build_median_ms")
+    if not isinstance(build, (int, float)):
+        build = entry.get("build_ms")
+    base_build = baseline.get("build_median_ms")
+    if not isinstance(base_build, (int, float)):
+        base_build = baseline.get("build_ms")
     return {
         "profile": name,
         "cases": int(entry.get("cases", 0)),
@@ -106,6 +123,9 @@ def _profile_metrics(
                 if isinstance(p95, (int, float))
                 and isinstance(base_p95, (int, float)) else None)),
         "build_ms": build,
+        "build_samples_ms": build_samples,
+        "build_sample_count": build_sample_count,
+        "baseline_build_sample_count": base_sample_count,
         "build_delta_pct": (
             _delta_pct(float(build), float(base_build))
             if isinstance(build, (int, float))
@@ -145,6 +165,9 @@ def evaluate_scorecard(
             "relative_p95_delta_pct": None,
             "runtime_delta_pct": None,
             "build_ms": None,
+            "build_samples_ms": [],
+            "build_sample_count": 0,
+            "baseline_build_sample_count": 0,
             "build_delta_pct": None,
             "role": rule.get("role", "gated"),
             "gate": True,
@@ -163,6 +186,7 @@ def evaluate_scorecard(
         metrics = _profile_metrics(name, entry, baseline)
         checks: list[dict[str, Any]] = []
         if rule is not None:
+            min_build_samples = int(budgets.get("min_build_samples", 1))
             errors_required = bool(
                 rule.get("require_zero_mismatches", True))
             sanitizer_required = bool(
@@ -187,6 +211,18 @@ def evaluate_scorecard(
                     "actual": metrics["sanitizer_or_property_errors"],
                     "requirement": "== 0",
                 })
+            minimum_observed = min(
+                metrics["build_sample_count"],
+                metrics["baseline_build_sample_count"])
+            checks.append({
+                "name": "build_samples",
+                "ok": minimum_observed >= min_build_samples,
+                "actual": {
+                    "profile": metrics["build_sample_count"],
+                    "baseline": metrics["baseline_build_sample_count"],
+                },
+                "requirement": f">= {min_build_samples} for both arms",
+            })
             for metric, limit_key, label in (
                     ("text_delta_pct", "max_text_delta_pct", ".text"),
                     ("runtime_delta_pct", "max_p95_delta_pct", "runtime p95"),

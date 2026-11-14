@@ -19,11 +19,15 @@ from aegis_bench.scorecard import (  # noqa: E402
 def _differential(
         *, text: int = 1200, p95: float = 10.2, build: float = 110.0,
         mismatches: int = 0, sanitizer: int = 0) -> dict:
+    base_samples = [99.0, 100.0, 101.0]
+    build_samples = [build - 10.0, build, build + 10.0]
     return {
         "profiles": {
             "release-opt": {
                 "sections": {"text": 1000},
                 "p95_ms": 10.0,
+                "build_samples_ms": base_samples,
+                "build_median_ms": 100.0,
                 "build_ms": 100.0,
                 "cases": 235,
                 "mismatches": 0,
@@ -33,6 +37,8 @@ def _differential(
                 "sections": {"text": text},
                 "p95_ms": p95,
                 "relative_p95_delta_pct": (p95 / 10.0 - 1.0) * 100.0,
+                "build_samples_ms": build_samples,
+                "build_median_ms": build,
                 "build_ms": build,
                 "cases": 235,
                 "mismatches": mismatches,
@@ -47,6 +53,7 @@ def _budgets(tmp: str) -> dict:
     path.write_text(json.dumps({
         "schema_version": 1,
         "baseline_profile": "release-opt",
+        "min_build_samples": 3,
         "profiles": {
             "aegis-standard": {
                 "role": "default",
@@ -89,6 +96,7 @@ class ScorecardTests(unittest.TestCase):
 
     def test_missing_timed_metric_fails_a_configured_budget(self):
         differential = _differential()
+        del differential["profiles"]["aegis-standard"]["build_median_ms"]
         del differential["profiles"]["aegis-standard"]["build_ms"]
         with tempfile.TemporaryDirectory() as tmp:
             result = evaluate_scorecard(differential, _budgets(tmp))
@@ -97,6 +105,29 @@ class ScorecardTests(unittest.TestCase):
             for check in result["profiles"]["aegis-standard"]["checks"]
         }
         self.assertFalse(checks["build_delta_pct"])
+        self.assertFalse(result["passed"])
+
+    def test_build_median_is_preferred_over_legacy_scalar(self):
+        differential = _differential()
+        differential["profiles"]["aegis-standard"]["build_median_ms"] = 105.0
+        differential["profiles"]["aegis-standard"]["build_ms"] = 999.0
+        with tempfile.TemporaryDirectory() as tmp:
+            result = evaluate_scorecard(differential, _budgets(tmp))
+        profile = result["profiles"]["aegis-standard"]
+        self.assertEqual(profile["build_ms"], 105.0)
+        self.assertAlmostEqual(profile["build_delta_pct"], 5.0)
+        self.assertTrue(result["passed"])
+
+    def test_too_few_build_samples_fails_the_gate(self):
+        differential = _differential()
+        differential["profiles"]["aegis-standard"]["build_samples_ms"] = [110.0]
+        with tempfile.TemporaryDirectory() as tmp:
+            result = evaluate_scorecard(differential, _budgets(tmp))
+        checks = {
+            check["name"]: check["ok"]
+            for check in result["profiles"]["aegis-standard"]["checks"]
+        }
+        self.assertFalse(checks["build_samples"])
         self.assertFalse(result["passed"])
 
     def test_missing_gated_profile_fails(self):

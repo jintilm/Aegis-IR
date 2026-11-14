@@ -30,6 +30,17 @@ Current coverage:
   [`docs/decoys.md`](../docs/decoys.md) and
   [`docs/controlflow.md`](../docs/controlflow.md).
 
+- `differential/suites/representative/` — larger algorithm workload with at
+  least 1 MiB of work per invocation (CTest name
+  `differential-representative`). It runs the baseline, standard, research and
+  flattened profiles over a deterministic 75-case corpus (fixed, boundary and
+  40 seeded fuzz inputs) and feeds the calibrated representative scorecard.
+
+- `protection-scorecard*` — deterministic engineering gates. The fixture gate
+  checks the small regression workload; the representative gate uses the
+  calibrated larger workload. Both require zero mismatches, zero
+  sanitizer/property errors, and at least three build samples in each arm.
+
 - `bench/` — Aegis-Bench harness tests (`bash tests/bench/run.sh
   tools/aegis-bench <plugin>`; CTest name `aegis-bench`). Offline only:
   deterministic adapters, no model, no network, no credentials. Covers the
