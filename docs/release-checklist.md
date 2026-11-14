@@ -8,7 +8,7 @@ a blocker, and a box checked without evidence is worse.
 
 - [x] Clean-environment build succeeds (container from `docker/dev.Dockerfile`).
       Verified for the schema-v4/double-scorecard candidate in the pinned
-      container; the final clean-tree report completed 8/8 CTest in 900.82 s.
+      container; the final clean-tree report completed 8/8 CTest in 904.44 s.
 - [x] All CTest suites pass: `aegis-policy`, `aegis-decoys`,
       `aegis-controlflow`, `differential`, `differential-representative`,
       `protection-scorecard`, `protection-scorecard-representative`,
@@ -43,7 +43,8 @@ a blocker, and a box checked without evidence is worse.
       costs are recorded in the claims ledger (C-001/C-003/C-004) rather than
       hidden.
 - [x] At least one reproducible report linked from release notes:
-      final clean-tree report at `docs/reports/harness-validation-final/`.
+      final clean-tree report at
+      `docs/reports/harness-validation-v0.4.0-alpha/`.
 - [x] Campaign orchestration is covered end to end: the offline manifest runs,
       resumes without duplicating its cell, and passes `aegis-bench audit`
       (`tests/bench/run.sh` + `test_campaign.py`).
@@ -77,12 +78,12 @@ a blocker, and a box checked without evidence is worse.
       replay, `agent_config`), but model campaigns are not run for ordinary
       releases. No new attack matrix is required from the release checklist.
 - [x] Clean-tree final validation report is required at
-      `docs/reports/harness-validation-final/`, generated only after the code
-      and documentation commit `921c0e2`. It records 8/8 CTest in 900.82 s,
-      both differential reports, both passing scorecards, and offline,
-      process and network-namespace campaign audits with 0 errors and
-      0 warnings. The network-namespace row records process isolation,
-      Landlock/seccomp, a private namespace, and 3 broker-measured calls.
+      `docs/reports/harness-validation-v0.4.0-alpha/`, generated from commit
+      `e00437e` (dirty: no). It records 8/8 CTest in 904.44 s, both
+      differential reports, both passing scorecards, and offline, process and
+      network-namespace campaign audits with 0 errors and 0 warnings. The
+      network-namespace row records process isolation, Landlock/seccomp, a
+      private namespace, and 3 broker-measured calls.
 
 ## Claims and honesty
 

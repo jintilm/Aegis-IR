@@ -17,6 +17,7 @@ __pycache__/
 # ...except a published pilot's console log, which is evidence, not scratch
 !docs/reports/**/run.log
 !docs/reports/harness-validation-v0.2.0-alpha/*.log
+!docs/reports/harness-validation-v0.4.0-alpha/*.log
 !docs/reports/harness-validation-final/*.log
 
 # benchmark output

@@ -1,0 +1,32 @@
+{
+  "access": "oracle",
+  "adapter_isolation": "process",
+  "agents": [
+    {
+      "adapter": "broker-stub",
+      "expected_version": "builtin-test-double-v1",
+      "id": "broker-stub"
+    }
+  ],
+  "allow_oracle_comparison": false,
+  "name": "process-sandbox-smoke",
+  "order": "interleaved",
+  "out": "../bench-out/process-smoke",
+  "primary_metric": "pass_rate",
+  "profiles": [
+    "baseline"
+  ],
+  "purpose": "harness-validation",
+  "repetition_start": 0,
+  "repetitions": 1,
+  "require_broker_tools": true,
+  "require_clean": false,
+  "require_meter": false,
+  "require_sandbox": true,
+  "schema_version": 1,
+  "seed": 29,
+  "tasks": [
+    "rolling-token-v1"
+  ],
+  "tasks_root": "../benchmarks/tasks-public"
+}

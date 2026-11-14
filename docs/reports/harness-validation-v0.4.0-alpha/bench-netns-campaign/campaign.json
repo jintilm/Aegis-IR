@@ -1,0 +1,33 @@
+{
+  "access": "oracle",
+  "adapter_isolation": "process",
+  "agents": [
+    {
+      "adapter": "broker-stub",
+      "expected_version": "builtin-test-double-v1",
+      "id": "broker-stub"
+    }
+  ],
+  "allow_oracle_comparison": false,
+  "name": "network-namespace-smoke",
+  "notes": "Offline negative control for the Linux network namespace and Unix-socket broker bridge.",
+  "order": "sequential",
+  "out": "../bench-out/netns-smoke",
+  "primary_metric": "pass_rate",
+  "profiles": [
+    "baseline"
+  ],
+  "purpose": "harness-validation",
+  "repetitions": 1,
+  "require_broker_tools": true,
+  "require_clean": false,
+  "require_meter": false,
+  "require_network_namespace": true,
+  "require_sandbox": true,
+  "schema_version": 2,
+  "seed": 20261113,
+  "tasks": [
+    "rolling-token-v1"
+  ],
+  "tasks_root": "../benchmarks/tasks-public"
+}

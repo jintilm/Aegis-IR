@@ -1,0 +1,4 @@
+[FAIL] rolling-token-v1 / broker-stub (baseline, rep 0) - 4.65s 73/73 case(s) failed
+[campaign 1/1] FAIL rolling-token-v1|baseline|broker-stub|0 -> /tmp/bench-netns-campaign/aegis-bench.md
+campaign network-namespace-smoke: 1/1 cells complete (new) -> /tmp/bench-netns-campaign
+raw rows: /tmp/bench-netns-campaign/aegis-bench.jsonl

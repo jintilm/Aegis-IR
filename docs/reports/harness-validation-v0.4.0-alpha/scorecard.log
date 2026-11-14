@@ -1,0 +1,4 @@
+== protection engineering scorecard ==
+scorecard: PASS
+json: ../../build/scorecard/scorecard.json
+markdown: ../../build/scorecard/scorecard.md

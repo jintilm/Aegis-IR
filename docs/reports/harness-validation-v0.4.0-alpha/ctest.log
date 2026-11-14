@@ -1,0 +1,33 @@
+== build + test suite ==
+-- Could NOT find LibEdit (missing: LibEdit_INCLUDE_DIRS LibEdit_LIBRARIES)
+-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR)
+-- Could NOT find zstd (missing: zstd_LIBRARY zstd_INCLUDE_DIR)
+-- Could NOT find CURL (missing: CURL_LIBRARY CURL_INCLUDE_DIR)
+-- Using LLVM 23.1.5
+-- LLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm
+-- Registering AegisPass as a pass plugin (static build: OFF)
+-- Configuring done (0.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: /src/build
+ninja: no work to do.
+Test project /src/build
+    Start 1: aegis-policy
+1/8 Test #1: aegis-policy ..........................   Passed    0.29 sec
+    Start 2: aegis-decoys
+2/8 Test #2: aegis-decoys ..........................   Passed    0.44 sec
+    Start 3: aegis-controlflow
+3/8 Test #3: aegis-controlflow .....................   Passed    1.18 sec
+    Start 4: differential
+4/8 Test #4: differential ..........................   Passed   31.00 sec
+    Start 5: differential-representative
+5/8 Test #5: differential-representative ...........   Passed  128.57 sec
+    Start 6: protection-scorecard
+6/8 Test #6: protection-scorecard ..................   Passed    0.35 sec
+    Start 7: protection-scorecard-representative
+7/8 Test #7: protection-scorecard-representative ...   Passed    0.31 sec
+    Start 8: aegis-bench
+8/8 Test #8: aegis-bench ...........................   Passed  742.17 sec
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) = 904.44 sec

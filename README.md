@@ -214,7 +214,7 @@ build-time growth <= 30%. Build comparisons use the median of three
 independent clean builds. Details and limitations:
 [`docs/protection-scorecard.md`](docs/protection-scorecard.md). Final
 clean-tree evidence is in
-[`docs/reports/harness-validation-final/`](docs/reports/harness-validation-final/README.md).
+[`docs/reports/harness-validation-v0.4.0-alpha/`](docs/reports/harness-validation-v0.4.0-alpha/README.md).
 
 ## Optional model research
 
