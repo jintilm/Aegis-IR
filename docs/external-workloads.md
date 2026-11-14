@@ -45,6 +45,9 @@ This is a compatibility and semantic-preservation check. It is not a
 production benchmark, does not generalize to arbitrary external code and does
 not establish attack resistance.
 
+Final pinned-run evidence:
+[`reports/external-tiny-aes-c-2385675/`](reports/external-tiny-aes-c-2385675/README.md).
+
 ## Adding another external workload
 
 Use an immutable commit and a license that permits local use and publication

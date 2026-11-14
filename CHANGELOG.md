@@ -23,8 +23,9 @@ versions follow SemVer once past alpha.
 - **Pinned external C workload smoke** - `tests/external/run_tiny_aes.py`
   fetches a fixed Unlicense commit of `kokke/tiny-AES-c`, generates a
   temporary AES-128 ECB fixture and runs baseline plus levels 1-3 through the
-  existing differential runner. It stays outside CTest and CI because the
-  release path remains network-free.
+  existing differential runner. The pinned run reports zero mismatches over
+  75 cases; `aegis-standard` adds +14.2% `.text` and +21.6% paired p95. It
+  stays outside CTest and CI because the release path remains network-free.
 
 - **Deterministic protection scorecard** - `aegis-bench scorecard` evaluates
   correctness, `.text`, paired relative p95 and build-time budgets without

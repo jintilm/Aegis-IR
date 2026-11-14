@@ -33,7 +33,8 @@ a blocker, and a box checked without evidence is worse.
 - [x] Optional pinned external C workload smoke is reproducible from
       `tests/external/run_tiny_aes.py`; it records upstream commit, license,
       source hashes and benchmark commit. It is not part of the network-free
-      release gate.
+      release gate. The pinned run has zero mismatches over 75 cases;
+      `aegis-standard` measured +14.17% `.text` and +21.57% paired p95.
 - [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) for
       level 1, 5672 (+12.9%) for level 2 and 6642 (+32.2%) for level 3 on the
       fixture; per-profile p95 and three build medians are in
@@ -85,7 +86,7 @@ a blocker, and a box checked without evidence is worse.
 
 ## Claims and honesty
 
-- [x] README claims each link to a claims-ledger entry (C-001–C-007).
+- [x] README claims each link to a claims-ledger entry (C-001–C-008).
 - [x] No claim implies protection against C2+ attackers beyond measured data —
       in fact no effectiveness claim of any kind is made.
 - [x] Known limitations in `docs/threat-model.md`, `docs/decoys.md` and

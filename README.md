@@ -187,7 +187,9 @@ It pins `kokke/tiny-AES-c` at one Unlicense commit, generates a temporary
 AES-128 ECB fixture, and runs it through the same baseline/protected-profile
 differential matrix. The upstream source is not vendored. This is a
 compatibility smoke, not a production benchmark. Details:
-[`docs/external-workloads.md`](docs/external-workloads.md).
+[`docs/external-workloads.md`](docs/external-workloads.md). Final pinned-run
+evidence is in
+[`docs/reports/external-tiny-aes-c-2385675/`](docs/reports/external-tiny-aes-c-2385675/README.md).
 
 ## Protection scorecard
 
