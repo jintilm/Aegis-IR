@@ -21,7 +21,8 @@ a blocker, and a box checked without evidence is worse.
       fixture correctness, `.text` <= 25%, paired relative p95 <= 25% and
       build-time median <= 25%; representative correctness, `.text` <= 30%,
       paired relative p95 <= 25% and build-time median <= 30%. Both arms
-      require at least three independent clean-build samples
+      require at least three independent, profile-interleaved clean-build
+      samples
       (`scorecard.json`/`.md`, `scorecard-representative.json`/`.md`).
 - [x] Grader isolation: candidate include path excludes the task root;
       compile/run use scratch directories, minimal environment and rlimits;
@@ -29,6 +30,10 @@ a blocker, and a box checked without evidence is worse.
 - [x] Task ids are immutable: `rolling-token-v1` is frozen at its original
       content hash; the binary-recovery task ships as `rolling-token-v2`.
 - [x] `clang-format --dry-run -Werror` clean (CI).
+- [x] Optional pinned external C workload smoke is reproducible from
+      `tests/external/run_tiny_aes.py`; it records upstream commit, license,
+      source hashes and benchmark commit. It is not part of the network-free
+      release gate.
 - [x] Size/time numbers recorded: `.text` 5023 → 6132 bytes (+22.1%) for
       level 1, 5672 (+12.9%) for level 2 and 6642 (+32.2%) for level 3 on the
       fixture; per-profile p95 and three build medians are in
@@ -110,7 +115,7 @@ a blocker, and a box checked without evidence is worse.
 
 ## Packaging
 
-- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.3.0-alpha) and
+- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.4.0-alpha) and
       `CHANGELOG.md` written.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
       writes `SHA256SUMS`).

@@ -21,14 +21,14 @@ and model campaigns as selective, explicitly scoped experiments.
 
 ## Status
 
-`v0.3.0-alpha` — protection engineering prototype, not a hardened protector.
+`v0.4.0-alpha` — protection engineering prototype, not a hardened protector.
 The deterministic scorecard is the default release path. Campaign/resume/audit
 and harness-owned token/tool brokers remain available for optional model
 research. The harness also includes an optional adapter subprocess boundary.
-The current unreleased tree adds task schema v4 (`core`/`exploratory` tiers),
-twelve validated public tasks, three-build median reporting, a larger
-representative differential workload, and eight release-gating CTest targets.
-It has not yet been cut as a new version.
+This release includes task schema v4 (`core`/`exploratory` tiers), twelve
+validated public tasks, three-build median reporting, a larger representative
+differential workload, eight release-gating CTest targets, and an optional
+pinned external C workload smoke.
 Linux `require_sandbox` workers use Landlock for workspace/runtime file access
 and broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
 opt-in `require_network_namespace` path gives the worker a private loopback
@@ -172,6 +172,22 @@ Eight suites: `aegis-policy`, `aegis-decoys`, `aegis-controlflow`,
 algorithm workload), `protection-scorecard` (fixture regression budgets),
 `protection-scorecard-representative` (calibrated workload budgets), and
 `aegis-bench` (offline harness tests, no model, network or credentials).
+
+Optional external compatibility smoke, deliberately outside CTest and CI
+because it fetches a pinned public repository:
+
+```bash
+python3 tests/external/run_tiny_aes.py \
+  --plugin build/lib/AegisPass.so \
+  --report build/tiny-aes-external-report.json \
+  --markdown build/tiny-aes-external-report.md
+```
+
+It pins `kokke/tiny-AES-c` at one Unlicense commit, generates a temporary
+AES-128 ECB fixture, and runs it through the same baseline/protected-profile
+differential matrix. The upstream source is not vendored. This is a
+compatibility smoke, not a production benchmark. Details:
+[`docs/external-workloads.md`](docs/external-workloads.md).
 
 ## Protection scorecard
 

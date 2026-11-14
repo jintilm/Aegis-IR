@@ -41,6 +41,12 @@ Current coverage:
   calibrated larger workload. Both require zero mismatches, zero
   sanitizer/property errors, and at least three build samples in each arm.
 
+- `external/run_tiny_aes.py` — optional compatibility smoke over a pinned
+  Unlicense C repository. It fetches the exact commit, generates a temporary
+  AES-128 ECB fixture and reuses the differential runner. This path is not in
+  CTest because the release path remains network-free. See
+  [`docs/external-workloads.md`](../docs/external-workloads.md).
+
 - `bench/` — Aegis-Bench harness tests (`bash tests/bench/run.sh
   tools/aegis-bench <plugin>`; CTest name `aegis-bench`). Offline only:
   deterministic adapters, no model, no network, no credentials. Covers the

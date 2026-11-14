@@ -40,8 +40,10 @@ for the representative suite. The default profile is `aegis-standard`:
 | paired relative p95 growth | <= 25% | <= 25% |
 | Build-time median growth | <= 25% | <= 30% |
 
-Build time is the median of three independent clean builds in each arm. A
-configured profile with fewer than three samples fails the gate rather than
+Build time is the median of three independent clean builds in each arm.
+Profiles are interleaved within each build round, so one profile cannot
+inherit a cold compiler or a transient host-load spike for all of its samples.
+A configured profile with fewer than three samples fails the gate rather than
 being accepted on a noisy scalar.
 
 Level 2/3 profiles are scored as research observations. They are reported, but

@@ -3,7 +3,7 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
-## [Unreleased]
+## [0.4.0-alpha] - 2026-11-15
 
 ### Added
 
@@ -20,15 +20,20 @@ versions follow SemVer once past alpha.
 - **Lint remediation advisories** - `aegis-lint` now emits
   `protect-and-measure`, `move-to-server`, or a reason-specific
   `repair_selections` advisory without changing IR.
+- **Pinned external C workload smoke** - `tests/external/run_tiny_aes.py`
+  fetches a fixed Unlicense commit of `kokke/tiny-AES-c`, generates a
+  temporary AES-128 ECB fixture and runs baseline plus levels 1-3 through the
+  existing differential runner. It stays outside CTest and CI because the
+  release path remains network-free.
 
 - **Deterministic protection scorecard** - `aegis-bench scorecard` evaluates
   correctness, `.text`, paired relative p95 and build-time budgets without
   invoking a model. The default `aegis-standard` profile is the release gate;
   research profiles are reported without blocking release.
 - **Build-time provenance** - the differential report records three
-  independent clean-build samples per profile, their median, and the legacy
-  scalar field for older readers. The scorecard rejects a gated comparison
-  with fewer than three samples in either arm.
+  independent clean-build samples per profile, interleaved by profile round,
+  their median, and the legacy scalar field for older readers. The scorecard
+  rejects a gated comparison with fewer than three samples in either arm.
 - **Interleaved runtime measurement** - profiles are exercised per corpus case
   over three rounds, and runtime regression uses the p95 of per-case
   protected/baseline latency ratios. This reduces host and scheduling drift.

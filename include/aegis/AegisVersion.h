@@ -1,6 +1,6 @@
 #pragma once
 
 #define AEGIS_VERSION_MAJOR 0
-#define AEGIS_VERSION_MINOR 3
+#define AEGIS_VERSION_MINOR 4
 #define AEGIS_VERSION_PATCH 0
-#define AEGIS_VERSION_STRING "0.3.0-alpha"
+#define AEGIS_VERSION_STRING "0.4.0-alpha"

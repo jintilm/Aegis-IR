@@ -67,9 +67,11 @@ it is not a production benchmark and does not generalize to arbitrary code.
    the driver's contract assertions, and any ASan/UBSan report in stderr.
 5. **Records the size/time baseline** — binary bytes, `.text`/`.data` section
    totals, three independent clean-build samples and their median, plus
-   interleaved per-profile p95 wall time. Section totals matter because file
-   size is page-quantised: small transforms change `.text` without changing
-   the file size. These numbers are the denominator for the cost ledger.
+   interleaved per-profile p95 wall time. Build samples are themselves
+   interleaved by profile round, so compiler warm-up and host drift do not
+   accumulate in one arm. Section totals matter because file size is
+   page-quantised: small transforms change `.text` without changing the file
+   size. These numbers are the denominator for the cost ledger.
 
 Run it directly:
 
@@ -82,6 +84,10 @@ python3 tests/differential/run.py --plugin build/lib/AegisPass.so \
   --report build/representative-differential-report.json
 ctest --test-dir build --output-on-failure      # all suites
 ```
+
+For a pinned third-party compatibility smoke, see
+[`external-workloads.md`](external-workloads.md). That path fetches source at
+run time and is intentionally outside CTest.
 
 ## Failure policy (from the plan)
 

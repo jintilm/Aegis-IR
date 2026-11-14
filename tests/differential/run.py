@@ -215,6 +215,7 @@ def main():
         "fixture_dir": str(fixture_dir),
         "profiles_source": str(profiles_path),
         "build_samples_required": args.build_samples,
+        "build_sample_order": "profile-interleaved",
         "profiles": {},
         "corpus_size": len(corpus),
         "seed": args.seed,
@@ -222,37 +223,43 @@ def main():
 
     try:
         exes = {}
-        for name, spec in profiles.items():
-            build_samples_ms = []
-            exe = None
-            profile_failed = False
-            for sample_index in range(args.build_samples):
+        build_samples_ms = {name: [] for name in profiles}
+        failed_profiles = set()
+        # Build one sample of every profile per round. Building all three
+        # baseline samples before touching the protected profiles lets host
+        # load, disk cache and compiler warm-up masquerade as transform cost.
+        for sample_index in range(args.build_samples):
+            for name, spec in profiles.items():
+                if name in failed_profiles:
+                    continue
                 build_started = time.perf_counter()
                 sample_exe, err = build_profile(
                     name, spec,
                     workdir / name / f"sample-{sample_index:02d}",
                     fixture_dir, config_dir, args.clang, args.opt,
                     args.plugin)
-                build_samples_ms.append(
+                build_samples_ms[name].append(
                     (time.perf_counter() - build_started) * 1000.0)
                 if err:
                     failures.append(
                         f"[{name}] build sample {sample_index + 1}/"
                         f"{args.build_samples}: {err}")
-                    profile_failed = True
-                    break
-                if exe is None:
-                    exe = sample_exe
-            if profile_failed or exe is None:
+                    failed_profiles.add(name)
+                    continue
+                exes.setdefault(name, sample_exe)
+
+        for name, spec in profiles.items():
+            if name in failed_profiles or name not in exes:
                 continue
-            exes[name] = exe
+            exe = exes[name]
+            samples = build_samples_ms[name]
             sections = section_sizes(exe)
-            build_median_ms = statistics.median(build_samples_ms)
+            build_median_ms = statistics.median(samples)
             report["profiles"][name] = {
                 "binary_bytes": exe.stat().st_size,
                 "sections": sections,
                 "pipeline": spec.get("pipeline"),
-                "build_samples_ms": build_samples_ms,
+                "build_samples_ms": samples,
                 "build_median_ms": build_median_ms,
                 "build_ms": build_median_ms,
                 "cases": 0,
@@ -263,10 +270,12 @@ def main():
             }
             print(f"built {name}: {exe.stat().st_size} bytes, "
                   f"median build {build_median_ms:.1f} ms "
-                  f"({len(build_samples_ms)} samples)")
+                  f"({len(samples)} samples)")
 
         if "baseline" not in exes:
             print("error: baseline profile failed to build", file=sys.stderr)
+            for failure in failures:
+                print(f"  {failure}", file=sys.stderr)
             return 1
 
         # Interleave profiles per case and repeat the timing pass. The corpus

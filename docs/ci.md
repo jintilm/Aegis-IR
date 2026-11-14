@@ -15,7 +15,7 @@ pull request, and on demand. It has read-only repository permissions, a
 | Smoke test (policy lint) | `aegis-lint` does not report the selected function, advisory or summary | keeps the pre-transform eligibility and remediation report loadable and registered |
 | Smoke test (gate fails closed) | skipping `aegis-decoys` does **not** break the build | the verifier's entire value is failing loudly; a gate that silently passes is worse than none |
 | Bench task integrity | a task file changed without re-recording `content_hash`, an artifact policy is missing/mislabelled, or an artifact path escapes the task | a result must name the task it actually ran |
-| Python sanity | harness sources are not importable (`compileall`) | cheap syntax gate |
+| Python sanity | harness, differential and external-smoke scripts are not importable (`compileall`) | cheap syntax gate |
 | Format check | `clang-format --dry-run -Werror` reports a diff | review noise reduction |
 | Repository hygiene | private material tracked, a file > 1 MiB, or a credential-shaped string | a benchmark repo that leaks hidden answers or keys is worse than one that fails |
 | Tests | any of the eight CTest suites fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `differential-representative`, `protection-scorecard`, `protection-scorecard-representative`, `aegis-bench`) | behavioural gate; both deterministic scorecards enforce fixture/representative correctness, `.text`, paired p95 and three-build median budgets; the bench suite covers twelve task manifests, broker policy, process/network isolation and campaign resume/audit |
@@ -64,3 +64,6 @@ Stated so nobody assumes coverage that does not exist:
   (see `compatibility.md`).
 - **Benchmark runs against real models.** Offline by design; those runs happen
   outside CI and publish into the claims ledger.
+- **External workload fetches.** `tests/external/run_tiny_aes.py` is available
+  for a pinned third-party smoke, but CI stays network-free. The script itself
+  is covered by the Python syntax gate.
