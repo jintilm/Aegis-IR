@@ -120,6 +120,7 @@ a blocker, and a box checked without evidence is worse.
 - [x] Version bumped (`include/aegis/AegisVersion.h` = 0.4.0-alpha) and
       `CHANGELOG.md` written.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
-      writes `SHA256SUMS`).
+      writes `SHA256SUMS`). The archive excludes Git metadata, build output,
+      `bench-out/`, `dist/`, `__pycache__/` and `.pyc` files.
 - [x] Unsupported feature combinations fail loudly, never silently
       (`docs/compatibility.md`).

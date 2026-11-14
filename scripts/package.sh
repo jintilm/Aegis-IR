@@ -22,7 +22,18 @@ DIST="$REPO_ROOT/dist"
 [ -n "$VERSION" ] || { echo "could not determine version" >&2; exit 1; }
 
 echo "== building $NAME in $IMAGE =="
-MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src "$IMAGE" bash -c '
+if [ "${AEGIS_IN_CONTAINER:-0}" = "1" ]; then
+  run_build() {
+    bash -c "$1"
+  }
+else
+  run_build() {
+    MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src \
+      "$IMAGE" bash -c "$1"
+  }
+fi
+
+run_build '
 set -e
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm >/dev/null
@@ -48,6 +59,11 @@ cp "$REPO_ROOT/README.md" "$REPO_ROOT/CHANGELOG.md" "$REPO_ROOT/LICENSE" \
    "$REPO_ROOT/SECURITY.md" "$REPO_ROOT/CONTRIBUTING.md" \
    "$STAGE/$NAME/"
 
+# The source tree may contain ignored Python bytecode from a prior test run.
+# Never ship it: pyc files embed absolute paths and are not reproducible.
+find "$STAGE/$NAME" -type d -name __pycache__ -prune -exec rm -rf {} +
+find "$STAGE/$NAME" -type f -name '*.pyc' -delete
+
 # Record what went in, so the archive is self-describing.
 {
   echo "version: $VERSION"
@@ -58,6 +74,11 @@ cp "$REPO_ROOT/README.md" "$REPO_ROOT/CHANGELOG.md" "$REPO_ROOT/LICENSE" \
 
 mkdir -p "$DIST"
 tar -C "$STAGE" -czf "$DIST/$NAME.tar.gz" "$NAME"
+if tar -tzf "$DIST/$NAME.tar.gz" \
+    | grep -Eq '(^|/)(\.git|build|bench-out|dist|__pycache__)(/|$)|\.pyc$'; then
+  echo "error: archive contains build, VCS or bytecode material" >&2
+  exit 1
+fi
 ( cd "$DIST" && sha256sum "$NAME.tar.gz" > SHA256SUMS )
 
 echo
