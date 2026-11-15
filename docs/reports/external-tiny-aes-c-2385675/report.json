@@ -14,17 +14,17 @@
       },
       "pipeline": "default<O2>",
       "build_samples_ms": [
-        575.7292080088519,
-        577.4861880054232,
-        555.3391870053019
+        638.1542120070662,
+        909.0364419971593,
+        630.8399630070198
       ],
-      "build_median_ms": 575.7292080088519,
-      "build_ms": 575.7292080088519,
+      "build_median_ms": 638.1542120070662,
+      "build_ms": 638.1542120070662,
       "cases": 75,
-      "total_ms": 123.30067006405443,
+      "total_ms": 130.6118259089999,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 1.9708889885805547,
+      "p95_ms": 2.484730997821316,
       "relative_p95_ms": 1.0,
       "relative_p95_delta_pct": 0.0
     },
@@ -37,65 +37,88 @@
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "build_samples_ms": [
-        587.7975210023578,
-        626.8688919954002,
-        576.3329199980944
+        658.570723986486,
+        1463.4792470023967,
+        1565.0917000020854
       ],
-      "build_median_ms": 587.7975210023578,
-      "build_ms": 587.7975210023578,
+      "build_median_ms": 1463.4792470023967,
+      "build_ms": 1463.4792470023967,
       "cases": 75,
-      "total_ms": 123.49702697247267,
+      "total_ms": 129.88429405959323,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.0816620090045035,
-      "relative_p95_ms": 1.2157127687230411,
-      "relative_p95_delta_pct": 21.57127687230411
+      "p95_ms": 2.2467640228569508,
+      "relative_p95_ms": 1.2092140023589484,
+      "relative_p95_delta_pct": 20.921400235894836
+    },
+    "aegis-standard-lto": {
+      "binary_bytes": 14712,
+      "sections": {
+        "text": 5708,
+        "data": 704,
+        "bss": 8
+      },
+      "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
+      "build_samples_ms": [
+        683.8026429759338,
+        1825.9781020169612,
+        695.5821219889913
+      ],
+      "build_median_ms": 695.5821219889913,
+      "build_ms": 695.5821219889913,
+      "cases": 75,
+      "total_ms": 131.43818810931407,
+      "mismatches": 0,
+      "sanitizer_or_property_errors": 0,
+      "p95_ms": 2.2082649811636657,
+      "relative_p95_ms": 1.1646500591739768,
+      "relative_p95_delta_pct": 16.46500591739768
     },
     "aegis-research": {
       "binary_bytes": 18808,
       "sections": {
-        "text": 10345,
+        "text": 9865,
         "data": 704,
         "bss": 16
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "build_samples_ms": [
-        587.0076279970817,
-        597.3050959873945,
-        594.320019998122
+        641.1845830152743,
+        1638.763499999186,
+        594.2413810116705
       ],
-      "build_median_ms": 594.320019998122,
-      "build_ms": 594.320019998122,
+      "build_median_ms": 641.1845830152743,
+      "build_ms": 641.1845830152743,
       "cases": 75,
-      "total_ms": 119.73377619870007,
+      "total_ms": 129.73909999709576,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.04827100969851,
-      "relative_p95_ms": 1.1865551995317904,
-      "relative_p95_delta_pct": 18.655519953179045
+      "p95_ms": 2.238096989458427,
+      "relative_p95_ms": 1.2244206097073769,
+      "relative_p95_delta_pct": 22.442060970737685
     },
     "aegis-flattened": {
       "binary_bytes": 18808,
       "sections": {
-        "text": 10041,
+        "text": 10306,
         "data": 704,
         "bss": 16
       },
       "pipeline": "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,default<O2>,aegis-verify",
       "build_samples_ms": [
-        579.7581460210495,
-        610.386087995721,
-        575.7437990105245
+        719.8280620214064,
+        863.702206988819,
+        604.8143770021852
       ],
-      "build_median_ms": 579.7581460210495,
-      "build_ms": 579.7581460210495,
+      "build_median_ms": 719.8280620214064,
+      "build_ms": 719.8280620214064,
       "cases": 75,
-      "total_ms": 122.97175501589663,
+      "total_ms": 125.4455039743334,
       "mismatches": 0,
       "sanitizer_or_property_errors": 0,
-      "p95_ms": 2.0288730156607926,
-      "relative_p95_ms": 1.1654744354697117,
-      "relative_p95_delta_pct": 16.547443546971174
+      "p95_ms": 2.18219798989594,
+      "relative_p95_ms": 1.2020326540442565,
+      "relative_p95_delta_pct": 20.20326540442565
     }
   },
   "corpus_size": 75,
@@ -105,14 +128,14 @@
     "repository": "https://github.com/kokke/tiny-AES-c.git",
     "commit": "23856752fbd139da0b8ca6e471a13d5bcc99a08d",
     "license": "Unlicense",
-    "fetched_utc": "2026-11-14T17:23:34Z",
+    "fetched_utc": "2026-11-15T04:52:53Z",
     "files": {
       "aes.c": "f7f78b44654efd3542b6886923dd05194286807ebcfeb078ea05d21fe901ee9e",
       "aes.h": "9f74a4de3bd11621ff6e8fb9b352b060f699e6c1c67f81a22d104aacad61a23b"
     }
   },
   "benchmark_environment": {
-    "commit": "c55699efd52e8fe603ca876c549d571b69264550",
+    "commit": "2c7c49ceda57ba1d898849960ca7deb9e5a35de9",
     "commit_dirty": "no"
   }
 }
