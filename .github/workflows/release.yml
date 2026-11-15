@@ -41,7 +41,7 @@ jobs:
           docker run --rm --cap-add SYS_ADMIN --cap-add NET_ADMIN \
             -v "$GITHUB_WORKSPACE:/src" -w /src \
             -e AEGIS_IN_CONTAINER=1 \
-            aegis-ir-dev bash -lc 'scripts/package.sh'
+            aegis-ir-dev bash -lc 'bash scripts/package.sh'
           sudo chown -R "$(id -u):$(id -g)" dist
 
       - name: Extract standalone SBOM
