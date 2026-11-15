@@ -127,7 +127,7 @@ a blocker, and a box checked without evidence is worse.
 
 ## Packaging
 
-- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.4.0-alpha) and
+- [x] Version bumped (`include/aegis/AegisVersion.h` = 0.4.1-alpha) and
       `CHANGELOG.md` written.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
       writes `SHA256SUMS`). The archive excludes Git metadata, build output,
@@ -137,9 +137,11 @@ a blocker, and a box checked without evidence is worse.
       clean staging runs produced the same SHA-256.
 - [x] `SBOM.cdx.json` is embedded in the archive with CycloneDX components for
       Aegis-IR, Ubuntu 24.04, LLVM/Clang, Python, CMake and Ninja.
-- [ ] Registry digest pin for `ubuntu:24.04` remains outstanding because
-      Docker Hub was unreachable during the release attempt.
-- [ ] Cryptographic signing remains outstanding until a release identity/key
-      is supplied.
+- [x] Ubuntu 24.04 base image is registry-digest pinned in the development
+      Dockerfile.
+- [x] Keyless Sigstore signing and verification are implemented in the
+      `release` GitHub Actions workflow. The workflow uses GitHub OIDC, stores
+      no private key and publishes the archive, checksum, SBOM and both
+      signature bundles.
 - [x] Unsupported feature combinations fail loudly, never silently
       (`docs/compatibility.md`).

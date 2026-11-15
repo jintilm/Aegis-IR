@@ -4,7 +4,7 @@
 # Build:  docker build -t aegis-ir-dev docker/
 # Run:    docker run --rm -it -v "$PWD:/src" -w /src aegis-ir-dev
 
-FROM ubuntu:24.04
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
 
 ARG LLVM_SCRIPT_SHA256=03878e08f47b66cc95bc4b544b0db3c6d9ce8d60e6cf2492ae357984330a9eae
 

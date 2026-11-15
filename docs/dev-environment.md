@@ -7,7 +7,7 @@ run and a compatibility-matrix update.
 
 | Component | Version |
 |---|---|
-| OS | Ubuntu 24.04 (container) |
+| OS | Ubuntu 24.04 (container, digest-pinned) |
 | LLVM / Clang | 23.x from apt.llvm.org |
 | CMake | >= 3.20 (distro package) |
 | Ninja | distro package |
@@ -23,9 +23,9 @@ Dockerfile and CI:
 
 `03878e08f47b66cc95bc4b544b0db3c6d9ce8d60e6cf2492ae357984330a9eae`
 
-The Ubuntu base image is tagged `24.04`. Registry access was unavailable when
-the digest pin was attempted, so a digest pin remains a release follow-up
-rather than an invented value.
+The Ubuntu base image is pinned to:
+
+`ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5`
 
 ## Using the container
 

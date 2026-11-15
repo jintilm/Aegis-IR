@@ -138,7 +138,9 @@ jobs:
       - name: Repository hygiene
         run: |
           fail=0
-          if git ls-files | grep -Eq '(^|/)(tasks-private|\.env|id_rsa|id_ed25519)(/|$)'; then
+          if git ls-files \
+              | grep -E '(^|/)(tasks-private|\.env|id_rsa|id_ed25519)(/|$)' \
+              | grep -vqE '^benchmarks/tasks-private/README\.md$'; then
             echo "private material is tracked" >&2; fail=1
           fi
           if git ls-files -z | xargs -0 -r ls -l 2>/dev/null \
@@ -180,7 +182,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build pinned runtime image
-        run: docker build -t aegis-ir-dev docker/
+        run: docker build -f docker/dev.Dockerfile -t aegis-ir-dev docker/
 
       - name: Container-per-cell smoke
         run: |

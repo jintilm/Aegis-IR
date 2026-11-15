@@ -21,7 +21,7 @@ and model campaigns as selective, explicitly scoped experiments.
 
 ## Status
 
-`v0.4.0-alpha` — protection engineering prototype, not a hardened protector.
+`v0.4.1-alpha` — protection engineering prototype, not a hardened protector.
 The deterministic scorecard is the default release path. Campaign/resume/audit
 and harness-owned token/tool brokers remain available for optional model
 research. The harness also includes an optional adapter subprocess boundary.
@@ -29,7 +29,7 @@ This release includes task schema v4 (`core`/`exploratory` tiers), twelve
 validated public tasks, three-build median reporting, a larger representative
 differential workload, eight release-gating CTest targets, and an optional
 pinned external C workload smoke.
-The post-release tree adds optional container-per-cell isolation, plugin
+This hardening release adds optional container-per-cell isolation, plugin
 ASan+UBSan and policy-parser fuzzing gates, reproducible archives with SBOM,
 and an LTO external workload profile.
 Linux `require_sandbox` workers use Landlock for workspace/runtime file access

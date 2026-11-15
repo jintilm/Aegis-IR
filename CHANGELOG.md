@@ -3,7 +3,7 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
-## [Unreleased]
+## [0.4.1-alpha] - 2026-11-15
 
 ### Added
 

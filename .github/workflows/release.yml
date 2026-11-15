@@ -1,0 +1,87 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build, sign and publish
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Verify checked-out tag
+        run: |
+          git rev-parse --verify "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$RELEASE_TAG^{commit}")"
+
+      - name: Build pinned runtime image
+        run: docker build -f docker/dev.Dockerfile -t aegis-ir-dev docker/
+
+      - name: Build and test release archive
+        run: |
+          docker run --rm --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+            -v "$GITHUB_WORKSPACE:/src" -w /src \
+            -e AEGIS_IN_CONTAINER=1 \
+            aegis-ir-dev bash -lc 'scripts/package.sh'
+          sudo chown -R "$(id -u):$(id -g)" dist
+
+      - name: Extract standalone SBOM
+        run: |
+          archive="$(find dist -maxdepth 1 -name 'aegis-ir-*-linux-x86_64.tar.gz' -print -quit)"
+          tar -xOf "$archive" \
+            "$(basename "$archive" .tar.gz)/SBOM.cdx.json" \
+            > dist/SBOM.cdx.json
+
+      - uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: v2.4.1
+
+      - name: Sign archive and checksums keylessly
+        run: |
+          archive="$(find dist -maxdepth 1 -name 'aegis-ir-*-linux-x86_64.tar.gz' -print -quit)"
+          cosign sign-blob --yes --bundle "$archive.cosign.bundle" "$archive"
+          cosign sign-blob --yes --bundle "dist/SHA256SUMS.cosign.bundle" dist/SHA256SUMS
+
+      - name: Verify keyless signatures
+        run: |
+          archive="$(find dist -maxdepth 1 -name 'aegis-ir-*-linux-x86_64.tar.gz' -print -quit)"
+          identity="https://github.com/jintilm/Aegis-IR/.github/workflows/release.yml"
+          for target in "$archive" dist/SHA256SUMS; do
+            cosign verify-blob \
+              --bundle "$target.cosign.bundle" \
+              --certificate-identity-regexp "^${identity}@.*" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$target"
+          done
+
+      - name: Publish GitHub Release
+        run: |
+          archive="$(find dist -maxdepth 1 -name 'aegis-ir-*-linux-x86_64.tar.gz' -print -quit)"
+          gh release create "$RELEASE_TAG" \
+            "$archive" \
+            "$archive.cosign.bundle" \
+            dist/SHA256SUMS \
+            dist/SHA256SUMS.cosign.bundle \
+            dist/SBOM.cdx.json \
+            --title "Aegis-IR $RELEASE_TAG" \
+            --generate-notes \
+            --verify-tag
