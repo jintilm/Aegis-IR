@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "name": "container-per-cell-smoke",
+  "purpose": "harness-validation",
+  "primary_metric": "pass_rate",
+  "tasks_root": "../benchmarks/tasks-public",
+  "tasks": [
+    "rolling-token-v1"
+  ],
+  "agents": [
+    {
+      "id": "broker-stub",
+      "adapter": "broker-stub",
+      "expected_version": "builtin-test-double-v1"
+    }
+  ],
+  "profiles": [
+    "baseline"
+  ],
+  "repetitions": 1,
+  "repetition_start": 0,
+  "access": "oracle",
+  "order": "sequential",
+  "seed": 20261115,
+  "require_clean": false,
+  "require_meter": false,
+  "require_broker_tools": true,
+  "adapter_isolation": "container",
+  "require_sandbox": true,
+  "require_network_namespace": true,
+  "allow_oracle_comparison": false,
+  "out": "../bench-out/container-smoke",
+  "notes": "Optional offline negative control for the OCI container-per-cell boundary and Unix-socket broker bridge."
+}

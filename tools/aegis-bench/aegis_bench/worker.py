@@ -14,11 +14,15 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .agent import AdapterError, Agent, AgentResult, create_agent
+from .container import (
+    ContainerConfig, ContainerError, adapter_mounts_from_env, build_command,
+    container_env)
 from .landlock import LandlockError, apply as apply_landlock
 from .netns import (
     LoopbackBridge, NetnsError, bring_up_loopback, namespace_inode,
@@ -31,6 +35,8 @@ NETNS_ENV = "AEGIS_NETWORK_NAMESPACE"
 METER_UNIX_ENV = "AEGIS_METER_UNIX_PATH"
 METER_PREFIX_ENV = "AEGIS_METER_PATH_PREFIX"
 BROKER_UNIX_ENV = "AEGIS_TOOL_BROKER_UNIX_PATH"
+BRIDGE_ONLY_ENV = "AEGIS_BRIDGE_ONLY"
+WORKER_KIND_ENV = "AEGIS_WORKER_KIND"
 
 
 @dataclass(frozen=True)
@@ -205,6 +211,22 @@ class ProcessIsolatedAgent(Agent):
             paths.append(resolved)
         return paths
 
+    def _run_worker(
+            self, request_path: Path, response_path: Path, workspace: Path,
+            env: dict[str, str], timeout: int | None
+            ) -> subprocess.CompletedProcess[bytes]:
+        worker_command = [
+            sys.executable, "-c",
+            "from aegis_bench.worker import main; "
+            "raise SystemExit(main())",
+            str(request_path), str(response_path), str(workspace),
+        ]
+        if self.network_namespace:
+            worker_command = [*unshare_options(), "--", *worker_command]
+        return subprocess.run(
+            worker_command, cwd=workspace, env=env, capture_output=True,
+            timeout=timeout)
+
     def solve(self, task: Task, workspace: Path) -> AgentResult:
         view = TaskView.from_task(task, workspace)
         request = {
@@ -249,19 +271,8 @@ class ProcessIsolatedAgent(Agent):
             timeout = (None if self.timeout_seconds <= 0
                        else max(1, self.timeout_seconds - 2))
             try:
-                worker_command = [
-                    sys.executable, "-c",
-                    "from aegis_bench.worker import main; "
-                    "raise SystemExit(main())",
-                    str(request_path), str(response_path), str(workspace),
-                ]
-                if self.network_namespace:
-                    worker_command = [
-                        *unshare_options(), "--", *worker_command]
-                proc = subprocess.run(
-                    worker_command,
-                    cwd=workspace, env=env, capture_output=True,
-                    timeout=timeout)
+                proc = self._run_worker(
+                    request_path, response_path, workspace, env, timeout)
             except subprocess.TimeoutExpired as exc:
                 raise AdapterError(
                     f"isolated adapter exceeded {self.timeout_seconds}s") from exc
@@ -295,6 +306,118 @@ class ProcessIsolatedAgent(Agent):
             notes=str(reply.get("notes", "")))
 
 
+class ContainerIsolatedAgent(ProcessIsolatedAgent):
+    """Run one adapter cell in a disposable non-root OCI container."""
+
+    def __init__(self, inner: Agent, *, timeout_seconds: int,
+                 broker_unix_path: str | None = None,
+                 meter_unix_path: str | None = None,
+                 meter_prefix: str = "",
+                 config: ContainerConfig | None = None):
+        super().__init__(
+            inner, timeout_seconds=timeout_seconds,
+            network_namespace=False,
+            meter_unix_path=meter_unix_path,
+            meter_prefix=meter_prefix,
+            broker_unix_path=broker_unix_path)
+        self.config = config or ContainerConfig.from_env()
+        self.last_isolation = {
+            "adapter": "container",
+            "sandbox": False,
+            "filesystem": "container filesystem not installed yet",
+            "network": "container network not installed yet",
+            "network_namespace": False,
+            "container": {
+                "runtime": self.config.runtime,
+                "image": self.config.image,
+                "read_only_root": True,
+                "network": "none",
+                "capabilities": "dropped",
+                "no_new_privileges": True,
+                "pids_limit": self.config.pids_limit,
+                "nofile_limit": self.config.nofile_limit,
+                "non_root": bool(
+                    self.config.user
+                    and self.config.user.split(":", 1)[0] not in ("", "0")),
+            },
+        }
+
+    @staticmethod
+    def _write_env_file(path: Path, env: dict[str, str]) -> None:
+        lines = []
+        for key, value in sorted(env.items()):
+            if not key or "=" in key or "\n" in key or "\n" in value:
+                raise AdapterError(
+                    f"invalid container environment entry {key!r}")
+            lines.append(f"{key}={value}")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        path.chmod(0o600)
+
+    def _container_env(self, transport: Path) -> dict[str, str]:
+        env = container_env()
+        adapter_mounts = adapter_mounts_from_env()
+        pythonpath = ["/aegis/bench", *(target for _, target in adapter_mounts)]
+        env["PYTHONPATH"] = ":".join(pythonpath)
+        env["LLM_SAVE_DIR"] = "/aegis/transport/submissions"
+        env["AEGIS_LANDLOCK_RO_PATHS"] = ":".join([
+            "/usr", "/usr/local", "/lib", "/lib64", "/bin", "/etc",
+            "/aegis/bench", *(target for _, target in adapter_mounts),
+        ])
+        if self.broker_unix_path:
+            env[BROKER_UNIX_ENV] = "/run/aegis/broker.sock"
+        if self.meter_unix_path:
+            env[METER_UNIX_ENV] = "/run/aegis/meter.sock"
+            env[METER_PREFIX_ENV] = self.meter_prefix
+        env["AEGIS_TOOL_BROKER_TOKEN"] = os.environ.get(
+            "AEGIS_TOOL_BROKER_TOKEN", "")
+        if not env["AEGIS_TOOL_BROKER_TOKEN"]:
+            env.pop("AEGIS_TOOL_BROKER_TOKEN")
+        if not transport.is_dir():
+            raise AdapterError("container transport directory is missing")
+        return env
+
+    def _run_worker(
+            self, request_path: Path, response_path: Path, workspace: Path,
+            env: dict[str, str], timeout: int | None
+            ) -> subprocess.CompletedProcess[bytes]:
+        del env  # the container allowlist is built from scratch
+        transport = request_path.parent
+        workspace.chmod(0o777)
+        transport.chmod(0o777)
+        (transport / "submissions").chmod(0o777)
+        container_env_values = self._container_env(transport)
+        with tempfile.TemporaryDirectory(
+                prefix="aegis-container-env-") as env_dir:
+            env_path = Path(env_dir) / "worker.env"
+            self._write_env_file(env_path, container_env_values)
+            name = f"aegis-cell-{uuid.uuid4().hex[:16]}"
+            package_root = Path(__file__).resolve().parents[1]
+            command = build_command(
+                self.config,
+                name=name,
+                workspace=workspace,
+                transport=transport,
+                package_root=package_root,
+                adapter_mounts=adapter_mounts_from_env(),
+                broker_socket=self.broker_unix_path,
+                meter_socket=self.meter_unix_path,
+                env_file=env_path,
+                worker_args=(
+                    "/aegis/transport/request.json",
+                    "/aegis/transport/response.json",
+                    "/aegis/workspace",
+                ))
+            try:
+                return subprocess.run(
+                    command, capture_output=True, timeout=timeout)
+            except subprocess.TimeoutExpired:
+                subprocess.run(
+                    [self.config.runtime, "rm", "-f", name],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=15, check=False)
+                raise
+
+
 def _write_response(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(
@@ -313,17 +436,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         request = json.loads(request_path.read_text(encoding="utf-8"))
         task = TaskView.from_payload(request["task"], workspace)
+        worker_kind = os.environ.get(WORKER_KIND_ENV, "process")
+        bridge_only = os.environ.get(BRIDGE_ONLY_ENV) == "1"
         isolation = {
-            "adapter": "process",
+            "adapter": worker_kind,
             "sandbox": False,
             "filesystem": "not restricted",
             "network": "not restricted",
             "network_namespace": False,
         }
         bridges: list[LoopbackBridge] = []
-        if os.environ.get(NETNS_ENV) == "1":
+        if os.environ.get(NETNS_ENV) == "1" or bridge_only:
             try:
-                bring_up_loopback()
+                if not bridge_only:
+                    bring_up_loopback()
                 bridge_specs = (
                     (METER_UNIX_ENV, "AEGIS_METER_BASE_URL"),
                     (BROKER_UNIX_ENV, "AEGIS_TOOL_BROKER_URL"),
@@ -338,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
                     if path_env == METER_UNIX_ENV:
                         suffix = os.environ.get(METER_PREFIX_ENV, "")
                     os.environ[url_env] = bridge.url + suffix
-                if not bridges:
+                if not bridges and not bridge_only:
                     raise NetnsError(
                         "network namespace is enabled but no Unix-socket "
                         "broker or meter path was supplied")
@@ -348,6 +474,9 @@ def main(argv: list[str] | None = None) -> int:
                     "network_namespace": True,
                     "network_namespace_inode": namespace_inode(),
                     "network": (
+                        "container network disabled; broker/meter reachable "
+                        "only through mounted Unix-socket bridges"
+                        if bridge_only else
                         "private network namespace; host reachable only "
                         "through loopback Unix-socket bridges"),
                 })
@@ -390,6 +519,9 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 isolation["seccomp"] = apply_socket_policy()
                 isolation["network"] = (
+                    "container network disabled; loopback Unix-socket "
+                    "bridges only; UDP/raw sockets denied"
+                    if worker_kind == "container" else
                     "private network namespace; loopback Unix-socket "
                     "bridges only; UDP/raw sockets denied"
                     if isolation.get("network_namespace")

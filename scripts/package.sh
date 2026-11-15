@@ -18,6 +18,10 @@ VERSION="${1:-$(sed -n 's/^#define AEGIS_VERSION_STRING "\(.*\)"$/\1/p' \
 IMAGE="${AEGIS_IMAGE:-aegis-ir-dev}"
 NAME="aegis-ir-${VERSION}-linux-x86_64"
 DIST="$REPO_ROOT/dist"
+COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git -C "$REPO_ROOT" show -s --format=%ct HEAD 2>/dev/null || date +%s)}"
+BUILD_UTC="$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y-%m-%dT%H:%M:%SZ)"
+export SOURCE_DATE_EPOCH
 
 [ -n "$VERSION" ] || { echo "could not determine version" >&2; exit 1; }
 
@@ -29,6 +33,7 @@ if [ "${AEGIS_IN_CONTAINER:-0}" = "1" ]; then
 else
   run_build() {
     MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src \
+      -e AEGIS_PACKAGE_SKIP_TESTS \
       "$IMAGE" bash -c "$1"
   }
 fi
@@ -38,8 +43,12 @@ set -e
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm >/dev/null
 cmake --build build -j >/dev/null
-cd build && ctest --output-on-failure >/dev/null
-echo "build + tests OK"
+if [ "${AEGIS_PACKAGE_SKIP_TESTS:-0}" = "1" ]; then
+  echo "build OK; tests skipped for deterministic rebuild comparison"
+else
+  cd build && ctest --output-on-failure >/dev/null
+  echo "build + tests OK"
+fi
 '
 
 STAGE="$(mktemp -d)"
@@ -58,6 +67,10 @@ cp -r "$REPO_ROOT/scripts" "$STAGE/$NAME/"
 cp "$REPO_ROOT/README.md" "$REPO_ROOT/CHANGELOG.md" "$REPO_ROOT/LICENSE" \
    "$REPO_ROOT/SECURITY.md" "$REPO_ROOT/CONTRIBUTING.md" \
    "$STAGE/$NAME/"
+python3 "$REPO_ROOT/scripts/generate-sbom.py" \
+  --version "$VERSION" \
+  --commit "$COMMIT" \
+  --output "$STAGE/$NAME/SBOM.cdx.json"
 
 # The source tree may contain ignored Python bytecode from a prior test run.
 # Never ship it: pyc files embed absolute paths and are not reproducible.
@@ -67,13 +80,18 @@ find "$STAGE/$NAME" -type f -name '*.pyc' -delete
 # Record what went in, so the archive is self-describing.
 {
   echo "version: $VERSION"
-  echo "built-from-commit: $(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-  echo "built-utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "built-from-commit: $COMMIT"
+  echo "built-utc: $BUILD_UTC"
+  echo "source-date-epoch: $SOURCE_DATE_EPOCH"
   echo "llvm: 23.x (see docs/dev-environment.md)"
 } > "$STAGE/$NAME/BUILD-INFO.txt"
 
 mkdir -p "$DIST"
-tar -C "$STAGE" -czf "$DIST/$NAME.tar.gz" "$NAME"
+tar -C "$STAGE" \
+  --sort=name \
+  --mtime="@$SOURCE_DATE_EPOCH" \
+  --owner=0 --group=0 --numeric-owner \
+  -cf - "$NAME" | gzip -n -9 > "$DIST/$NAME.tar.gz"
 if tar -tzf "$DIST/$NAME.tar.gz" \
     | grep -Eq '(^|/)(\.git|build|bench-out|dist|__pycache__)(/|$)|\.pyc$'; then
   echo "error: archive contains build, VCS or bytecode material" >&2

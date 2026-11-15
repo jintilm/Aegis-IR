@@ -31,6 +31,10 @@ from pathlib import Path
 REPO_URL = "https://github.com/kokke/tiny-AES-c.git"
 COMMIT = "23856752fbd139da0b8ca6e471a13d5bcc99a08d"
 LICENSE = "Unlicense"
+PINNED_HASHES = {
+    "aes.c": "f7f78b44654efd3542b6886923dd05194286807ebcfeb078ea05d21fe901ee9e",
+    "aes.h": "9f74a4de3bd11621ff6e8fb9b352b060f699e6c1c67f81a22d104aacad61a23b",
+}
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DIFFERENTIAL = REPO_ROOT / "tests" / "differential" / "run.py"
 
@@ -126,14 +130,26 @@ def checkout(destination: Path) -> None:
     run(["git", "remote", "add", "origin", REPO_URL], cwd=destination)
     run(["git", "fetch", "--depth", "1", "origin", COMMIT], cwd=destination)
     run(["git", "checkout", "-q", "--detach", "FETCH_HEAD"], cwd=destination)
+
+
+def verify_checkout(destination: Path) -> None:
+    if not destination.is_dir():
+        raise RuntimeError(f"external checkout not found: {destination}")
     actual = run(
         ["git", "rev-parse", "HEAD"], cwd=destination).stdout.strip()
     if actual != COMMIT:
         raise RuntimeError(f"expected commit {COMMIT}, got {actual}")
-    dirty = run(
-        ["git", "status", "--porcelain"], cwd=destination).stdout.strip()
-    if dirty:
-        raise RuntimeError("external checkout is unexpectedly dirty")
+    for name, expected in PINNED_HASHES.items():
+        normalized = (destination / name).read_bytes().replace(b"\r\n", b"\n")
+        actual = hashlib.sha256(normalized).hexdigest()
+        if actual != expected:
+            raise RuntimeError(
+                f"{name} does not match pinned content: {actual}")
+
+
+def copy_text_normalized(source: Path, destination: Path) -> None:
+    destination.write_bytes(source.read_bytes().replace(b"\r\n", b"\n"))
+    destination.chmod(source.stat().st_mode & 0o777)
 
 
 def write_fixture(fixture: Path, checkout_dir: Path) -> None:
@@ -141,7 +157,7 @@ def write_fixture(fixture: Path, checkout_dir: Path) -> None:
     policies = fixture / "policies"
     policies.mkdir()
     for name in ("aes.c", "aes.h", "unlicense.txt"):
-        shutil.copy2(checkout_dir / name, fixture / name)
+        copy_text_normalized(checkout_dir / name, fixture / name)
     (fixture / "algorithm_lib.cpp").write_text(
         ALGORITHM_LIB.lstrip(), encoding="utf-8", newline="\n")
     (fixture / "driver.cpp").write_text(
@@ -154,10 +170,11 @@ def write_fixture(fixture: Path, checkout_dir: Path) -> None:
             "strip": True,
         },
     }
-    for index, (name, profile, level) in enumerate(
-            (("aegis-standard", "release", 1),
-             ("aegis-research", "research", 2),
-             ("aegis-flattened", "research", 3)), start=1):
+    for index, (name, profile, level, optflags) in enumerate(
+            (("aegis-standard", "release", 1, ["-O2"]),
+             ("aegis-standard-lto", "release", 1, ["-O2", "-flto"]),
+             ("aegis-research", "research", 2, ["-O2"]),
+             ("aegis-flattened", "research", 3, ["-O2"])), start=1):
         policy_name = f"{name}.json"
         policy = {
             "schema_version": 1,
@@ -177,7 +194,7 @@ def write_fixture(fixture: Path, checkout_dir: Path) -> None:
             json.dumps(policy, indent=2) + "\n",
             encoding="utf-8", newline="\n")
         profiles[name] = {
-            "optflags": ["-O2"],
+            "optflags": optflags,
             "policy": f"policies/{policy_name}",
             "pipeline": (
                 "aegis-policy<policy={policy}>,aegis-decoys,aegis-cff,"
@@ -243,6 +260,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--report", default=None)
     parser.add_argument("--markdown", default=None)
     parser.add_argument("--workdir", default=None)
+    parser.add_argument(
+        "--source-dir", default=None,
+        help="verified local checkout at the pinned commit; avoids git fetch")
     parser.add_argument("--keep", action="store_true")
     args = parser.parse_args(argv[1:])
 
@@ -258,11 +278,15 @@ def main(argv: list[str]) -> int:
     root = (Path(args.workdir).resolve() if args.workdir
             else Path(tempfile.mkdtemp(prefix="aegis-tiny-aes-")))
     root.mkdir(parents=True, exist_ok=True)
-    external = root / "upstream"
+    external = (Path(args.source_dir).resolve() if args.source_dir
+                else root / "upstream")
     fixture = root / "fixture"
     raw_report = root / "raw-report.json"
     try:
-        checkout(external)
+        if args.source_dir:
+            verify_checkout(external)
+        else:
+            checkout(external)
         write_fixture(fixture, external)
         run([
             sys.executable,

@@ -40,6 +40,11 @@ The smoke checks that:
 - protected outputs match baseline across fixed, boundary and fuzz inputs;
 - no sanitizer or property failures occur;
 - code-size, p95 and three-build medians are recorded.
+- the level-1 pipeline also links through `-flto` with identical outputs.
+
+Set `--source-dir` to reuse an already verified local checkout at the pinned
+commit. File content is LF-normalized and checked against recorded SHA-256
+values, so CRLF conversion on Windows does not create false provenance.
 
 This is a compatibility and semantic-preservation check. It is not a
 production benchmark, does not generalize to arbitrary external code and does

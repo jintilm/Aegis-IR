@@ -33,17 +33,18 @@ from typing import Any
 
 from .agent import AdapterError, Agent
 from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
+from .container import ContainerConfig, ContainerError
 from .grader import CaseOutcome, Grade, Grader
 from .meter import MeterProxy, ledger_source_for
 from .oracle import OracleBroker, OracleError, install_shim
 from .schema import ACCESS_MODES, Task
 from .toolbroker import (
     BROKER_ENV_TOKEN, BROKER_ENV_URL, ToolBroker)
-from .worker import ProcessIsolatedAgent
+from .worker import ContainerIsolatedAgent, ProcessIsolatedAgent
 
 DEFAULT_ADAPTER_TIMEOUT = 600
 RECORD_SCHEMA_VERSION = 4
-ADAPTER_ISOLATION_MODES = ("in-process", "process")
+ADAPTER_ISOLATION_MODES = ("in-process", "process", "container")
 
 #: What the agent is given for a binary-recovery task.
 #:
@@ -392,9 +393,19 @@ class Runner:
             raise ValueError(
                 f"adapter_isolation must be one of "
                 f"{ADAPTER_ISOLATION_MODES}, got {adapter_isolation!r}")
-        if network_namespace and adapter_isolation != "process":
+        if (network_namespace
+                and adapter_isolation not in ("process", "container")):
             raise ValueError(
-                "network_namespace requires adapter_isolation='process'")
+                "network_namespace requires adapter_isolation="
+                "'process' or 'container'")
+        if adapter_isolation == "container":
+            try:
+                self.container_config = ContainerConfig.from_env()
+                self.container_config.preflight()
+            except ContainerError as exc:
+                raise ValueError(str(exc)) from exc
+        else:
+            self.container_config = None
         if meter_upstream is not None:
             # Validate now, not mid-cell: a bad URL should stop the run before
             # the first repetition is paid for.
@@ -541,12 +552,17 @@ class Runner:
                 budgets["enforcement"]["oracle_queries"] = \
                     broker.stats.enforcement
                 self._install_oracle(broker, artifact, workspace)
+            needs_socket_transport = (
+                self.network_namespace
+                or self.adapter_isolation == "container")
             if self.meter_upstream:
-                if self.network_namespace:
+                if needs_socket_transport:
                     bridge_dir = bridge_dir or Path(tempfile.mkdtemp(
                         prefix="aegis-bridge-"))
                     meter = MeterProxy(self.meter_upstream).start(
                         unix_path=bridge_dir / "meter.sock")
+                    if self.adapter_isolation == "container":
+                        os.chmod(meter.unix_path, 0o666)
                 else:
                     meter = MeterProxy(self.meter_upstream).start()
                 budgets["enforcement"]["tokens"] = \
@@ -554,7 +570,7 @@ class Runner:
             else:
                 budgets["enforcement"]["tokens"] = "not metered (no proxy)"
             if self.enable_tool_broker:
-                if self.network_namespace:
+                if needs_socket_transport:
                     bridge_dir = bridge_dir or Path(tempfile.mkdtemp(
                         prefix="aegis-bridge-"))
                 tool_broker = ToolBroker(
@@ -564,6 +580,9 @@ class Runner:
                         unix_path=(
                             bridge_dir / "broker.sock"
                             if bridge_dir is not None else None))
+                if (self.adapter_isolation == "container"
+                        and tool_broker.unix_path):
+                    os.chmod(tool_broker.unix_path, 0o666)
                 budgets["enforcement"]["max_tool_calls"] = (
                     "measured and capped by harness broker")
             timeout = self.adapter_timeout or task.budgets.timeout_seconds
@@ -588,13 +607,24 @@ class Runner:
                     broker_unix_path=(
                         tool_broker.unix_path
                         if tool_broker is not None else None))
+            elif self.adapter_isolation == "container":
+                run_agent = ContainerIsolatedAgent(
+                    agent, timeout_seconds=timeout,
+                    meter_unix_path=(
+                        meter.unix_path if meter is not None else None),
+                    meter_prefix=(
+                        meter.upstream_prefix if meter is not None else ""),
+                    broker_unix_path=(
+                        tool_broker.unix_path
+                        if tool_broker is not None else None),
+                    config=self.container_config)
             with _metered_endpoint(meter), _tool_broker_endpoint(tool_broker):
                 # Inside the block, so an adapter that reads its endpoint in
                 # ``prepare`` sees the meter too.
                 run_agent.prepare(task, workspace)
                 result, _enforced = _call_with_deadline(
                     lambda: run_agent.solve(task, workspace), timeout)
-            if self.adapter_isolation == "process":
+            if self.adapter_isolation in ("process", "container"):
                 isolation.update(run_agent.last_isolation)
             ledger = dict(result.ledger)
             ledger["ledger_source"] = "self-reported by adapter"

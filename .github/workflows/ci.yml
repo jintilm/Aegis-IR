@@ -19,6 +19,7 @@ concurrency:
 
 env:
   LLVM_VERSION: 23
+  LLVM_SCRIPT_SHA256: 03878e08f47b66cc95bc4b544b0db3c6d9ce8d60e6cf2492ae357984330a9eae
 
 jobs:
   build-and-test:
@@ -32,6 +33,7 @@ jobs:
       - name: Install LLVM
         run: |
           wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+          echo "$LLVM_SCRIPT_SHA256  /tmp/llvm.sh" | sha256sum -c -
           chmod +x /tmp/llvm.sh
           sudo /tmp/llvm.sh "$LLVM_VERSION"
           sudo apt-get update
@@ -117,7 +119,8 @@ jobs:
         run: |
           python3 -m compileall -q tools/aegis-bench/aegis_bench \
             tools/aegis-bench/tests tests/differential/run.py \
-            tests/external/run_tiny_aes.py
+            tests/external/run_tiny_aes.py tests/container/run_smoke.py \
+            scripts/generate-sbom.py
 
       - name: Format check
         run: |
@@ -169,3 +172,29 @@ jobs:
             build/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
           retention-days: 30
+
+  container-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build pinned runtime image
+        run: docker build -t aegis-ir-dev docker/
+
+      - name: Container-per-cell smoke
+        run: |
+          python3 tests/container/run_smoke.py \
+            --runtime docker --image aegis-ir-dev --user 65534:65534
+
+      - name: Plugin ASan and UBSan
+        run: |
+          docker run --rm --cap-add SYS_ADMIN --cap-add NET_ADMIN \
+            -v "$GITHUB_WORKSPACE:/src" -w /src \
+            aegis-ir-dev bash -lc 'scripts/sanitizer-check.sh'
+
+      - name: Policy parser fuzzing
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            -e AEGIS_FUZZ_RUNS=2000 \
+            aegis-ir-dev bash -lc 'scripts/fuzz-policy.sh'

@@ -19,6 +19,7 @@ passes exist in code; further transforms are sketches.
    ├── artifacts — stripped probe per protection profile (levels 0–3)
    ├── tasks     — self-authored fixtures + ground truth + property tests
    ├── scorecard — deterministic correctness/size/runtime/build gates
+   ├── isolation — process/Landlock/seccomp/netns and container-per-cell
    └── protocol  — scoring rules, private-set custody, drift reports
 ```
 

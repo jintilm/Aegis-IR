@@ -420,8 +420,11 @@ PreservedAnalyses AegisControlFlowPass::run(Module &M,
                             std::to_string(Level) + ")");
       continue;
     }
+    std::string WhyStorage;
+    if (Level >= 3)
+      WhyStorage = flatteningIneligibilityReason(F);
     const StringRef Why =
-        Level >= 3 ? flatteningIneligibilityReason(F) : ineligibilityReason(F);
+        Level >= 3 ? StringRef(WhyStorage) : ineligibilityReason(F);
     if (!Why.empty()) {
       Ineligible.push_back(F.getName().str() + " (level " +
                            std::to_string(Level) + ": " + Why.str() + ")");

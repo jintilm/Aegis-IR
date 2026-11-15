@@ -108,8 +108,11 @@ PreservedAnalyses AegisLintPass::run(Module &M, ModuleAnalysisManager &) {
       continue;
     }
 
+    std::string ReasonStorage;
+    if (Level >= 3)
+      ReasonStorage = flatteningIneligibilityReason(F);
     const StringRef Reason =
-        Level >= 3 ? flatteningIneligibilityReason(F) : ineligibilityReason(F);
+        Level >= 3 ? StringRef(ReasonStorage) : ineligibilityReason(F);
     errs() << "[aegis-lint] function=" << F.getName() << " level=" << Level;
     if (Reason.empty()) {
       ++Eligible;

@@ -15,10 +15,10 @@ pull request, and on demand. It has read-only repository permissions, a
 | Smoke test (policy lint) | `aegis-lint` does not report the selected function, advisory or summary | keeps the pre-transform eligibility and remediation report loadable and registered |
 | Smoke test (gate fails closed) | skipping `aegis-decoys` does **not** break the build | the verifier's entire value is failing loudly; a gate that silently passes is worse than none |
 | Bench task integrity | a task file changed without re-recording `content_hash`, an artifact policy is missing/mislabelled, or an artifact path escapes the task | a result must name the task it actually ran |
-| Python sanity | harness, differential and external-smoke scripts are not importable (`compileall`) | cheap syntax gate |
+| Python sanity | harness, differential, external and container-smoke scripts are not importable (`compileall`) | cheap syntax gate |
 | Format check | `clang-format --dry-run -Werror` reports a diff | review noise reduction |
 | Repository hygiene | private material tracked, a file > 1 MiB, or a credential-shaped string | a benchmark repo that leaks hidden answers or keys is worse than one that fails |
-| Tests | any of the eight CTest suites fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `differential-representative`, `protection-scorecard`, `protection-scorecard-representative`, `aegis-bench`) | behavioural gate; both deterministic scorecards enforce fixture/representative correctness, `.text`, paired p95 and three-build median budgets; the bench suite covers twelve task manifests, broker policy, process/network isolation and campaign resume/audit |
+| Tests | any of the eight CTest suites fails (`aegis-policy`, `aegis-decoys`, `aegis-controlflow`, `differential`, `differential-representative`, `protection-scorecard`, `protection-scorecard-representative`, `aegis-bench`) | behavioural gate; both deterministic scorecards enforce fixture/representative correctness, `.text`, paired p95 and three-build median budgets; the bench suite covers twelve task manifests, broker policy, process/network/container command boundaries and campaign resume/audit |
 
 Artifacts uploaded on every outcome: `differential-report.json`, the
 `representative-differential-report.json`, both
@@ -50,14 +50,25 @@ is recorded.
 - Commit messages use `feat:` / `fix:` / `test:` / `docs:` / `build:` /
   `chore:`.
 
+## Container and sanitizer job
+
+A separate `container-isolation` job builds the pinned image and proves:
+
+- one real container-per-cell run with non-root, read-only root,
+  `--network=none`, dropped capabilities, no-new-privileges and resource
+  limits;
+- the instrumented plugin build runs policy/control-flow tests under
+  ASan+UBSan with the sanitizer runtime preloaded into `opt`.
+- the policy parser runs under libFuzzer with ASan+UBSan and a fixed
+  `AEGIS_FUZZ_RUNS=2000` budget.
+
+The deterministic container command and campaign-audit tests remain inside
+`aegis-bench` CTest.
+
 ## Not yet in CI
 
 Stated so nobody assumes coverage that does not exist:
 
-- **Sanitizers on the plugin itself.** The differential matrix runs the
-  fixture under ASan/UBSan (`baseline-asan` profile), which covers the
-  *transformed program*; the plugin's own memory safety is only exercised by
-  running it, not by an instrumented build.
 - **Static analysis** (`clang-tidy`) — planned, blocked on deciding whether
   LLVM headers make the false-positive rate worth it.
 - **MAC/Windows jobs.** Single-environment policy until the first release

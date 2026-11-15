@@ -32,10 +32,10 @@ uint32_t controlFlowKey(uint32_t Seed) {
   return Key == 0 ? 0xA5A5A5A5u : Key;
 }
 
-StringRef flatteningIneligibilityReason(const Function &F) {
+std::string flatteningIneligibilityReason(const Function &F) {
   StringRef Base = ineligibilityReason(F);
   if (!Base.empty())
-    return Base;
+    return Base.str();
 
   // A longjmp/setjmp pair creates a second entry point into the body; the
   // dispatcher would only be initialised on the normal path.
@@ -80,7 +80,7 @@ StringRef flatteningIneligibilityReason(const Function &F) {
     if (Callee->isConvergent())
       return "calls a convergent function";
   }
-  return StringRef();
+  return {};
 }
 
 bool eligibleForFlattening(const Function &F) {

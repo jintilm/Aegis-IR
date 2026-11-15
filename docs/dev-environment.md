@@ -18,6 +18,15 @@ versions of `clang`, `opt`, `llvm-config` and headers. The container image in
 `docker/dev.Dockerfile` is the reference environment; CI installs the same
 packages.
 
+The `apt.llvm.org/llvm.sh` installer is pinned by SHA-256 in both the
+Dockerfile and CI:
+
+`03878e08f47b66cc95bc4b544b0db3c6d9ce8d60e6cf2492ae357984330a9eae`
+
+The Ubuntu base image is tagged `24.04`. Registry access was unavailable when
+the digest pin was attempted, so a digest pin remains a release follow-up
+rather than an invented value.
+
 ## Using the container
 
 ```bash

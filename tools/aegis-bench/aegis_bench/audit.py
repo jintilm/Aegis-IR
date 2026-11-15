@@ -245,6 +245,29 @@ def _audit_campaign(
                 "error", "network-namespace",
                 "experiment requires a network namespace but this row ran "
                 "without one", record.run_id))
+        if experiment.adapter_isolation == "container":
+            container = (record.isolation or {}).get("container")
+            if not isinstance(container, dict):
+                issues.append(AuditIssue(
+                    "error", "container-boundary",
+                    "container isolation row has no container metadata",
+                    record.run_id))
+            else:
+                required = {
+                    "read_only_root": True,
+                    "network": "none",
+                    "capabilities": "dropped",
+                    "no_new_privileges": True,
+                    "non_root": True,
+                }
+                for key, expected_value in required.items():
+                    if container.get(key) != expected_value:
+                        issues.append(AuditIssue(
+                            "error", "container-boundary",
+                            f"container metadata {key!r} is "
+                            f"{container.get(key)!r}, expected "
+                            f"{expected_value!r}",
+                            record.run_id))
         task_hash = current_hashes.get(record.task_id)
         if task_hash and record.task_hash != task_hash:
             issues.append(AuditIssue(

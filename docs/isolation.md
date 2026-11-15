@@ -1,10 +1,11 @@
 # Isolation and tool accounting
 
 Status: the loopback tool broker, adapter subprocess, Linux Landlock
-filesystem/TCP-port boundary, seccomp non-stream-socket block, and private
-network-namespace worker path are implemented. A non-Linux or
-Landlock-disabled process is only a process boundary. The network namespace
-requires `unshare` permission (user namespaces or SYS_ADMIN/NET_ADMIN).
+filesystem/TCP-port boundary, seccomp non-stream-socket block, private
+network-namespace worker and disposable container-per-cell path are
+implemented. A non-Linux or Landlock-disabled process is only a process
+boundary. The network namespace requires `unshare` permission; container mode
+requires a reachable OCI runtime and local image.
 
 ## What is implemented
 
@@ -24,6 +25,7 @@ requires `unshare` permission (user namespaces or SYS_ADMIN/NET_ADMIN).
 | Landlock worker | Linux filesystem allowlist and TCP connect rules for broker/meter ports |
 | Seccomp worker | deny UDP/raw/RDM/SEQPACKET IP socket creation |
 | Network namespace | private loopback-only namespace; broker/meter reached through per-run Unix sockets |
+| Container worker | non-root, read-only root, capabilities dropped, no-new-privileges, network none, PID/memory/CPU/no-file limits, workspace/transport/socket-only mounts |
 
 These controls stop accidental leakage and several replay tricks. With the
 publishable worker flags, host filesystem reads and direct host network
@@ -61,12 +63,13 @@ process, so a compromised adapter cannot observe the grader's file view.
 
 ## Worker boundary
 
-The implemented worker is one fresh subprocess per cell, optionally sandboxed
-by Landlock, seccomp and a private network namespace. The remaining stronger
-container boundary would add a read-only adapter mount and host PID isolation:
+The implemented worker is one fresh subprocess or container per cell. Process
+mode optionally uses Landlock, seccomp and a private network namespace.
+Container mode adds a read-only root, read-only adapter/package mounts,
+non-root execution, host PID isolation, resource limits and no network:
 
 1. Create a fresh workspace with only the declared visible files.
-2. Start a disposable container or namespace with a read-only adapter mount.
+2. Start a disposable container with read-only adapter/package mounts.
 3. Mount the workspace read-write and nothing else from the repository.
 4. Mount no task root, ground truth, hidden cases, policy source, artifact
    cache or prior workspace.
@@ -88,6 +91,12 @@ the host; the trusted broker and meter expose Unix sockets and the worker
 bridges them to loopback HTTP ports. The acceptance test starts a host
 listener at a reachable container address and verifies the worker cannot
 connect to it, while a brokered tool call still succeeds.
+
+The container path has deterministic command/lifecycle tests in
+`test_container.py` and an optional real local-runtime smoke at
+`tests/container/run_smoke.py`. The real smoke verifies non-root, read-only
+root, network none, dropped capabilities, no-new-privileges, Landlock/seccomp
+and a private namespace.
 
 ## Tool broker
 

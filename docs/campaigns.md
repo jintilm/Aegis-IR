@@ -84,9 +84,9 @@ things that a multi-hour comparison needs:
 | `require_clean` | reject a dirty worktree before the first paid cell |
 | `require_meter` | reject a campaign with no model metering proxy |
 | `require_broker_tools` | fail audit if any run has no harness-broker tool traffic |
-| `adapter_isolation` | `in-process` or `process`; `process` is a subprocess boundary, not a filesystem/network sandbox |
-| `require_sandbox` | require Linux Landlock filesystem/TCP rules plus the seccomp non-stream-socket block |
-| `require_network_namespace` | require the process worker to run in a private Linux network namespace; broker/meter are bridged over Unix sockets |
+| `adapter_isolation` | `in-process`, `process`, or `container`; process adds a child boundary, container adds the full OCI boundary recorded in the row |
+| `require_sandbox` | require process-mode Landlock/seccomp or the audited container boundary |
+| `require_network_namespace` | require a private process network namespace or `--network=none` container; broker/meter use Unix sockets |
 
 All adapters must expose a non-empty `version`. A campaign preflights every
 configured agent once, checks its identity, version and options, and then
@@ -109,6 +109,14 @@ also enters a private Linux network namespace containing only loopback. The
 trusted broker and meter stay in the host namespace and expose Unix sockets;
 the worker bridges those to loopback HTTP ports for the adapter. A direct
 connection to any host address has no route.
+
+`adapter_isolation: "container"` runs one fresh container per cell with a
+read-only root, non-root user, all capabilities dropped,
+`no-new-privileges`, `--network=none`, resource limits and only the workspace,
+transport, read-only adapter/package mounts and broker/meter Unix sockets.
+`require_sandbox` and `require_network_namespace` accept this mode. Audit
+fails a container row unless the recorded boundary says read-only root,
+network none, capabilities dropped, no-new-privileges and non-root.
 
 ## Commands
 
@@ -233,11 +241,9 @@ Use `--strict` in CI or before publication to turn warnings into failure.
 
 ## Current boundary
 
-`adapter_isolation: "process"` is the default for publishable real-model
-campaigns. Together with `require_sandbox` and `require_network_namespace`, it
-enforces a workspace/runtime filesystem allowlist, denies non-stream sockets,
-and gives the worker no route to the host network. Broker and meter traffic
-cross a per-cell Unix socket, so mediated calls remain counted. Tool choices
-that bypass the broker still appear as `tools.requests: 0`. See
-[`isolation.md`](isolation.md) for the acceptance tests and remaining trust
-boundary.
+`adapter_isolation: "process"` remains the portable Linux boundary.
+`adapter_isolation: "container"` is the stronger option when a local OCI
+runtime and image are available. Both use Unix-socket broker/meter transport
+and keep mediated calls counted. Tool choices that bypass the broker still
+appear as `tools.requests: 0`. See [`isolation.md`](isolation.md) for the
+acceptance tests and remaining trust boundary.

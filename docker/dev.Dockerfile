@@ -6,6 +6,8 @@
 
 FROM ubuntu:24.04
 
+ARG LLVM_SCRIPT_SHA256=03878e08f47b66cc95bc4b544b0db3c6d9ce8d60e6cf2492ae357984330a9eae
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install LLVM 23 from apt.llvm.org (same procedure as CI; keep in sync).
 RUN wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh \
+    && echo "$LLVM_SCRIPT_SHA256  /tmp/llvm.sh" | sha256sum -c - \
     && chmod +x /tmp/llvm.sh \
     && /tmp/llvm.sh 23 \
     && apt-get update && apt-get install -y --no-install-recommends \

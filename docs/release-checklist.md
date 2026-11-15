@@ -30,6 +30,9 @@ a blocker, and a box checked without evidence is worse.
 - [x] Task ids are immutable: `rolling-token-v1` is frozen at its original
       content hash; the binary-recovery task ships as `rolling-token-v2`.
 - [x] `clang-format --dry-run -Werror` clean (CI).
+- [x] Plugin ASan+UBSan smoke and policy-parser libFuzzer run pass in the
+      pinned container. The sanitizer gate covers valid policy, malformed
+      policy, level-3 transform/verify, and fail-closed ordering.
 - [x] Optional pinned external C workload smoke is reproducible from
       `tests/external/run_tiny_aes.py`; it records upstream commit, license,
       source hashes and benchmark commit. It is not part of the network-free
@@ -74,6 +77,11 @@ a blocker, and a box checked without evidence is worse.
       broker and meter remain available through per-run Unix-socket bridges.
       Covered by `test_worker.py`, `tests/bench/run.sh` and the network
       namespace release campaign.
+- [x] Optional container-per-cell isolation rejects a missing runtime/image
+      before the first cell. Rows record and audit non-root, read-only root,
+      network none, dropped capabilities, no-new-privileges and resource
+      limits. Deterministic tests and `tests/container/run_smoke.py` cover the
+      command boundary and a real local Docker cell.
 - [x] Optional dual-model research support exists (schema v2 options, worker
       replay, `agent_config`), but model campaigns are not run for ordinary
       releases. No new attack matrix is required from the release checklist.
@@ -122,5 +130,14 @@ a blocker, and a box checked without evidence is worse.
 - [x] Checksums published with the release artifacts (`scripts/package.sh`
       writes `SHA256SUMS`). The archive excludes Git metadata, build output,
       `bench-out/`, `dist/`, `__pycache__/` and `.pyc` files.
+- [x] Release archive is reproducible: files are sorted, mtime/UID/GID are
+      fixed from `SOURCE_DATE_EPOCH`, and gzip timestamps are disabled. Two
+      clean staging runs produced the same SHA-256.
+- [x] `SBOM.cdx.json` is embedded in the archive with CycloneDX components for
+      Aegis-IR, Ubuntu 24.04, LLVM/Clang, Python, CMake and Ninja.
+- [ ] Registry digest pin for `ubuntu:24.04` remains outstanding because
+      Docker Hub was unreachable during the release attempt.
+- [ ] Cryptographic signing remains outstanding until a release identity/key
+      is supplied.
 - [x] Unsupported feature combinations fail loudly, never silently
       (`docs/compatibility.md`).

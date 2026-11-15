@@ -24,7 +24,7 @@ from .runner import Runner, RunRecord
 from .report import write_reports
 from .scorecard import evaluate_scorecard, load_budgets, write_scorecard
 from .toolbroker import ToolBroker, ToolDenied, ToolError, call_tool
-from .worker import ProcessIsolatedAgent, TaskView
+from .worker import ContainerIsolatedAgent, ProcessIsolatedAgent, TaskView
 from .seccomp import SeccompError, apply_socket_policy
 
 __all__ = [
@@ -34,6 +34,7 @@ __all__ = [
     "AuditReport",
     "CampaignResult",
     "Cell",
+    "ContainerIsolatedAgent",
     "Experiment",
     "ExperimentError",
     "Grade",

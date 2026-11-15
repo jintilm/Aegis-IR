@@ -21,6 +21,7 @@
 #include "llvm/IR/Function.h"
 
 #include <cstdint>
+#include <string>
 
 namespace aegis {
 
@@ -40,7 +41,7 @@ uint32_t controlFlowKey(uint32_t Seed);
 /// Additional eligibility rules for flattening. Base rules (declaration,
 /// optnone, naked, EH personality, musttail) are shared with the decoy
 /// transform via ineligibilityReason().
-llvm::StringRef flatteningIneligibilityReason(const llvm::Function &F);
+std::string flatteningIneligibilityReason(const llvm::Function &F);
 
 bool eligibleForFlattening(const llvm::Function &F);
 

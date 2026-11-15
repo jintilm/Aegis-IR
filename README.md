@@ -29,6 +29,9 @@ This release includes task schema v4 (`core`/`exploratory` tiers), twelve
 validated public tasks, three-build median reporting, a larger representative
 differential workload, eight release-gating CTest targets, and an optional
 pinned external C workload smoke.
+The post-release tree adds optional container-per-cell isolation, plugin
+ASan+UBSan and policy-parser fuzzing gates, reproducible archives with SBOM,
+and an LTO external workload profile.
 Linux `require_sandbox` workers use Landlock for workspace/runtime file access
 and broker/meter TCP-port restriction; seccomp denies non-stream IP sockets. The
 opt-in `require_network_namespace` path gives the worker a private loopback

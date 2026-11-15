@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .agent import Agent, AdapterError, create_agent
+from .container import ContainerConfig, ContainerError
 from .landlock import abi_version as landlock_abi_version
 from .netns import NetnsError, unshare_options
 from .seccomp import available as seccomp_available
@@ -596,36 +597,45 @@ def _run_campaign_unlocked(
             f"{experiment.path}: require_broker_tools=true but the tool "
             f"broker was disabled")
     if experiment.require_sandbox:
-        if experiment.adapter_isolation != "process":
+        if experiment.adapter_isolation not in ("process", "container"):
             raise ExperimentError(
                 f"{experiment.path}: require_sandbox=true needs "
-                f"adapter_isolation='process'")
-        if os.name != "posix" or landlock_abi_version() <= 0:
-            raise ExperimentError(
-                f"{experiment.path}: require_sandbox=true but Landlock is "
-                f"unavailable on this host")
-        if os.environ.get("AEGIS_LANDLOCK") == "0":
-            raise ExperimentError(
-                f"{experiment.path}: require_sandbox=true but "
-                f"AEGIS_LANDLOCK=0 disables it")
-        if not seccomp_available():
-            raise ExperimentError(
-                f"{experiment.path}: require_sandbox=true but libseccomp is "
-                f"unavailable on this host")
+                f"adapter_isolation='process' or 'container'")
+        if experiment.adapter_isolation == "process":
+            if os.name != "posix" or landlock_abi_version() <= 0:
+                raise ExperimentError(
+                    f"{experiment.path}: require_sandbox=true but Landlock is "
+                    f"unavailable on this host")
+            if os.environ.get("AEGIS_LANDLOCK") == "0":
+                raise ExperimentError(
+                    f"{experiment.path}: require_sandbox=true but "
+                    f"AEGIS_LANDLOCK=0 disables it")
+            if not seccomp_available():
+                raise ExperimentError(
+                    f"{experiment.path}: require_sandbox=true but "
+                    f"libseccomp is unavailable on this host")
+        else:
+            try:
+                ContainerConfig.from_env().preflight()
+            except ContainerError as exc:
+                raise ExperimentError(
+                    f"{experiment.path}: require_sandbox=true but {exc}"
+                ) from exc
     if experiment.require_network_namespace:
-        if experiment.adapter_isolation != "process":
+        if experiment.adapter_isolation not in ("process", "container"):
             raise ExperimentError(
                 f"{experiment.path}: require_network_namespace=true needs "
-                f"adapter_isolation='process'")
-        if os.name != "posix":
-            raise ExperimentError(
-                f"{experiment.path}: network namespaces are Linux-only")
-        try:
-            unshare_options()
-        except NetnsError as exc:
-            raise ExperimentError(
-                f"{experiment.path}: require_network_namespace=true but "
-                f"{exc}") from exc
+                f"adapter_isolation='process' or 'container'")
+        if experiment.adapter_isolation == "process":
+            if os.name != "posix":
+                raise ExperimentError(
+                    f"{experiment.path}: network namespaces are Linux-only")
+            try:
+                unshare_options()
+            except NetnsError as exc:
+                raise ExperimentError(
+                    f"{experiment.path}: require_network_namespace=true but "
+                    f"{exc}") from exc
 
     tasks = experiment.resolve_tasks(allow_private=allow_private)
     task_by_id = {task.id: task for task in tasks}

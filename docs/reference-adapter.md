@@ -123,6 +123,13 @@ bridged to loopback; direct host connections have no route. Adapter-side
 diagnostic saves under `LLM_SAVE_DIR` are redirected to the per-cell worker
 transport directory.
 
+With `adapter_isolation: "container"`, the same worker and adapter contract run
+inside a disposable non-root container. The adapter directory must be present
+in `PYTHONPATH`; it is mounted read-only at a fixed path inside the container.
+The workspace is read-write, the root filesystem is read-only, and network
+access is disabled. A container adapter must therefore be self-contained in
+the configured image and explicit read-only mounts.
+
 Campaign agents can supply JSON `options` to the adapter constructor. The
 reference adapter uses `{"model": "deepseek-v4-pro"}` or
 `{"model": "deepseek-flash"}`, which lets one campaign compare two models

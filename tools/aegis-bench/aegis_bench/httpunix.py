@@ -14,29 +14,39 @@ from pathlib import Path
 from typing import Any
 
 
-class ThreadingUnixHTTPServer(
-        socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
-    """Threaded Unix-stream server compatible with ``BaseHTTPRequestHandler``."""
+_UnixStreamServer = getattr(socketserver, "UnixStreamServer", None)
 
-    daemon_threads = True
+if _UnixStreamServer is not None:
+    class ThreadingUnixHTTPServer(
+            socketserver.ThreadingMixIn, _UnixStreamServer):
+        """Threaded Unix-stream server for ``BaseHTTPRequestHandler``."""
 
-    def __init__(self, socket_path: str | Path, handler: Any) -> None:
-        self.socket_path = Path(socket_path)
-        self.socket_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            self.socket_path.unlink()
-        except FileNotFoundError:
-            pass
-        super().__init__(str(self.socket_path), handler)
-        # HTTPServer supplies these attributes normally; the base request
-        # handler reads them while rendering protocol-level errors.
-        self.server_name = "aegis-unix"
-        self.server_port = 0
-        os.chmod(self.socket_path, 0o600)
+        daemon_threads = True
 
-    def server_close(self) -> None:
-        super().server_close()
-        try:
-            self.socket_path.unlink()
-        except FileNotFoundError:
-            pass
+        def __init__(self, socket_path: str | Path, handler: Any) -> None:
+            self.socket_path = Path(socket_path)
+            self.socket_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                self.socket_path.unlink()
+            except FileNotFoundError:
+                pass
+            super().__init__(str(self.socket_path), handler)
+            # HTTPServer supplies these attributes normally; the base request
+            # handler reads them while rendering protocol-level errors.
+            self.server_name = "aegis-unix"
+            self.server_port = 0
+            os.chmod(self.socket_path, 0o600)
+
+        def server_close(self) -> None:
+            super().server_close()
+            try:
+                self.socket_path.unlink()
+            except FileNotFoundError:
+                pass
+else:
+    class ThreadingUnixHTTPServer:  # type: ignore[no-redef]
+        """Placeholder that fails only when Unix-socket transport is requested."""
+
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(
+                "Unix-domain HTTP sockets are unavailable on this platform")

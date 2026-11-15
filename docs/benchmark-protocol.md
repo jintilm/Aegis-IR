@@ -271,6 +271,10 @@ powered count above.
   adapter to a child; `require_sandbox` adds Landlock filesystem and TCP-port
   restrictions plus seccomp on Linux; `require_network_namespace` removes
   host routing and reaches broker/meter through Unix-socket bridges.
+- `adapter_isolation=container` runs each cell in a disposable non-root
+  container with a read-only root, no capabilities, no-new-privileges,
+  `--network=none`, resource limits and only workspace/transport,
+  read-only package/adapter mounts and broker/meter Unix sockets.
 - The workspace contains the task's visible files plus, for binary-recovery
   tasks, either the oracle **shim** (`oracle` access) or the stripped **probe**
   (`binary` access) — never ground truth, the grader, property tests or hidden

@@ -3,6 +3,38 @@
 All notable changes to this project. Format loosely follows Keep a Changelog;
 versions follow SemVer once past alpha.
 
+## [Unreleased]
+
+### Added
+
+- **Container-per-cell adapter isolation** - `adapter_isolation: "container"`
+  runs one disposable non-root OCI container per cell with read-only root,
+  network none, capabilities dropped, no-new-privileges, resource limits,
+  read-only adapter/package mounts and broker/meter Unix sockets. Campaign
+  audit now fails incomplete container-boundary metadata.
+- **Real container smoke in CI** - `tests/container/run_smoke.py` validates the
+  boundary against a real local runtime, while deterministic command,
+  lifecycle and audit tests stay in `aegis-bench` CTest.
+- **Plugin sanitizer and parser fuzz gates** - `scripts/sanitizer-check.sh`
+  runs ASan+UBSan smoke paths for policy parsing, level-3 transform/verify and
+  fail-closed ordering. `scripts/fuzz-policy.sh` runs a libFuzzer harness over
+  a temporary policy corpus.
+- **Reusable SBOM generation** - `scripts/generate-sbom.py` emits deterministic
+  CycloneDX 1.5 JSON for the release archive.
+- **LTO external workload profile** - pinned tiny-AES-c now also exercises
+  level-1 protection through `-flto`, with zero mismatches.
+
+### Changed
+
+- **Reproducible release archive** - package staging now sorts paths, fixes
+  mtime/UID/GID from `SOURCE_DATE_EPOCH`, disables gzip timestamps and embeds
+  `SBOM.cdx.json`. Two staging runs produce the same SHA-256.
+- **Pinned LLVM installer** - `llvm.sh` is verified by SHA-256 in both the
+  development image and CI.
+- **Safer control-flow diagnostics** - `flatteningIneligibilityReason` now
+  returns owned storage, fixing a sanitizer-detected dangling `StringRef`;
+  package archives also exclude Python bytecode.
+
 ## [0.4.0-alpha] - 2026-11-15
 
 ### Added

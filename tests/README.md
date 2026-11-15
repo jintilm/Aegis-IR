@@ -47,6 +47,10 @@ Current coverage:
   CTest because the release path remains network-free. See
   [`docs/external-workloads.md`](../docs/external-workloads.md).
 
+- `policy/fuzz_policy.cpp` — standalone libFuzzer harness for policy JSON
+  parsing. `scripts/fuzz-policy.sh` builds it with ASan+UBSan and runs a fixed
+  mutation budget over the malformed/valid policy corpus.
+
 - `bench/` — Aegis-Bench harness tests (`bash tests/bench/run.sh
   tools/aegis-bench <plugin>`; CTest name `aegis-bench`). Offline only:
   deterministic adapters, no model, no network, no credentials. Covers the
@@ -56,6 +60,13 @@ Current coverage:
   0–3 (probe hash/`.text`, workspace contains only the stripped probe, the
   level-3 build log shows flattening). See
   [`tools/aegis-bench/README.md`](../tools/aegis-bench/README.md).
+
+- `container/run_smoke.py` — optional real OCI-runtime smoke for one isolated
+  cell. It verifies non-root, read-only root, network none, dropped
+  capabilities, no-new-privileges, Landlock/seccomp and private namespace.
+  Deterministic command/lifecycle coverage lives in
+  `tools/aegis-bench/tests/test_container.py`; the real-runtime check stays
+  outside CTest because it needs host Docker access.
 
 Planned layout (populated as transforms land):
 

@@ -24,6 +24,7 @@ aegis_bench/
 ├── audit.py     JSONL/matrix/provenance audit
 ├── toolbroker.py policy-checked workspace tools, counters and call budget
 ├── worker.py    optional subprocess boundary + workspace-only TaskView
+├── container.py disposable OCI container boundary and mount/security flags
 ├── landlock.py  Linux filesystem/TCP-port worker policy
 ├── seccomp.py   Linux non-stream socket denial
 ├── report.py    JSONL / CSV / Markdown reports
@@ -34,6 +35,7 @@ tests/
 ├── test_harness.py   offline harness tests
 ├── test_campaign.py  campaign, resume and audit tests
 ├── test_toolbroker.py broker policy, counting and runner injection
+├── test_container.py container command, lifecycle and audit boundary
 └── test_worker.py    subprocess boundary and hidden-path exclusion
 ```
 
@@ -117,6 +119,27 @@ adds Landlock: runtime/workspace filesystem allowlists and TCP connects only
 to the broker/meter ports. Seccomp additionally denies UDP/raw/RDM/SEQPACKET
 IP sockets. `require_network_namespace: true` adds a private loopback-only
 network namespace and bridges broker/meter over per-run Unix sockets.
+
+`adapter_isolation: "container"` is the stronger optional boundary. Each cell
+gets a fresh non-root container with a read-only root filesystem, all
+capabilities dropped, `no-new-privileges`, private IPC/PID context,
+`--network=none`, memory/CPU/PID/no-file limits, and only these mounts:
+
+- workspace read-write;
+- per-run transport read-write;
+- Aegis-Bench and explicit adapter paths read-only;
+- broker/meter Unix sockets.
+
+Configure `AEGIS_CONTAINER_RUNTIME` (default `docker`),
+`AEGIS_CONTAINER_IMAGE` (default `aegis-ir-dev`) and optionally
+`AEGIS_CONTAINER_MEMORY`, `AEGIS_CONTAINER_CPUS`,
+`AEGIS_CONTAINER_PIDS_LIMIT`, `AEGIS_CONTAINER_NOFILE_LIMIT` and
+`AEGIS_CONTAINER_USER` (default `65534:65534`). The row records the actual
+runtime, image and security settings. Missing image/runtime fails before a
+campaign cell starts.
+
+The real-runtime smoke is `python3 tests/container/run_smoke.py`. It is outside
+CTest because nested container access depends on the host runtime.
 
 Campaign schema v2 agent entries can carry constructor `options`. A single
 `openai_adapter:OpenAICompatAgent` can therefore appear twice, with
