@@ -46,7 +46,11 @@ cmake --build build -j >/dev/null
 if [ "${AEGIS_PACKAGE_SKIP_TESTS:-0}" = "1" ]; then
   echo "build OK; tests skipped for deterministic rebuild comparison"
 else
-  cd build && ctest --output-on-failure >/dev/null
+  if ! (cd build && ctest --output-on-failure) \
+      > "$REPO_ROOT/build/package-ctest.log" 2>&1; then
+    cat "$REPO_ROOT/build/package-ctest.log"
+    exit 1
+  fi
   echo "build + tests OK"
 fi
 '
