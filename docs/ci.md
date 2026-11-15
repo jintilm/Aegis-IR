@@ -61,6 +61,7 @@ A separate `container-isolation` job builds the pinned image and proves:
   ASan+UBSan with the sanitizer runtime preloaded into `opt`.
 - the policy parser runs under libFuzzer with ASan+UBSan and a fixed
   `AEGIS_FUZZ_RUNS=2000` budget.
+- Clang Static Analyzer runs over every `lib/*.cpp`; warnings fail the job.
 
 The deterministic container command and campaign-audit tests remain inside
 `aegis-bench` CTest.
@@ -69,8 +70,6 @@ The deterministic container command and campaign-audit tests remain inside
 
 Stated so nobody assumes coverage that does not exist:
 
-- **Static analysis** (`clang-tidy`) — planned, blocked on deciding whether
-  LLVM headers make the false-positive rate worth it.
 - **MAC/Windows jobs.** Single-environment policy until the first release
   (see `compatibility.md`).
 - **Benchmark runs against real models.** Offline by design; those runs happen

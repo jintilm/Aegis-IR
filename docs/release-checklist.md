@@ -33,6 +33,8 @@ a blocker, and a box checked without evidence is worse.
 - [x] Plugin ASan+UBSan smoke and policy-parser libFuzzer run pass in the
       pinned container. The sanitizer gate covers valid policy, malformed
       policy, level-3 transform/verify, and fail-closed ordering.
+- [x] Clang Static Analyzer covers every `lib/*.cpp` with warnings treated as
+      failures.
 - [x] Optional pinned external C workload smoke is reproducible from
       `tests/external/run_tiny_aes.py`; it records upstream commit, license,
       source hashes and benchmark commit. It is not part of the network-free

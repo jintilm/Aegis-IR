@@ -198,3 +198,8 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
             -e AEGIS_FUZZ_RUNS=2000 \
             aegis-ir-dev bash -lc 'scripts/fuzz-policy.sh'
+
+      - name: Clang static analyzer
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            aegis-ir-dev bash -lc 'scripts/static-analysis.sh'
