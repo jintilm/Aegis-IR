@@ -28,6 +28,7 @@ import threading
 import time
 import traceback
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +37,7 @@ from .artifact import ArtifactBuilder, ArtifactError, BuiltArtifact
 from .container import ContainerConfig, ContainerError
 from .grader import CaseOutcome, Grade, Grader
 from .meter import MeterProxy, ledger_source_for
-from .oracle import OracleBroker, OracleError, install_shim
+from .oracle import OracleBroker, OracleError, install_shim, query
 from .schema import ACCESS_MODES, Task
 from .toolbroker import (
     BROKER_ENV_TOKEN, BROKER_ENV_URL, ToolBroker)
@@ -492,6 +493,8 @@ class Runner:
         grade = Grade(False, "agent", "adapter did not run")
         ledger: dict[str, Any] = {}
         artifact: BuiltArtifact | None = None
+        trusted_artifact: BuiltArtifact | None = None
+        probe_dir: Path | None = None
         broker: OracleBroker | None = None
         meter: MeterProxy | None = None
         tool_broker: ToolBroker | None = None
@@ -529,29 +532,35 @@ class Runner:
         try:
             self._populate_workspace(task, workspace)
             artifact = self.artifact_for(task, profile)
+            if artifact is not None:
+                probe_dir = Path(tempfile.mkdtemp(prefix="aegis-probe-"))
+                trusted_artifact = artifact.snapshot(probe_dir)
             if artifact is not None and access == ACCESS_BINARY:
                 if task.budgets.oracle_queries is not None:
                     raise OracleError(
                         "access=binary puts the probe in the workspace, so "
                         "budgets.oracle_queries cannot be enforced; unset the "
                         "budget or run with access=oracle")
-                self._install_probe(artifact, workspace)
+                assert trusted_artifact is not None
+                self._install_probe(trusted_artifact, workspace)
                 oracle = {
                     "queries": None, "refused": None, "failed": None,
                     "budget": None, "transport": "local executable",
                     "enforcement": "not counted (binary access)",
                 }
             elif artifact is not None:
+                assert trusted_artifact is not None
                 try:
                     broker = OracleBroker(
-                        self._probe_command(artifact),
-                        budget=task.budgets.oracle_queries).start()
+                        self._probe_command(trusted_artifact),
+                        budget=task.budgets.oracle_queries,
+                        cwd=probe_dir).start()
                 except (OSError, OracleError) as exc:
                     raise OracleError(
                         f"oracle broker failed to start: {exc}") from exc
                 budgets["enforcement"]["oracle_queries"] = \
                     broker.stats.enforcement
-                self._install_oracle(broker, artifact, workspace)
+                self._install_oracle(broker, trusted_artifact, workspace)
             needs_socket_transport = (
                 self.network_namespace
                 or self.adapter_isolation == "container")
@@ -576,7 +585,16 @@ class Runner:
                 tool_broker = ToolBroker(
                     workspace=workspace, task=task, access=access,
                     max_calls=task.budgets.max_tool_calls,
-                    enable_disassembly=access == ACCESS_BINARY).start(
+                    enable_disassembly=access == ACCESS_BINARY,
+                    trusted_probe=(trusted_artifact.path
+                                   if trusted_artifact is not None else None),
+                    probe_command=(self._probe_command(trusted_artifact)
+                                   if trusted_artifact is not None else None),
+                    oracle_query=(partial(query, broker.address,
+                                          transport=broker.transport)
+                                  if broker is not None else None),
+                    oracle_cancel=(broker.cancel
+                                   if broker is not None else None)).start(
                         unix_path=(
                             bridge_dir / "broker.sock"
                             if bridge_dir is not None else None))
@@ -650,6 +668,12 @@ class Runner:
             grade = Grade(False, "agent", f"adapter crashed: {exc!r}")
             error = traceback.format_exc(limit=5)
         finally:
+            # Cancel both services before draining either one: a tool handler
+            # may currently be waiting for the oracle's active subprocess.
+            if tool_broker is not None:
+                tool_broker.cancel()
+            if broker is not None:
+                broker.cancel()
             if meter is not None:
                 # Reached when the adapter raised or timed out before it
                 # returned a ledger. The traffic it did make still happened
@@ -657,13 +681,13 @@ class Runner:
                 metering = meter.stop(reported_by_adapter=ledger.get("tokens"))
                 if ledger:
                     ledger["ledger_source"] = ledger_source_for(metering)
-            if broker is not None:
-                broker.stop()
-                oracle = broker.stats.to_dict()
             if tool_broker is not None:
                 tools = tool_broker.stop(
                     reported_by_adapter=ledger.get("tool_calls"))
                 tool_broker = None
+            if broker is not None:
+                broker.stop()
+                oracle = broker.stats.to_dict()
             if oracle:
                 oracle["access"] = access
             if self.keep_workspaces:
@@ -672,6 +696,8 @@ class Runner:
             shutil.rmtree(workspace, ignore_errors=True)
             if bridge_dir is not None:
                 shutil.rmtree(bridge_dir, ignore_errors=True)
+            if probe_dir is not None:
+                shutil.rmtree(probe_dir, ignore_errors=True)
 
         return RunRecord(
             run_id=run_id, task_id=task.id, task_hash=task.content_hash,

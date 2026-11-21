@@ -9,6 +9,7 @@ attacker cost; they are not part of the default release loop.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -22,8 +23,9 @@ class ScorecardError(Exception):
 
 
 def _number(value: Any, name: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ScorecardError(f"{name} must be a number")
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value)):
+        raise ScorecardError(f"{name} must be a finite number")
     return float(value)
 
 
@@ -118,10 +120,8 @@ def _profile_metrics(
         "runtime_delta_pct": (
             float(relative_p95)
             if isinstance(relative_p95, (int, float))
-            else (
-                _delta_pct(float(p95), float(base_p95))
-                if isinstance(p95, (int, float))
-                and isinstance(base_p95, (int, float)) else None)),
+            and not isinstance(relative_p95, bool)
+            and math.isfinite(relative_p95) else None),
         "build_ms": build,
         "build_samples_ms": build_samples,
         "build_sample_count": build_sample_count,
@@ -144,6 +144,14 @@ def evaluate_scorecard(
     if not isinstance(baseline, dict):
         raise ScorecardError(
             f"baseline profile {baseline_name!r} is missing")
+    if any(rule.get("max_p95_delta_pct") is not None
+           for rule in budgets["profiles"].values()):
+        measured_baseline = differential.get("runtime_baseline_profile")
+        if measured_baseline != baseline_name:
+            raise ScorecardError(
+                f"runtime baseline {measured_baseline!r} does not match "
+                f"budget baseline {baseline_name!r}; rerun the differential "
+                "runner with the configured runtime baseline")
 
     report_profiles: dict[str, Any] = {}
     missing_gated = [
@@ -254,6 +262,7 @@ def evaluate_scorecard(
     return {
         "schema_version": SCORECARD_SCHEMA_VERSION,
         "baseline_profile": baseline_name,
+        "runtime_baseline_profile": differential.get("runtime_baseline_profile"),
         "passed": gate_pass,
         "profiles": report_profiles,
     }

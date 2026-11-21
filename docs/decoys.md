@@ -27,6 +27,12 @@ The module also gets 4–6 decoy functions and one decoy string each, both drawn
 from a curated in-tree corpus by a deterministic splitmix64 plan seeded from
 `aegis.seed`.
 
+Decoy definitions use internal linkage and are rooted in `llvm.used`. This
+keeps even uncalled decoys through optimization, LTO and linker section garbage
+collection without exporting duplicate symbols when independently protected
+translation units use the same seed. Their bodies retain the decoy strings.
+Names remain seed-derived; machine-specific paths are not part of their identity.
+
 ## Why the decoy branch is dead by construction
 
 The guard is internal, zero-initialised, and the verifier rejects any use of it
@@ -50,6 +56,13 @@ one load the optimizer may not fold or reuse.
 | every recorded guarded function keeps a guard load **and** a decoy call | the branch being erased |
 | total volatile guard loads >= guarded functions | inlining that lost a copy |
 | every `level >= 1` function was in fact guarded | passes run out of order |
+
+An empty policy or a policy containing only level 0 is a valid no-op: the
+transform adds no artifacts and the verifier accepts the unprotected module.
+Positive selections record `aegis.protection.requested` before optimization.
+That flag, existing transform records, or surviving selected attributes and
+artifacts require the full gate even when inlining has removed every selected
+function. Losing protection is therefore not treated as an empty policy.
 
 Fail-closed is deliberate: a build whose protection silently degraded must not
 ship. The cost is that a genuine improvement in the optimizer (say, a future
@@ -130,6 +143,12 @@ functions untouched, the gate failing when `aegis-decoys` is skipped, the gate
 failing on seed drift, byte-identical reproduction, seed sensitivity, guard
 survival through inlining, a non-volatile-guard negative control, and
 level-2/3 selections still receiving the entry guard.
+
+It also exercises explicit empty and all-level-0 policies, erased protected
+modules whose request metadata remains, and two independently protected
+translation units linked normally and with LTO. Both link tests enable section
+garbage collection, execute the result, and check that every planned decoy
+still has a local symbol.
 
 `tests/controlflow/` covers the levels above and `/tests/differential/` runs
 the level-1, level-2 and level-3 profiles through the full pipeline, reporting

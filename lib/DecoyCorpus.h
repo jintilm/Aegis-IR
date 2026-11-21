@@ -34,6 +34,14 @@ extern const char *const kGuardGlobalName;
 /// erased".
 extern const char *const kGuardedFlagName;
 
+/// Durable policy intent, retained even if optimization removes every selected
+/// function before the decoy pass runs. Its presence prevents verification from
+/// mistaking a lost protected body for a deliberately unprotected module.
+extern const char *const kProtectionRequestedFlagName;
+
+/// Record positive protection intent once, including attribute-only pipelines.
+void recordProtectionRequest(llvm::Module &M);
+
 /// Highest policy level any shipped transform implements. A policy entry above
 /// this must fail the build: accepting it would ship a module that claims a
 /// protection tier nothing applied.

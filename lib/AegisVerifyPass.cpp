@@ -192,6 +192,24 @@ void collectStrings(const Metadata *MD, StringSet<> &Out) {
 } // namespace
 
 PreservedAnalyses AegisVerifyPass::run(Module &M, ModuleAnalysisManager &) {
+  // A truly unselected module needs no decoys. Positive policy intent and
+  // transform records survive inlining, so their presence must still force
+  // the full gate even when no aegis.level attributes remain. Also recognize
+  // older transformed IR and attribute-only pipelines without the new flag.
+  bool ProtectionExpected =
+      M.getModuleFlag(kProtectionRequestedFlagName) ||
+      M.getModuleFlag(kGuardedFlagName) || M.getModuleFlag(kBogusFlagName) ||
+      M.getModuleFlag(kFlattenedFlagName) ||
+      M.getNamedGlobal(kGuardGlobalName) || M.getNamedGlobal(kCffSaltName);
+  for (const Function &F : M)
+    ProtectionExpected |= functionLevel(F) >= 1 || hasDecoyFnMetadata(F);
+  for (const GlobalVariable &GV : M.globals())
+    ProtectionExpected |= GV.getMetadata("aegis.decoy.str") != nullptr;
+  if (!ProtectionExpected) {
+    errs() << "[aegis-verify] OK: no protection requested; module unchanged\n";
+    return PreservedAnalyses::all();
+  }
+
   const uint32_t Seed = moduleSeed(M);
   const DecoyPlan Plan = buildDecoyPlan(Seed);
 

@@ -36,15 +36,28 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .process import OutputLimitExceeded, ProcessCancelled, run_bounded
+
 PROTOCOL = 1
 QUERY_TIMEOUT = 30
 MAX_QUERY_BYTES = 1024 * 1024
 MAX_REPLY_BYTES = 1024 * 1024
 _HEADER_LIMIT = 4096
+REQUEST_READ_TIMEOUT = 5
 
 
 class OracleError(Exception):
     """The broker could not answer a query."""
+
+
+def probe_environment() -> dict[str, str]:
+    """Runtime environment for trusted probes; never inherit model secrets."""
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+           "LC_ALL": "C", "LANG": "C"}
+    for key in ("SYSTEMROOT", "WINDIR"):
+        if key in os.environ:
+            env[key] = os.environ[key]
+    return env
 
 
 @dataclass
@@ -90,6 +103,8 @@ class OracleBroker:
         self._sock: socket.socket | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
+        self._connection_lock = threading.Lock()
+        self._connection: socket.socket | None = None
         self.stats = OracleStats(
             budget=budget,
             enforcement=("enforced by harness broker" if budget is not None
@@ -123,8 +138,18 @@ class OracleBroker:
         self._thread.start()
         return self
 
-    def stop(self) -> None:
+    def cancel(self) -> None:
+        """Interrupt an active query or a client that has not finished sending."""
         self._stop.set()
+        with self._connection_lock:
+            if self._connection is not None:
+                try:
+                    self._connection.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+
+    def stop(self) -> None:
+        self.cancel()
         if self._sock is not None:
             try:
                 self._sock.close()
@@ -133,10 +158,16 @@ class OracleBroker:
             self._sock = None
         if self._thread is not None:
             self._thread.join(timeout=5)
+            if self._thread.is_alive():
+                raise OracleError("oracle worker did not stop after cancellation")
             self._thread = None
         if self._transport == "unix":
             try:
                 os.unlink(self._address)
+            except OSError:
+                pass
+            try:
+                os.rmdir(self._tmpdir)
             except OSError:
                 pass
 
@@ -158,18 +189,27 @@ class OracleBroker:
 
     def _accept_loop(self) -> None:
         assert self._sock is not None
+        listener = self._sock
         while not self._stop.is_set():
             try:
-                conn, _ = self._sock.accept()
+                conn, _ = listener.accept()
             except socket.timeout:
                 continue
             except OSError:
                 break
+            with self._connection_lock:
+                if self._stop.is_set():
+                    conn.close()
+                    break
+                conn.settimeout(REQUEST_READ_TIMEOUT)
+                self._connection = conn
             try:
                 self._handle(conn)
             except Exception:  # noqa: BLE001 - one bad client must not stop
                 self.stats.failed += 1
             finally:
+                with self._connection_lock:
+                    self._connection = None
                 try:
                     conn.close()
                 except OSError:
@@ -201,11 +241,18 @@ class OracleBroker:
     def _respond(self, conn: socket.socket, *, ok: bool, exit_code: int = 125,
                  out: bytes = b"", err: bytes = b"",
                  error: str = "") -> None:
+        if self._stop.is_set():
+            return
         header = json.dumps({
             "ok": ok, "exit": exit_code,
             "out_len": len(out), "err_len": len(err), "error": error,
         }).encode() + b"\n"
-        conn.sendall(header + out + err)
+        try:
+            conn.sendall(header + out + err)
+        except OSError:
+            # The query itself already set its failed count. A disconnected
+            # client must not count the same failed execution a second time.
+            pass
 
     def _handle(self, conn: socket.socket) -> None:
         request = json.loads(self._read_header(conn))
@@ -217,6 +264,8 @@ class OracleBroker:
             self._respond(conn, ok=False, error="bad query length")
             return
         payload = self._recv_exact(conn, length)
+        if self._stop.is_set():
+            return
         if self._budget is not None and self.stats.queries >= self._budget:
             self.stats.refused += 1
             self._respond(conn, ok=False,
@@ -225,16 +274,18 @@ class OracleBroker:
             return
         self.stats.queries += 1
         try:
-            proc = subprocess.run(self.command, input=payload,
-                                  capture_output=True,
-                                  timeout=self._query_timeout, cwd=self._cwd)
-        except (OSError, subprocess.TimeoutExpired) as exc:
+            proc = run_bounded(
+                self.command, input=payload, timeout=self._query_timeout,
+                max_stdout_bytes=MAX_REPLY_BYTES,
+                max_stderr_bytes=MAX_REPLY_BYTES,
+                cwd=self._cwd, env=probe_environment(), cancel_event=self._stop)
+        except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded,
+                ProcessCancelled) as exc:
             self.stats.failed += 1
             self._respond(conn, ok=False, error=f"probe failed: {exc}")
             return
         self._respond(conn, ok=True, exit_code=proc.returncode,
-                      out=proc.stdout[:MAX_REPLY_BYTES],
-                      err=proc.stderr[:MAX_REPLY_BYTES])
+                      out=proc.stdout, err=proc.stderr)
 
 
 def query(address: str, payload: bytes, *, transport: str,

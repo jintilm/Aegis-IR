@@ -83,6 +83,21 @@ else
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -20
 fi
 
+echo "== lint: structural cost hints remain read-only =="
+NESTED="$HERE/fixtures/nested_loops.ll"
+"$OPT" -passes=verify "$NESTED" -S -o "$TMP/nested.baseline.ll" || \
+  fail_case "nested-loop lint fixture verifies"
+run_opt "$TMP/nested.lint.ll" 'aegis-lint' "$NESTED"
+if [ "$CODE" -eq 0 ] && has_text 'loops=2 max_loop_depth=2' "$OUT" && \
+   has_text 'cost_hint=measure-loop-dispatch-and-spills' "$OUT" && \
+   printf '%s\n' "$OUT" | grep -Eq 'cross_block_values=[1-9][0-9]*' && \
+   cmp -s "$TMP/nested.baseline.ll" "$TMP/nested.lint.ll"; then
+  pass_case "lint reports nested-loop cost indicators without changing IR or level"
+else
+  fail_case "lint reports nested-loop cost indicators without changing IR or level (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
+fi
+
 echo "== level 2: pipeline and structural survival =="
 run_opt "$TMP/l2.ll" "$PIPE2"
 if [ "$CODE" -eq 0 ] && printf '%s\n' "$OUT" | grep -q '\[aegis-verify\] OK'; then
@@ -290,6 +305,49 @@ if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'indirectbr'; then
 else
   fail_case "level-3 selection of indirectbr fails loudly (exit=$CODE)"
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
+fi
+
+echo "== level 3: reject unsupported stack lifetimes before rewriting =="
+if "$CLANG" -x c -std=c11 -O2 -Xclang -disable-llvm-passes -S -emit-llvm \
+    "$HERE/fixtures/vla.c" -o "$TMP/vla.ll" && \
+   "$OPT" -passes=verify -disable-output "$TMP/vla.ll" && \
+   "$CLANG" -O2 "$TMP/vla.ll" -o "$TMP/vla.baseline" && \
+   "$TMP/vla.baseline"; then
+  pass_case "C11 VLA fixture has valid frontend IR and correct baseline behavior"
+else
+  fail_case "C11 VLA fixture has valid frontend IR and correct baseline behavior"
+fi
+run_opt /dev/null "aegis-policy<policy=$HERE/policies/vla.json>,aegis-lint" \
+  "$TMP/vla.ll"
+if [ "$CODE" -eq 0 ] && has_text 'eligible=no' "$OUT" && \
+   has_text 'dynamic or non-entry alloca' "$OUT" && \
+   has_text 'advisory=use-fixed-entry-storage-or-lower-protection-level' "$OUT"; then
+  pass_case "lint rejects VLA flattening with a repair advisory"
+else
+  fail_case "lint rejects VLA flattening with a repair advisory (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
+fi
+run_opt /dev/null \
+  "aegis-policy<policy=$HERE/policies/vla.json>,aegis-decoys,aegis-cff,verify" \
+  "$TMP/vla.ll"
+if [ "$CODE" -ne 0 ] && has_text 'dynamic or non-entry alloca' "$OUT" && \
+   ! has_text 'Instruction does not dominate' "$OUT"; then
+  pass_case "VLA selection fails before emitting invalid flattened IR"
+else
+  fail_case "VLA selection fails before emitting invalid flattened IR (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
+fi
+# The restriction is specific to flattening; lowering to level 2 remains valid.
+sed 's/"level": 3/"level": 2/' "$HERE/policies/vla.json" > "$TMP/vla-level2.json"
+run_opt "$TMP/vla.level2.ll" \
+  "aegis-policy<policy=$TMP/vla-level2.json>,aegis-decoys,aegis-cff,default<O2>,aegis-verify" \
+  "$TMP/vla.ll"
+if [ "$CODE" -eq 0 ] && "$CLANG" -O2 "$TMP/vla.level2.ll" -o "$TMP/vla.level2" && \
+   "$TMP/vla.level2"; then
+  pass_case "VLA remains correct at level 2"
+else
+  fail_case "VLA remains correct at level 2 (exit=$CODE)"
+  printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
 fi
 
 echo

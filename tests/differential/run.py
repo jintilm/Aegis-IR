@@ -20,6 +20,7 @@ Environment overrides: CLANG (default clang++-23), OPT (default opt-23).
 
 import argparse
 import json
+import math
 import os
 import random
 import shutil
@@ -110,8 +111,32 @@ def percentile(samples, pct):
         return 0.0
     ordered = sorted(samples)
     rank = max(0, min(len(ordered) - 1,
-                      int(round(pct / 100.0 * len(ordered))) - 1))
+                      math.ceil(pct / 100.0 * len(ordered)) - 1))
     return ordered[rank]
+
+
+def runtime_metrics(case_timings, baseline_name, rounds):
+    """Paired per-case means, with an explicit baseline and complete rounds."""
+    baseline = case_timings[baseline_name]
+    result = {}
+    for name, timings in case_timings.items():
+        ratios = []
+        for base_samples, samples in zip(baseline, timings):
+            if len(base_samples) != rounds or len(samples) != rounds:
+                continue
+            base_ms = statistics.mean(base_samples)
+            if base_ms > 0:
+                ratios.append(statistics.mean(samples) / base_ms)
+        complete = len(ratios) == len(baseline) == len(timings) and bool(ratios)
+        ratio_p95 = percentile(ratios, 95) if complete else None
+        result[name] = {
+            "case_timings_ms": timings,
+            "runtime_pairs": len(ratios),
+            "runtime_ratio_p95": ratio_p95,
+            "relative_p95_delta_pct": (
+                (ratio_p95 - 1.0) * 100.0 if ratio_p95 is not None else None),
+        }
+    return result
 
 
 def section_sizes(exe):
@@ -185,6 +210,9 @@ def main():
     ap.add_argument("--profiles", default=str(DEFAULT_PROFILES),
                     help="profile matrix JSON; relative policies resolve "
                          "against its directory")
+    ap.add_argument("--runtime-baseline", default=None,
+                    help="performance baseline (default: profile manifest's "
+                         "runtime_baseline_profile, otherwise baseline)")
     ap.add_argument("--report", default=None,
                     help="write JSON report to this path")
     ap.add_argument("--keep", action="store_true",
@@ -206,7 +234,13 @@ def main():
         if not path.exists():
             print(f"error: path not found: {path}", file=sys.stderr)
             return 2
-    profiles = json.loads(profiles_path.read_text())["profiles"]
+    profile_config = json.loads(profiles_path.read_text())
+    profiles = profile_config["profiles"]
+    runtime_baseline = args.runtime_baseline or profile_config.get(
+        "runtime_baseline_profile", "baseline")
+    if runtime_baseline not in profiles:
+        print(f"error: runtime baseline {runtime_baseline!r} is missing", file=sys.stderr)
+        return 2
     corpus = build_corpus(args.fuzz_cases, args.seed)
     workdir = Path(tempfile.mkdtemp(prefix="aegis-differential-"))
     failures = []
@@ -219,6 +253,8 @@ def main():
         "profiles": {},
         "corpus_size": len(corpus),
         "seed": args.seed,
+        "correctness_baseline_profile": "baseline",
+        "runtime_baseline_profile": runtime_baseline,
     }
 
     try:
@@ -245,6 +281,7 @@ def main():
                         f"[{name}] build sample {sample_index + 1}/"
                         f"{args.build_samples}: {err}")
                     failed_profiles.add(name)
+                    exes.pop(name, None)
                     continue
                 exes.setdefault(name, sample_exe)
 
@@ -272,8 +309,8 @@ def main():
                   f"median build {build_median_ms:.1f} ms "
                   f"({len(samples)} samples)")
 
-        if "baseline" not in exes:
-            print("error: baseline profile failed to build", file=sys.stderr)
+        if "baseline" not in exes or runtime_baseline not in exes:
+            print("error: correctness or runtime baseline failed to build", file=sys.stderr)
             for failure in failures:
                 print(f"  {failure}", file=sys.stderr)
             return 1
@@ -334,30 +371,21 @@ def main():
         print()
         for entry in report["profiles"].values():
             entry["p95_ms"] = percentile(entry.pop("timings_ms"), 95)
-        for name in report["profiles"]:
-            ratios = []
-            for base_samples, profile_samples in zip(
-                    case_timings["baseline"], case_timings[name]):
-                if not base_samples or not profile_samples:
-                    continue
-                base_ms = sum(base_samples) / len(base_samples)
-                profile_ms = sum(profile_samples) / len(profile_samples)
-                if base_ms > 0:
-                    ratios.append(profile_ms / base_ms)
-            ratio_p95 = percentile(ratios, 95)
-            report["profiles"][name]["relative_p95_ms"] = ratio_p95
-            report["profiles"][name]["relative_p95_delta_pct"] = (
-                ratio_p95 - 1.0) * 100.0
+        for name, metrics in runtime_metrics(
+                case_timings, runtime_baseline, RUNTIME_ROUNDS).items():
+            report["profiles"][name].update(metrics)
         print(f"{'profile':<16} {'bytes':>8} {'text':>7} {'data':>6} "
               f"{'buildms':>9} {'p95ms':>9} {'relp95':>8} "
               f"{'cases':>6} {'mismatch':>8} {'san-err':>7}")
         for name, entry in report["profiles"].items():
             sec = entry.get("sections") or {}
             p95 = entry["p95_ms"]
+            delta = entry["relative_p95_delta_pct"]
+            delta_text = f"{delta:7.2f}%" if delta is not None else "     n/a"
             print(f"{name:<16} {entry['binary_bytes']:>8} "
                   f"{sec.get('text', 0):>7} {sec.get('data', 0):>6} "
                   f"{entry['build_ms']:>9.1f} {p95:>9.2f} "
-                  f"{entry['relative_p95_delta_pct']:>7.2f}% "
+                  f"{delta_text} "
                   f"{entry['cases']:>6} "
                   f"{entry['mismatches']:>8} "
                   f"{entry['sanitizer_or_property_errors']:>7}")

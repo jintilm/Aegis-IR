@@ -198,6 +198,111 @@ else
   printf '%s\n' "$OUT" | sed 's/^/      /' | tail -8
 fi
 
+echo "== aegis-decoys: explicit no-protection policies =="
+for POLICY_NAME in empty level0; do
+  run_opt "$TMP/$POLICY_NAME.ll" \
+    "aegis-policy<policy=$HERE/policies/$POLICY_NAME.json>,aegis-decoys,aegis-cff,default<O2>,aegis-verify"
+  if [ "$CODE" -eq 0 ] && \
+     printf '%s\n' "$OUT" | grep -q 'no protection requested' && \
+     ! grep -q '__aegis.guard\|!aegis.decoy.fn' "$TMP/$POLICY_NAME.ll"; then
+    pass_case "$POLICY_NAME policy passes without protection artifacts"
+  else
+    fail_case "$POLICY_NAME policy passes without protection artifacts (exit=$CODE)"
+    printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
+  fi
+done
+run_opt /dev/null 'aegis-decoys,default<O2>,aegis-verify'
+if [ "$CODE" -eq 0 ] && printf '%s\n' "$OUT" | grep -q 'no protection requested'; then
+  pass_case "unselected module without a policy passes the no-op pipeline"
+else
+  fail_case "unselected module without a policy passes the no-op pipeline (exit=$CODE)"
+fi
+
+echo "== aegis-verify: erased protection must not become a no-op =="
+# Retain only module metadata, simulating removal of every selected definition
+# and artifact. Check both a transformed module and policy intent before any
+# transform, where no aegis.guarded record exists yet.
+run_opt "$TMP/policy_only.ll" "aegis-policy<policy=$POLICY>"
+if [ "$CODE" -ne 0 ]; then
+  fail_case "record protection intent before the transform"
+fi
+for SOURCE_NAME in prot policy_only; do
+  python3 - "$TMP/$SOURCE_NAME.ll" "$TMP/$SOURCE_NAME.erased.ll" <<'PYEOF'
+import pathlib
+import sys
+source, destination = map(pathlib.Path, sys.argv[1:])
+destination.write_text(''.join(line for line in source.read_text().splitlines(True)
+                               if line.startswith('!')), encoding='utf-8')
+PYEOF
+  run_opt /dev/null 'aegis-verify' "$TMP/$SOURCE_NAME.erased.ll"
+  if [ "$CODE" -ne 0 ] && printf '%s\n' "$OUT" | grep -q 'protection degraded'; then
+    pass_case "$SOURCE_NAME protection erased with its attributes still fails the gate"
+  else
+    fail_case "$SOURCE_NAME protection erased with its attributes still fails the gate (exit=$CODE)"
+  fi
+done
+
+echo "== aegis-decoys: independent translation units and LTO =="
+MULTI_READY=1
+for UNIT in one two; do
+  cat > "$TMP/$UNIT.json" <<EOF
+{"schema_version":1,"profile":"release","functions":[{"name":"protected_$UNIT","level":1}]}
+EOF
+  if ! "$CLANG" -O2 -Xclang -disable-llvm-passes -S -emit-llvm \
+      -DPROTECTED_NAME="protected_$UNIT" "$HERE/fixtures/multi_unit.cpp" \
+      -o "$TMP/$UNIT.raw.ll"; then
+    fail_case "compile $UNIT translation unit"
+    MULTI_READY=0
+    continue
+  fi
+  run_opt "$TMP/$UNIT.protected.ll" \
+    "aegis-policy<policy=$TMP/$UNIT.json>,aegis-decoys,default<O2>,aegis-verify" \
+    "$TMP/$UNIT.raw.ll"
+  if [ "$CODE" -ne 0 ]; then
+    fail_case "protect $UNIT translation unit (exit=$CODE)"
+    printf '%s\n' "$OUT" | sed 's/^/      /' | tail -10
+    MULTI_READY=0
+  fi
+done
+if [ "$MULTI_READY" -eq 1 ]; then
+  NM="${NM:-llvm-nm-23}"
+  LLD="${LLD:-ld.lld-23}"
+  for MODE in native lto; do
+    FLAGS=(-O2 -ffunction-sections -fdata-sections)
+    if [ "$MODE" = lto ]; then
+      FLAGS+=(-flto)
+    fi
+    if "$CLANG" "${FLAGS[@]}" -c "$TMP/one.protected.ll" -o "$TMP/one.$MODE.o" && \
+       "$CLANG" "${FLAGS[@]}" -c "$TMP/two.protected.ll" -o "$TMP/two.$MODE.o" && \
+       "$CLANG" "${FLAGS[@]}" "--ld-path=$(command -v "$LLD")" \
+         -Wl,--gc-sections "$TMP/one.$MODE.o" "$TMP/two.$MODE.o" \
+         "$HERE/fixtures/multi_main.cpp" -o "$TMP/multi.$MODE" && \
+       "$TMP/multi.$MODE"; then
+      pass_case "$MODE links independent protected units and preserves results"
+      "$NM" --defined-only "$TMP/multi.$MODE" > "$TMP/multi.$MODE.symbols"
+      if python3 - "$TMP/one.protected.ll" "$TMP/multi.$MODE.symbols" <<'PYEOF'
+import pathlib
+import re
+import sys
+ir, symbols = (pathlib.Path(p).read_text() for p in sys.argv[1:])
+names = re.findall(r'^define internal .*?@([^(]+)\([^\n]*!aegis\.decoy\.fn', ir, re.M)
+assert len(names) >= 4, 'expected retained internal decoys in the source module'
+for name in names:
+    matches = re.findall(r'^\S+\s+(\w)\s+' + re.escape(name) + r'(?:[.$]\S*)?$', symbols, re.M)
+    assert matches, 'linker discarded decoy ' + name
+    assert all(kind == 't' for kind in matches), 'decoy exported externally: ' + name
+PYEOF
+      then
+        pass_case "$MODE retains all planned decoys as local symbols through section GC"
+      else
+        fail_case "$MODE retains all planned decoys as local symbols through section GC"
+      fi
+    else
+      fail_case "$MODE links independent protected units and preserves results"
+    fi
+  done
+fi
+
 echo
 if [ "$FAILED" -ne 0 ]; then
   echo "aegis-decoys tests: FAILED"

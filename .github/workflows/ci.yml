@@ -28,6 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Release packaging failure paths
+        run: python3 -m unittest discover -s tests/package -v
+
       # Keep in sync with docker/dev.Dockerfile. TODO before release: pin
       # llvm.sh by checksum to close the supply-chain gap.
       - name: Install LLVM

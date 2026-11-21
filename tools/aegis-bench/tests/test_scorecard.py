@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import sys
 import tempfile
 import unittest
@@ -22,6 +23,7 @@ def _differential(
     base_samples = [99.0, 100.0, 101.0]
     build_samples = [build - 10.0, build, build + 10.0]
     return {
+        "runtime_baseline_profile": "release-opt",
         "profiles": {
             "release-opt": {
                 "sections": {"text": 1000},
@@ -68,6 +70,48 @@ def _budgets(tmp: str) -> dict:
 
 
 class ScorecardTests(unittest.TestCase):
+    def test_runtime_baseline_must_be_explicit_and_match_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            budgets = _budgets(tmp)
+            for baseline in (None, "baseline"):
+                differential = _differential()
+                differential["runtime_baseline_profile"] = baseline
+                with self.subTest(baseline=baseline), self.assertRaisesRegex(
+                        ScorecardError, "runtime baseline"):
+                    evaluate_scorecard(differential, budgets)
+
+    def test_missing_paired_metric_cannot_fall_back_to_unpaired_p95(self):
+        differential = _differential()
+        del differential["profiles"]["aegis-standard"]["relative_p95_delta_pct"]
+        with tempfile.TemporaryDirectory() as tmp:
+            result = evaluate_scorecard(differential, _budgets(tmp))
+        self.assertFalse(result["passed"])
+
+    def test_different_correctness_and_runtime_baselines_use_paired_samples(self):
+        runner_path = TOOL_ROOT.parents[1] / "tests/differential/run.py"
+        spec = importlib.util.spec_from_file_location("differential_runner", runner_path)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        timings = {
+            "baseline": [[8.0] * 3, [16.0] * 3],
+            "release-opt": [[10.0] * 3, [20.0] * 3],
+            "aegis-standard": [[12.0] * 3, [24.0] * 3],
+        }
+        metrics = runner.runtime_metrics(timings, "release-opt", 3)
+        self.assertEqual(metrics["release-opt"]["relative_p95_delta_pct"], 0.0)
+        self.assertAlmostEqual(metrics["aegis-standard"]["relative_p95_delta_pct"], 20.0)
+        differential = _differential()
+        for name in differential["profiles"]:
+            differential["profiles"][name].update(metrics[name])
+        with tempfile.TemporaryDirectory() as tmp:
+            budgets = _budgets(tmp)
+            budgets["profiles"]["aegis-standard"]["max_p95_delta_pct"] = 25
+            self.assertTrue(evaluate_scorecard(differential, budgets)["passed"])
+        timings["aegis-standard"][0].pop()
+        incomplete = runner.runtime_metrics(timings, "release-opt", 3)
+        self.assertIsNone(incomplete["aegis-standard"]["relative_p95_delta_pct"])
+        self.assertEqual(runner.percentile(list(range(1, 11)), 95), 10)
+
     def test_within_budget_passes_and_writes_machine_reports(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = evaluate_scorecard(_differential(), _budgets(tmp))

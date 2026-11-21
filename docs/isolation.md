@@ -108,9 +108,34 @@ validates each request against the task's schema-v2 `tool_policy`:
 |---|---|---|
 | `list_files` | list workspace-relative entries only | calls, entries returned |
 | `read_file` | resolve inside workspace, text/size/binary checks | calls, bytes, denials |
-| `run_probe` | execute only the broker-held or workspace artifact | calls, input/output bytes, exit code, oracle count |
-| `disassemble` | invoke a pinned tool over the artifact, cap output | calls, bytes, lines, denial reason |
+| `run_probe` | execute the harness-private verified artifact; oracle mode calls the counted service directly | calls, input/output bytes, exit code, oracle count |
+| `disassemble` | invoke a local disassembler over the same harness-private artifact, cap output | calls, bytes, lines, denial reason |
 | `submit_solution` | validate names/size/policy and return source text | calls, accepted/rejected, byte count |
+
+Before starting an adapter, the runner checks the artifact's recorded SHA-256
+and size and copies the verified bytes to a private per-run directory. On
+POSIX the snapshot is read-only and executable. This directory is neither
+mounted into a container worker nor included in the Landlock worker's
+allowlist. The broker binds execution and disassembly to that snapshot; it
+never discovers executable commands from the writable workspace. Replacing
+the workspace `probe` or oracle shim cannot change broker execution, and
+oracle requests still pass through the oracle service's counter and budget.
+In-process adapters remain trusted and are not isolated from harness memory
+or filesystem state.
+
+Artifact cache hits are checked against their metadata before reuse, including
+in-memory hits. A modified probe or inconsistent cache metadata is an artifact
+error. Probe stdout/stderr and disassembly output are bounded while reading;
+an oversized stream fails the tool request rather than silently returning a
+successful truncated execution. Runtime probes receive a minimal environment
+without model credentials.
+
+Stopping a run first cancels both brokers, interrupts incomplete socket
+requests and terminates active probe/disassembly process groups. Request
+handlers are drained before final counters are recorded and the private
+snapshot is removed. The oracle service uses the same cancellation event for
+its active subprocess, so a tool call waiting on the oracle cannot prolong
+cleanup until the normal query timeout.
 
 Every broker call gets a monotonically increasing sequence number, start/end
 time and status. A run row adds:
@@ -164,7 +189,8 @@ A release must fail if any of these controls is missing:
 - direct DNS/HTTP egress fails; only the meter origin is reachable;
 - executing the cached probe directly is impossible because the cache is not
   mounted, and `run_probe` requests are attributed to the broker;
-- oversized read/disassembly output is truncated and counted, not buffered;
+- replacing a workspace probe does not change broker execution or disassembly;
+- oversized probe/disassembly streams fail within the configured byte cap;
 - `submit_solution` cannot smuggle extra paths or an oversized source;
 - killing the worker leaves no child process or listening proxy;
 - grader input contains candidate text only and no worker filesystem handle;

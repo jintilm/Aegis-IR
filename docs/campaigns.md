@@ -19,6 +19,12 @@ things that a multi-hour comparison needs:
 
 ## Manifest
 
+The following illustrates the matrix shape. For the reference adapter,
+replace each `expected_version` and the entire `options` object using the
+[complete manifest generator](reference-adapter.md); the placeholders below
+are intentionally not runnable. Model-only options no longer pin all effective
+parameters and are rejected by preflight.
+
 ```json
 {
   "schema_version": 2,
@@ -31,14 +37,14 @@ things that a multi-hour comparison needs:
     {
       "id": "openai-deepseek-v4-pro",
       "adapter": "openai_adapter:OpenAICompatAgent",
-      "expected_version": "7fc63d1279f9",
-      "options": {"model": "deepseek-v4-pro"}
+      "expected_version": "replace-with-source-hash",
+      "options": {"model": "deepseek-v4-pro", "config_sha256": "replace-entire-options-object"}
     },
     {
       "id": "openai-deepseek-flash",
       "adapter": "openai_adapter:OpenAICompatAgent",
-      "expected_version": "7fc63d1279f9",
-      "options": {"model": "deepseek-flash"}
+      "expected_version": "replace-with-source-hash",
+      "options": {"model": "deepseek-flash", "config_sha256": "replace-entire-options-object"}
     }
   ],
   "profiles": [
@@ -74,7 +80,7 @@ things that a multi-hour comparison needs:
 | `agents[].id` | must equal the configured `Agent.name` |
 | `agents[].adapter` | `module:Class` or a built-in adapter |
 | `agents[].expected_version` | optional exact `Agent.version` check |
-| `agents[].options` | constructor options, passed to the adapter and replayed inside the process worker; use one entry per model |
+| `agents[].options` | constructor options, replayed inside the worker; adapters exposing `effective_options()` require the complete returned object, including its configuration fingerprint |
 | `profiles` | unique artifact profile names for every binary task |
 | `repetitions` | positive count |
 | `repetition_start` | non-negative offset for a partial continuation |

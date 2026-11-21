@@ -15,6 +15,7 @@ no API keys. They exist to prove the harness measures what it claims:
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import shutil
 import subprocess
@@ -819,7 +820,8 @@ class RunnerOracleTests(unittest.TestCase):
                 def artifact_for(self, task, profile):
                     return BuiltArtifact(
                         profile=profile, level=0, path=probe,
-                        sha256="0" * 64, size_bytes=0, text_bytes=0,
+                        sha256=hashlib.sha256(probe.read_bytes()).hexdigest(),
+                        size_bytes=probe.stat().st_size, text_bytes=0,
                         toolchain={}, build_log="")
 
                 def _probe_command(self, artifact):
@@ -878,7 +880,8 @@ class BinaryAccessTests(unittest.TestCase):
             def artifact_for(self, task, profile):
                 return BuiltArtifact(
                     profile=profile, level=0, path=probe,
-                    sha256="0" * 64, size_bytes=probe.stat().st_size,
+                    sha256=hashlib.sha256(probe.read_bytes()).hexdigest(),
+                    size_bytes=probe.stat().st_size,
                     text_bytes=0, toolchain={}, build_log="")
 
             def _probe_command(self, artifact):

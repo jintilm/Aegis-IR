@@ -63,6 +63,13 @@ rejects `indirectbr`, `callbr`, EH terminators and coroutines. See
 - The policy is lowered to `aegis.level="<n>"` function attributes plus the
   `aegis.profile` / `aegis.seed` module flags. Transforms read the attribute,
   so protection survives inlining, symbol renaming and LTO.
+- Any positive selection also records `aegis.protection.requested`. This
+  durable module flag keeps the verifier fail-closed if optimization erases
+  the selected definitions and their attributes before a transform runs.
+- Empty selections and policies containing only level 0 pass the full
+  transform/optimization/verification pipeline without adding protection
+  artifacts. Existing positive requests or transform records still require
+  verification; they cannot be cleared by a later empty selection.
 
 ## Name matching
 
@@ -76,7 +83,8 @@ rejects `indirectbr`, `callbr`, EH terminators and coroutines. See
 ## Pipeline placement
 
 `aegis-policy` must run first, on freshly emitted IR
-(`clang -O0 -S -emit-llvm` or the equivalent pipeline entry). Later passes and
+(`clang -O2 -Xclang -disable-llvm-passes -S -emit-llvm` or the equivalent
+pipeline entry). Later passes and
 LTO may fold, clone or rename functions, at which point name resolution is no
 longer meaningful — the attributes produced here are the durable form.
 

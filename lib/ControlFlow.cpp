@@ -54,6 +54,15 @@ std::string flatteningIneligibilityReason(const Function &F) {
       return "exception-handling terminator";
   }
 
+  // Only fixed-size entry allocas can be moved to the dispatcher prologue.
+  // A VLA/non-entry allocation may depend on values and stack lifetimes in
+  // its original block; flattening would break dominance or allocation count.
+  for (const Instruction &I : instructions(F))
+    if (const auto *AI = dyn_cast<AllocaInst>(&I))
+      if (!AI->isStaticAlloca())
+        return "dynamic or non-entry alloca (VLA/stack lifetime cannot be "
+               "flattened safely)";
+
   // Intrinsics whose lowering depends on the surrounding CFG shape or that
   // carry runtime state the rewrite cannot preserve.
   static constexpr StringLiteral kRejectedPrefixes[] = {
@@ -73,6 +82,10 @@ std::string flatteningIneligibilityReason(const Function &F) {
     const Function *Callee = CB->getCalledFunction();
     if (!Callee)
       continue;
+    if (Callee->getName().starts_with("llvm.stacksave") ||
+        Callee->getName().starts_with("llvm.stackrestore"))
+      return "stack save/restore (dispatcher stack lifetime cannot be "
+             "preserved)";
     for (StringLiteral Prefix : kRejectedPrefixes)
       if (Callee->getName().starts_with(Prefix))
         return ("uses " + Prefix + "* intrinsics").str();

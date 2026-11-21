@@ -17,6 +17,12 @@ namespace aegis {
 
 const char *const kGuardGlobalName = "__aegis.guard";
 const char *const kGuardedFlagName = "aegis.guarded";
+const char *const kProtectionRequestedFlagName = "aegis.protection.requested";
+
+void recordProtectionRequest(Module &M) {
+  if (!M.getModuleFlag(kProtectionRequestedFlagName))
+    M.addModuleFlag(Module::Max, kProtectionRequestedFlagName, uint32_t{1});
+}
 
 namespace {
 

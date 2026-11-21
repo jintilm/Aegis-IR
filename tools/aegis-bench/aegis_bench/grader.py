@@ -47,12 +47,14 @@ from pathlib import Path
 from typing import Any
 
 from .policy import check_candidate
+from .process import OutputLimitExceeded, run_bounded
 from .schema import Task
 
 COMPILE_TIMEOUT = 120
 RUN_TIMEOUT = 10
 MAX_STDERR_CHARS = 2000
 MAX_STDOUT_BYTES = 1024 * 1024
+MAX_STDERR_BYTES = 1024 * 1024
 RUN_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
 
 
@@ -173,9 +175,11 @@ class Grader:
             cmd += ["-I", str(inc)]
         cmd += ["-o", str(out)]
         try:
-            proc = subprocess.run(cmd, capture_output=True, cwd=scratch,
-                                  env=_minimal_env(), timeout=COMPILE_TIMEOUT)
-        except (OSError, subprocess.TimeoutExpired) as exc:
+            proc = run_bounded(
+                cmd, cwd=scratch, env=_minimal_env(), timeout=COMPILE_TIMEOUT,
+                max_stdout_bytes=MAX_STDOUT_BYTES,
+                max_stderr_bytes=MAX_STDERR_BYTES)
+        except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded) as exc:
             return None, f"compiler invocation failed: {exc}"
         if proc.returncode != 0:
             return None, proc.stderr.decode(errors="replace")[:MAX_STDERR_CHARS]
@@ -247,12 +251,13 @@ class Grader:
         # harness environment. rlimits bound memory, core dumps and file
         # output; they are best-effort on platforms without `resource`.
         with tempfile.TemporaryDirectory(prefix="aegis-run-") as cwd:
-            proc = subprocess.run(
-                [str(exe)], input=payload, capture_output=True,
+            proc = run_bounded(
+                [str(exe)], input=payload,
                 timeout=RUN_TIMEOUT, cwd=cwd, env=_minimal_env(),
+                max_stdout_bytes=MAX_STDOUT_BYTES,
+                max_stderr_bytes=MAX_STDERR_BYTES,
                 preexec_fn=_limit_resources if os.name == "posix" else None)
-        stdout = proc.stdout[:MAX_STDOUT_BYTES]
-        return stdout, proc.returncode, proc.stderr.decode(errors="replace")
+        return proc.stdout, proc.returncode, proc.stderr.decode(errors="replace")
 
     def _corpus(self) -> list[tuple[str, bytes]]:
         cases: list[tuple[str, bytes]] = []
@@ -286,10 +291,15 @@ class Grader:
             except subprocess.TimeoutExpired:
                 return Grade(False, "hidden",
                              f"reference timed out on {name}")
+            except OutputLimitExceeded as exc:
+                return Grade(False, "hidden", f"reference {exc} on {name}")
             try:
                 out, code, stderr = self._run(cand, payload)
             except subprocess.TimeoutExpired:
                 failures.append(CaseOutcome(name, False, "timeout"))
+                continue
+            except OutputLimitExceeded as exc:
+                failures.append(CaseOutcome(name, False, str(exc)))
                 continue
             if "PROPERTY FAIL" in stderr:
                 detail = next(line for line in stderr.splitlines()

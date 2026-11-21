@@ -25,7 +25,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +52,37 @@ class BuiltArtifact:
     text_bytes: int
     toolchain: dict[str, str]
     build_log: str
+
+    def verified_bytes(self) -> bytes:
+        """Read a bounded artifact and verify the bytes named by this record."""
+        try:
+            if self.path.is_symlink() or not self.path.is_file():
+                raise ArtifactError("artifact must be a regular, non-symlink file")
+            with self.path.open("rb") as stream:
+                data = stream.read(MAX_PROBE_BYTES + 1)
+        except OSError as exc:
+            raise ArtifactError(f"cannot read artifact: {exc}") from exc
+        if len(data) > MAX_PROBE_BYTES:
+            raise ArtifactError("artifact exceeds the probe size limit")
+        if len(data) != self.size_bytes:
+            raise ArtifactError("artifact size does not match its provenance")
+        if hashlib.sha256(data).hexdigest() != self.sha256:
+            raise ArtifactError("artifact SHA-256 does not match its provenance")
+        return data
+
+    def snapshot(self, directory: Path) -> "BuiltArtifact":
+        """Freeze verified bytes in a harness-private per-run directory.
+
+        The caller owns the directory's lifetime and must not expose it to the
+        adapter. Execution and disassembly use this copy, never workspace
+        paths or a cache entry that another run could replace.
+        """
+        data = self.verified_bytes()
+        path = directory / self.path.name
+        with path.open("xb") as stream:
+            stream.write(data)
+        path.chmod(0o500 if os.name == "posix" else 0o700)
+        return replace(self, path=path)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -93,7 +124,7 @@ class ArtifactBuilder:
         self.plugin = (plugin if plugin is not None
                        else os.environ.get("AEGIS_PLUGIN"))
         self.cache_root = Path(cache_root) if cache_root else None
-        self._cache: dict[tuple[str, str], BuiltArtifact] = {}
+        self._cache: dict[tuple[str, str, str], BuiltArtifact] = {}
         self._toolchain: dict[str, str] | None = None
         self._fingerprint = ""
 
@@ -178,9 +209,10 @@ class ArtifactBuilder:
 
         self._check_toolchain()
         assert self._toolchain is not None
-        key = (task.id, profile)
+        key = (task.id, task.content_hash, profile)
         cached = self._cache.get(key)
         if cached is not None:
+            cached.verified_bytes()
             return cached
 
         if self.cache_root is not None:
@@ -195,13 +227,24 @@ class ArtifactBuilder:
         probe_name = "probe.exe" if os.name == "nt" else "probe"
         probe_path = build_dir / probe_name
         if probe_path.is_file() and meta_path.is_file():
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            built = BuiltArtifact(
-                profile=profile, level=spec.level, path=probe_path,
-                sha256=meta["sha256"], size_bytes=meta["size_bytes"],
-                text_bytes=_text_bytes(probe_path),
-                toolchain=meta["toolchain"],
-                build_log=meta.get("build_log", ""))
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                if (not isinstance(meta, dict)
+                        or meta.get("profile") != profile
+                        or meta.get("level") != spec.level
+                        or meta.get("toolchain") != self._toolchain):
+                    raise ArtifactError("cached artifact metadata does not "
+                                        "match the requested build")
+                built = BuiltArtifact(
+                    profile=profile, level=spec.level, path=probe_path,
+                    sha256=meta["sha256"], size_bytes=meta["size_bytes"],
+                    text_bytes=meta["text_bytes"],
+                    toolchain=meta["toolchain"],
+                    build_log=meta.get("build_log", ""))
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise ArtifactError(
+                    f"cannot read cached artifact metadata: {exc}") from exc
+            built.verified_bytes()
             self._cache[key] = built
             return built
 

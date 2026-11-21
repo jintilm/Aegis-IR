@@ -1,4 +1,5 @@
 {
+  "runtime_baseline_profile": "baseline",
   "profiles": {
     "baseline": {
       "optflags": ["-O2"],

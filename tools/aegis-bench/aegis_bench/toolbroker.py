@@ -18,6 +18,7 @@ import os
 import re
 import secrets
 import shutil
+import socket
 import subprocess
 import threading
 import urllib.error
@@ -25,10 +26,12 @@ import urllib.request
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .httpunix import ThreadingUnixHTTPServer
+from .oracle import OracleError, probe_environment
 from .policy import check_candidate
+from .process import OutputLimitExceeded, ProcessCancelled, run_bounded
 from .schema import Task, ToolPolicy
 
 BROKER_ENV_URL = "AEGIS_TOOL_BROKER_URL"
@@ -41,6 +44,8 @@ MAX_PROBE_INPUT = 1024 * 1024
 MAX_PROBE_OUTPUT = 1024 * 1024
 PROBE_TIMEOUT = 60
 DISASSEMBLY_TIMEOUT = 120
+MAX_DISASSEMBLY_BYTES = 16 * 1024 * 1024
+REQUEST_READ_TIMEOUT = 5
 
 
 class ToolError(Exception):
@@ -121,12 +126,31 @@ class ToolBroker:
 
     def __init__(self, *, workspace: Path, task: Task, access: str,
                  max_calls: int | None = None,
-                 enable_disassembly: bool = False) -> None:
+                 enable_disassembly: bool = False,
+                 trusted_probe: Path | None = None,
+                 probe_command: list[str] | None = None,
+                 oracle_query: Callable[[bytes], tuple[int, bytes, bytes]]
+                 | None = None,
+                 oracle_cancel: Callable[[], None] | None = None) -> None:
         self.workspace = Path(workspace)
         self.root = self.workspace.resolve()
         self.task = task
         self.access = access
         self.enable_disassembly = enable_disassembly
+        # These are control-plane inputs. Never infer an executable or a
+        # disassembly target from the adapter's writable workspace.
+        self._trusted_probe = (
+            Path(trusted_probe).resolve() if trusted_probe is not None
+            else None)
+        if self._trusted_probe is not None and (
+                self._trusted_probe == self.root
+                or self.root in self._trusted_probe.parents):
+            raise ValueError("trusted probe must be outside the workspace")
+        if probe_command is not None and self._trusted_probe is None:
+            raise ValueError("probe command requires a trusted artifact")
+        self._command = list(probe_command) if probe_command else None
+        self._oracle_query = oracle_query
+        self._oracle_cancel = oracle_cancel
         self.token = secrets.token_urlsafe(32)
         self.stats = ToolStats(max_calls=max_calls)
         self.policy: ToolPolicy = task.tool_policy
@@ -134,11 +158,52 @@ class ToolBroker:
         self._thread: threading.Thread | None = None
         self._disassembly: str | None = None
         self._unix_path: str | None = None
+        self._stop = threading.Event()
+        self._connection_lock = threading.Lock()
+        self._connections: set[socket.socket] = set()
 
     # -- lifecycle -------------------------------------------------------
 
     def start(self, *, unix_path: str | Path | None = None) -> "ToolBroker":
         broker = self
+
+        class DrainableServer:
+            # server_close joins these threads after cancel() has interrupted
+            # socket reads and child processes. Do not delete run artifacts
+            # or publish final counters while a handler is still using them.
+            daemon_threads = False
+            block_on_close = True
+
+            def process_request(self, request, client_address):
+                with broker._connection_lock:
+                    if broker._stop.is_set():
+                        self.shutdown_request(request)
+                        return
+                    request.settimeout(REQUEST_READ_TIMEOUT)
+                    broker._connections.add(request)
+                try:
+                    super().process_request(request, client_address)
+                except BaseException:
+                    with broker._connection_lock:
+                        broker._connections.discard(request)
+                    raise
+
+            def process_request_thread(self, request, client_address):
+                try:
+                    super().process_request_thread(request, client_address)
+                finally:
+                    with broker._connection_lock:
+                        broker._connections.discard(request)
+
+            def handle_error(self, request, client_address):
+                if not broker._stop.is_set():
+                    super().handle_error(request, client_address)
+
+        class TCPServer(DrainableServer, ThreadingHTTPServer):
+            pass
+
+        class UnixServer(DrainableServer, ThreadingUnixHTTPServer):
+            pass
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.0"
@@ -148,11 +213,17 @@ class ToolBroker:
                 return
 
             def do_POST(self) -> None:  # noqa: N802 - http.server API
-                length = int(self.headers.get("Content-Length") or 0)
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                except ValueError:
+                    self._reply(400, {"ok": False, "error": "invalid length"})
+                    return
                 if length < 0 or length > MAX_REQUEST_BYTES:
                     self._reply(413, {"ok": False, "error": "request too large"})
                     return
                 body = self.rfile.read(length) if length else b""
+                if broker._stop.is_set():
+                    return
                 try:
                     request = json.loads(body)
                 except ValueError:
@@ -185,6 +256,8 @@ class ToolBroker:
                 self._reply(200, response)
 
             def _reply(self, status: int, response: dict[str, Any]) -> None:
+                if broker._stop.is_set():
+                    return
                 payload = json.dumps(
                     response, sort_keys=True).encode("utf-8")
                 broker.stats.note_output(len(payload))
@@ -195,11 +268,10 @@ class ToolBroker:
                 self.wfile.write(payload)
 
         if unix_path is None:
-            self._httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            self._httpd = TCPServer(("127.0.0.1", 0), Handler)
         else:
             self._unix_path = str(Path(unix_path))
-            self._httpd = ThreadingUnixHTTPServer(self._unix_path, Handler)
-        self._httpd.daemon_threads = True
+            self._httpd = UnixServer(self._unix_path, Handler)
         self._thread = threading.Thread(
             target=self._httpd.serve_forever,
             name="aegis-tool-broker", daemon=True)
@@ -224,6 +296,7 @@ class ToolBroker:
 
     def stop(self, *, reported_by_adapter: int | float | None = None
              ) -> dict[str, Any]:
+        self.cancel()
         if self._httpd is not None:
             self._httpd.shutdown()
             self._httpd.server_close()
@@ -233,6 +306,18 @@ class ToolBroker:
             self._thread.join(timeout=5)
             self._thread = None
         return self.stats.to_dict(reported_by_adapter=reported_by_adapter)
+
+    def cancel(self) -> None:
+        """Interrupt active tools and incomplete requests before draining."""
+        self._stop.set()
+        if self._oracle_cancel is not None:
+            self._oracle_cancel()
+        with self._connection_lock:
+            for connection in self._connections:
+                try:
+                    connection.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
 
     # -- dispatch --------------------------------------------------------
 
@@ -246,6 +331,8 @@ class ToolBroker:
 
     def dispatch(self, tool: str, args: dict[str, Any], *,
                  bytes_in: int = 0) -> str:
+        if self._stop.is_set():
+            raise ToolError("tool broker is stopping")
         self.stats.note_attempt(tool, bytes_in)
         if not self._allowed(tool):
             self._deny(tool, f"tool {tool!r} is not allowed by task policy")
@@ -291,6 +378,8 @@ class ToolBroker:
     def _list_files(self) -> str:
         files: list[str] = []
         for path in self.workspace.rglob("*"):
+            if self._stop.is_set():
+                raise ToolError("tool broker is stopping")
             if path.is_symlink():
                 continue
             if path.is_file():
@@ -301,10 +390,11 @@ class ToolBroker:
         target = self._resolve(relative)
         if not target.is_file():
             raise ToolError(f"no such file: {relative}")
-        data = target.read_bytes()
+        with target.open("rb") as stream:
+            data = stream.read(MAX_FILE_BYTES + 1)
         if len(data) > MAX_FILE_BYTES:
             raise ToolError(
-                f"{relative} is {len(data)} bytes; limit is {MAX_FILE_BYTES}")
+                f"{relative} exceeds the {MAX_FILE_BYTES} byte limit")
         if b"\0" in data[:4096]:
             raise ToolError(f"{relative} looks binary ({len(data)} bytes)")
         text = data.decode("utf-8", errors="replace")
@@ -313,19 +403,12 @@ class ToolBroker:
         return text
 
     def _probe(self) -> Path:
-        probe = self.workspace / "probe"
-        if not probe.is_file():
-            raise ToolError("probe is not present in this task")
+        probe = self._trusted_probe
+        if probe is None or not probe.is_file():
+            raise ToolError("no trusted probe is configured for this task")
         return probe
 
-    @staticmethod
-    def _probe_command(probe: Path) -> list[str]:
-        if os.name == "nt" and (probe.parent / "probe.cmd").is_file():
-            return [str(probe.parent / "probe.cmd")]
-        return [str(probe)]
-
     def _run_probe(self, args: dict[str, Any]) -> str:
-        probe = self._probe()
         if args.get("input_hex"):
             try:
                 payload = bytes.fromhex(str(args["input_hex"]))
@@ -337,16 +420,30 @@ class ToolBroker:
             raise ToolError(
                 f"probe input exceeds {MAX_PROBE_INPUT} bytes")
         try:
-            proc = subprocess.run(
-                self._probe_command(probe), input=payload,
-                capture_output=True, timeout=PROBE_TIMEOUT)
-        except (OSError, subprocess.TimeoutExpired) as exc:
+            if self.access == "oracle":
+                if self._oracle_query is None:
+                    raise ToolError("no harness oracle is configured for this task")
+                code, stdout, stderr = self._oracle_query(payload)
+            elif self.access == "binary":
+                probe = self._probe()
+                proc = run_bounded(
+                    self._command or [str(probe)], input=payload,
+                    timeout=PROBE_TIMEOUT,
+                    max_stdout_bytes=MAX_PROBE_OUTPUT,
+                    max_stderr_bytes=MAX_PROBE_OUTPUT,
+                    cwd=probe.parent, env=probe_environment(),
+                    cancel_event=self._stop)
+                code, stdout, stderr = proc.returncode, proc.stdout, proc.stderr
+            else:
+                raise ToolError("probe is not present in this task")
+        except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded,
+                ProcessCancelled, OracleError) as exc:
             raise ToolError(f"probe failed: {exc}") from exc
-        out = proc.stdout[:MAX_PROBE_OUTPUT].decode(
+        out = stdout.decode(
             "utf-8", errors="replace")[:MAX_TOOL_CHARS]
-        err = proc.stderr[:MAX_PROBE_OUTPUT].decode(
+        err = stderr.decode(
             "utf-8", errors="replace")[:MAX_TOOL_CHARS]
-        return f"exit={proc.returncode}\nstdout:\n{out}\nstderr:\n{err}"
+        return f"exit={code}\nstdout:\n{out}\nstderr:\n{err}"
 
     def _full_disassembly(self) -> str:
         if not self.enable_disassembly or self.access != "binary":
@@ -362,10 +459,15 @@ class ToolBroker:
         if tool is None:
             raise ToolError("no disassembler available")
         try:
-            proc = subprocess.run(
+            proc = run_bounded(
                 [tool, "-d", "--no-show-raw-insn", str(probe)],
-                capture_output=True, timeout=DISASSEMBLY_TIMEOUT)
-        except (OSError, subprocess.TimeoutExpired) as exc:
+                timeout=DISASSEMBLY_TIMEOUT,
+                max_stdout_bytes=MAX_DISASSEMBLY_BYTES,
+                max_stderr_bytes=MAX_PROBE_OUTPUT,
+                cwd=probe.parent, env=probe_environment(),
+                cancel_event=self._stop)
+        except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded,
+                ProcessCancelled) as exc:
             raise ToolError(f"disassembly failed: {exc}") from exc
         text = (proc.stdout or proc.stderr).decode(
             "utf-8", errors="replace")

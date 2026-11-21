@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "AegisPolicyPass.h"
+#include "DecoyCorpus.h"
 #include "aegis/Policy.h"
 
 #include "llvm/ADT/DenseMap.h"
@@ -116,6 +117,8 @@ PreservedAnalyses AegisPolicyPass::run(Module &M, ModuleAnalysisManager &) {
     }
 
     F->addFnAttr("aegis.level", std::to_string(PF.Level));
+    if (PF.Level > 0)
+      recordProtectionRequest(M);
     errs() << "[aegis-policy] select " << F->getName() << " ("
            << demangle(F->getName().str()) << ") level=" << PF.Level;
     if (!PF.Reason.empty())

@@ -11,6 +11,8 @@
 #include "ControlFlow.h"
 #include "DecoyCorpus.h"
 
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
@@ -21,6 +23,44 @@ using namespace llvm;
 namespace aegis {
 
 namespace {
+
+void printFlatteningCostHints(Function &F) {
+  // These are structural indicators, not measured hotness. Construct local
+  // analyses so this advisory pass neither rewrites IR nor needs cached state.
+  DominatorTree DT(F);
+  LoopInfo LI(DT);
+  unsigned Loops = 0;
+  unsigned MaxLoopDepth = 0;
+  for (const Loop *L : LI.getLoopsInPreorder()) {
+    ++Loops;
+    if (L->getLoopDepth() > MaxLoopDepth)
+      MaxLoopDepth = L->getLoopDepth();
+  }
+
+  unsigned Phis = 0;
+  unsigned CrossBlockValues = 0;
+  for (const Instruction &I : instructions(F)) {
+    if (isa<PHINode>(I)) {
+      ++Phis;
+      continue;
+    }
+    if (I.getType()->isVoidTy() || I.getType()->isTokenTy() ||
+        I.getType()->isMetadataTy() || isa<AllocaInst>(I) || I.isTerminator())
+      continue;
+    for (const User *U : I.users()) {
+      const auto *UseInst = dyn_cast<Instruction>(U);
+      if (UseInst && UseInst->getParent() != I.getParent()) {
+        ++CrossBlockValues;
+        break;
+      }
+    }
+  }
+  errs() << " loops=" << Loops << " max_loop_depth=" << MaxLoopDepth
+         << " phi_nodes=" << Phis << " cross_block_values=" << CrossBlockValues
+         << " cost_hint="
+         << (Loops ? "measure-loop-dispatch-and-spills"
+                   : "measure-dispatch-and-spills");
+}
 
 bool isSmallStatelessCandidate(const Function &F) {
   // Deliberately conservative: a function is only a migration candidate when
@@ -52,6 +92,8 @@ StringRef repairAdvice(StringRef Reason) {
     return "move-exception-path-out-of-selected-function";
   if (Reason.contains("returns_twice"))
     return "isolate-setjmp-longjmp-from-selected-function";
+  if (Reason.contains("alloca") || Reason.contains("stack save/restore"))
+    return "use-fixed-entry-storage-or-lower-protection-level";
   if (Reason.contains("inline assembly"))
     return "replace-inline-assembly-or-select-another-function";
   if (Reason.contains("coro."))
@@ -131,7 +173,10 @@ PreservedAnalyses AegisLintPass::run(Module &M, ModuleAnalysisManager &) {
              << " advisory=" << repairAdvice(Reason);
     }
     errs() << " blocks=" << F.size()
-           << " instructions=" << F.getInstructionCount() << "\n";
+           << " instructions=" << F.getInstructionCount();
+    if (Level == 3 && Reason.empty())
+      printFlatteningCostHints(F);
+    errs() << "\n";
   }
 
   errs() << "[aegis-lint] summary: functions=" << Functions

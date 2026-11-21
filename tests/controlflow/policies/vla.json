@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "profile": "research",
+  "seed": 4242,
+  "functions": [
+    {"name": "vla_target", "level": 3}
+  ]
+}

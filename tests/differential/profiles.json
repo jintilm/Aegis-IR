@@ -1,4 +1,5 @@
 {
+  "runtime_baseline_profile": "release-opt",
   "profiles": {
     "baseline": {
       "optflags": ["-O2"],

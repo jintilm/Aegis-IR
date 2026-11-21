@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import abc
 import importlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,13 @@ class Agent(abc.ABC):
     #: The process worker uses them to recreate the same configured adapter.
     adapter_options: dict[str, Any] = {}
 
+    # Adapters may implement effective_options() -> dict to declare complete,
+    # non-secret constructor options after resolving environment defaults.
+    # create_agent records those options for worker replay. Campaigns require
+    # the manifest to pin the complete result, including any configuration
+    # fingerprint. Adapters without this optional protocol retain their exact
+    # caller-provided options.
+
     def prepare(self, task: Any, workspace: Path) -> None:
         """Called once before ``solve``; workspace is the visible-only copy."""
 
@@ -111,5 +119,20 @@ def create_agent(spec: str, **options: Any) -> Agent:
             f"{resolved} cannot be constructed with options "
             f"{sorted(options)}: {exc}") from exc
     agent.adapter_spec = resolved
-    agent.adapter_options = dict(options)
+    effective = getattr(agent, "effective_options", None)
+    if callable(effective):
+        effective_options = effective()
+        if (not isinstance(effective_options, dict)
+                or not all(isinstance(key, str) and key
+                           for key in effective_options)):
+            raise AdapterError(
+                "effective_options() must return an object with string keys")
+        try:
+            canonical = json.dumps(effective_options, allow_nan=False)
+            agent.adapter_options = json.loads(canonical)
+        except (TypeError, ValueError) as exc:
+            raise AdapterError(
+                "effective_options() must return finite JSON values") from exc
+    else:
+        agent.adapter_options = dict(options)
     return agent

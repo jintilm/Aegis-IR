@@ -93,6 +93,16 @@ per-case ratios. This reduces host drift and process-startup noise.
 The command exits non-zero when a gated profile exceeds a budget or lacks a
 required measurement.
 
+Profile manifests now declare `runtime_baseline_profile`: `release-opt` for
+the small fixture and `baseline` for the representative suite (whose baseline
+already includes the `opt` round trip). The runner records that identity and
+the per-case timing samples; `--runtime-baseline` can override the manifest.
+The scorecard rejects a missing or different runtime baseline and does not
+substitute a ratio of unpaired p95 values for missing paired measurements.
+All runtime rounds must complete for every case before a paired metric is
+accepted. Older reports without the baseline stamp must be regenerated for a
+new gate; published historical reports remain frozen.
+
 ## Release integration
 
 `scripts/release-report.sh` requires all eight CTest targets, both differential

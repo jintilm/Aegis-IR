@@ -4,8 +4,8 @@
 //   * semantics: decoy branches are dynamically dead by construction (the
 //     guard global is zero-initialised with internal linkage and never stored
 //     to, so the volatile load always yields 0);
-//   * survival: decoy functions have external linkage and `noinline`, decoy
-//     strings are referenced from their bodies, so -O2 / GlobalDCE keep them;
+//   * survival: decoy functions have internal linkage, `noinline` and an
+//     explicit llvm.used retention root; their bodies keep decoy strings live;
 //   * determinism: every artifact derives from the module seed, so the same
 //     policy seed reproduces the same module.
 //
@@ -27,6 +27,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <string>
 
@@ -39,7 +40,7 @@ Function *createDecoyFunction(Module &M, StringRef Name, StringRef Text) {
   Type *I8Ptr = PointerType::getUnqual(Ctx);
   FunctionType *FT = FunctionType::get(Type::getInt1Ty(Ctx),
                                        {I8Ptr, Type::getInt64Ty(Ctx)}, false);
-  Function *F = Function::Create(FT, GlobalValue::ExternalLinkage, Name, &M);
+  Function *F = Function::Create(FT, GlobalValue::InternalLinkage, Name, &M);
   F->addFnAttr(Attribute::NoInline);
   F->addFnAttr(Attribute::NoUnwind);
   F->addFnAttr(Attribute::Cold);
@@ -206,6 +207,7 @@ PreservedAnalyses AegisDecoysPass::run(Module &M, ModuleAnalysisManager &) {
     errs() << "[aegis-decoys] no selected functions; module unchanged\n";
     return PreservedAnalyses::all();
   }
+  recordProtectionRequest(M);
 
   GlobalVariable *Guard = M.getNamedGlobal(kGuardGlobalName);
   if (!Guard)
@@ -213,8 +215,11 @@ PreservedAnalyses AegisDecoysPass::run(Module &M, ModuleAnalysisManager &) {
         M, Type::getInt32Ty(Ctx), false, GlobalValue::InternalLinkage,
         ConstantInt::get(Type::getInt32Ty(Ctx), 0), kGuardGlobalName);
 
-  // Decoy functions (external linkage; kept by the optimizer).
+  // Internal linkage lets independently protected translation units share a
+  // deterministic plan without exporting duplicate symbols. llvm.used keeps
+  // even uncalled decoys through optimization, LTO and linker section GC.
   SmallVector<Function *, 8> DecoyFns;
+  SmallVector<GlobalValue *, 8> RetainedDecoys;
   for (size_t I = 0; I < Plan.FunctionNames.size(); ++I) {
     std::string Final = Plan.FunctionNames[I];
     unsigned Suffix = 0;
@@ -224,7 +229,9 @@ PreservedAnalyses AegisDecoysPass::run(Module &M, ModuleAnalysisManager &) {
     errs() << "[aegis-decoys] decoy fn=" << Final << " str=\""
            << Plan.Strings[I] << "\"\n";
     DecoyFns.push_back(F);
+    RetainedDecoys.push_back(F);
   }
+  appendToUsed(M, RetainedDecoys);
 
   // Guard every policy-selected function.
   unsigned Guarded = 0;

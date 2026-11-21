@@ -36,6 +36,14 @@ assembly or other fail-closed construct before invoking the transforms.
 `aegis-lint` is advisory and exits successfully; the transforms remain the
 enforcement point.
 
+Eligible level-3 functions also report `loops`, `max_loop_depth`, `phi_nodes`
+and `cross_block_values`, with a `cost_hint` to measure dispatcher and spill
+overhead. These describe the input IR, not measured execution frequency or an
+exact count of generated memory operations. A nested loop may be cold; profile
+the workload before choosing level 3. If a selected function is measured to be
+hot, explicitly choosing level 1/2 is an option. Lint never changes the policy
+level or the module.
+
 ## Level 2 — bogus flow plus an input-driven live split
 
 For every function the policy marks `level >= 2`:
@@ -122,10 +130,18 @@ with the reason, instead of leaving the function partially transformed:
 - inline assembly and calls to `convergent` functions;
 - functions that call a `returns_twice` function (`setjmp`/`longjmp`), where a
   second entry into the body would skip the dispatcher prologue;
+- dynamic or non-entry `alloca` instructions, including C variable-length
+  arrays, and stack save/restore intrinsics; their allocation dependencies and
+  stack lifetimes are not supported by the dispatcher rewrite;
 - the base rules shared with decoys: `optnone`, `naked`,
   `available_externally`, an EH personality, `musttail`.
 
 Level 2 only needs the base rules.
+
+Lint reports the same stack-allocation restriction before rewriting and
+recommends fixed entry storage or a lower protection level. A valid VLA is not
+an invalid source program; it is a construct that this level-3 implementation
+must reject before producing invalid IR.
 
 ## What this does **not** do
 
@@ -172,3 +188,7 @@ the 235-case corpus. The representative suite separately measures the same
 profiles on a sustained algorithm workload and a deterministic 75-case corpus;
 flattening remains non-gating research data because its overhead is expected
 to be high.
+
+A C11 VLA fixture additionally verifies that valid frontend IR and baseline
+behavior are accepted, lint and level 3 reject the unsupported allocation with
+the same reason, and level 2 still preserves its behavior.

@@ -258,6 +258,10 @@ powered count above.
   execution both run in a private scratch directory with a minimal
   environment, a wall-clock timeout, an address-space rlimit and an output cap.
   Absolute and parent-relative `#include`s are rejected before compilation.
+  Both stdout and stderr are capped while reading (1 MiB each for grading and
+  compiler diagnostics). Exceeding either limit fails the build or case;
+  truncated output is never accepted as an equivalent result. On Linux,
+  timeout and output-limit cleanup terminates the whole child process group.
 - A candidate-source policy rejects (a) references to grader material,
   (b) `system`/`exec*`/`fork` calls, (c) quoted includes outside the task
   interface and the candidate's own files, and (d) sources over 256 KiB.

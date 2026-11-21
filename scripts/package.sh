@@ -27,33 +27,12 @@ export SOURCE_DATE_EPOCH
 
 echo "== building $NAME in $IMAGE =="
 if [ "${AEGIS_IN_CONTAINER:-0}" = "1" ]; then
-  run_build() {
-    bash -c "$1"
-  }
+  bash "$REPO_ROOT/scripts/package-build.sh"
 else
-  run_build() {
-    MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src \
-      -e AEGIS_PACKAGE_SKIP_TESTS \
-      "$IMAGE" bash -c "$1"
-  }
+  MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO_ROOT:/src" -w /src \
+    -e AEGIS_PACKAGE_SKIP_TESTS \
+    "$IMAGE" bash /src/scripts/package-build.sh
 fi
-
-run_build '
-set -e
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm >/dev/null
-cmake --build build -j >/dev/null
-if [ "${AEGIS_PACKAGE_SKIP_TESTS:-0}" = "1" ]; then
-  echo "build OK; tests skipped for deterministic rebuild comparison"
-else
-  if ! (cd build && ctest --output-on-failure) \
-      > "$REPO_ROOT/build/package-ctest.log" 2>&1; then
-    cat "$REPO_ROOT/build/package-ctest.log"
-    exit 1
-  fi
-  echo "build + tests OK"
-fi
-'
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT

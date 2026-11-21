@@ -488,6 +488,12 @@ def _preflight_agents(
             raise ExperimentError(
                 f"agent {spec.id}: adapter must expose a non-empty version")
         if getattr(agent, "adapter_options", {}) != spec.options:
+            if callable(getattr(agent, "effective_options", None)):
+                raise ExperimentError(
+                    f"agent {spec.id}: manifest options do not pin the complete "
+                    f"effective configuration; generate options with the "
+                    f"adapter's effective_options() or its pilot wrapper, "
+                    f"then use a new output directory")
             raise ExperimentError(
                 f"agent {spec.id}: adapter factory did not attach options")
         versions[spec.id] = version
@@ -753,6 +759,10 @@ def _run_campaign_unlocked(
             raise ExperimentError(
                 f"adapter version changed during the campaign for "
                 f"{cell.agent_id!r}")
+        if getattr(agent, "adapter_options", {}) != cell.options:
+            raise ExperimentError(
+                f"adapter effective configuration changed during the campaign "
+                f"for {cell.agent_id!r}")
         record = runner.run(
             [task], [agent], profile=cell.profile,
             repetitions=1, repetition_start=cell.repetition)[0]

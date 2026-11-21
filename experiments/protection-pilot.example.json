@@ -14,7 +14,17 @@
       "adapter": "replace_with_adapter_module:AgentClass",
       "expected_version": "replace-with-source-hash",
       "options": {
-        "model": "deepseek-v4-pro"
+        "model": "deepseek-v4-pro",
+        "base_url": "https://relay.example/v1",
+        "max_steps": 30,
+        "max_tokens": 16384,
+        "hard_tokens": 16384,
+        "call_timeout": 300,
+        "temperature": 0.2,
+        "restart_after": 3,
+        "reasoning_limit": 12000,
+        "retries": 20,
+        "config_sha256": "replace-entire-options-with-generated-effective-options"
       }
     },
     {
@@ -22,7 +32,17 @@
       "adapter": "replace_with_adapter_module:AgentClass",
       "expected_version": "replace-with-source-hash",
       "options": {
-        "model": "deepseek-flash"
+        "model": "deepseek-flash",
+        "base_url": "https://relay.example/v1",
+        "max_steps": 30,
+        "max_tokens": 16384,
+        "hard_tokens": 16384,
+        "call_timeout": 300,
+        "temperature": 0.2,
+        "restart_after": 3,
+        "reasoning_limit": 12000,
+        "retries": 20,
+        "config_sha256": "replace-entire-options-with-generated-effective-options"
       }
     }
   ],
@@ -45,5 +65,5 @@
   "require_network_namespace": true,
   "allow_oracle_comparison": false,
   "out": "../bench-out/protection-pilot",
-  "notes": "Copy outside the tree or edit the placeholders. Real adapters stay out-of-tree; the example is not runnable unchanged."
+  "notes": "Template only; not runnable unchanged. Follow docs/reference-adapter.md to generate each agent's complete effective_options(), adapter spec and source version into a new manifest under bench-out. Example numeric options illustrate the shape; generation replaces them with the intended environment's effective settings. Never put API keys in options."
 }
